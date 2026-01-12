@@ -1,0 +1,31 @@
+AEKE_Fitness/
+├── main.py                     # 程序入口 (组装各模块)
+├── core/                       # 基础设施层
+│   ├── __init__.py
+│   ├── config.py               # [核心] 所有参数配置
+│   ├── camera.py               # 摄像头驱动
+│   └── sound.py                # 音效管理
+├── utils/                      # 通用工具层
+│   ├── __init__.py
+│   ├── geometry.py             # 几何计算
+│   └── smoother.py             # 关键点平滑
+├── logic/                      # [新增] 通用业务逻辑层
+│   ├── __init__.py
+│   ├── spine.py                # 脊柱分析 (独立文件)
+│   ├── gatekeeper.py           # 门控逻辑 (独立文件)
+│   ├── feedback.py             # 纠错状态机 (独立文件)
+│   └── common_checks.py        # 通用错误定义 (如耸肩)
+└── ui/
+    ├── __init__.py        # (保持或更新)
+    ├── utils.py           # [新增] 通用绘图工具
+    ├── skeleton.py        # [新增] 人体骨架绘制
+    ├── visuals.py         # [新增] 纠错特效绘制
+    ├── widgets.py         # [新增] 交互组件绘制与逻辑
+    └── renderer.py        # [重写] 统一入口 (Facade)
+└── exercises/                  # 动作层
+    ├── __init__.py
+    ├── base.py                 # 动作基类 (集成逻辑层)
+    ├── press.py                # 推举
+    ├── squat.py                # 深蹲
+    ├── front_raise.py          # 前平举
+    └── lunge.py                # 弓步蹲 (完美逻辑版)

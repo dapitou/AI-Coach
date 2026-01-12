@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Profile - 高保真原型 v4.3 (Export)</title>
+    <style>
+        :root {
+            /* 视觉系统 */
+            --bg-canvas: #1E1E1E;
+            --bg-device: #F2F2F7;
+            --c-card: #FFFFFF;
+            --c-text-primary: #000000;
+            --c-text-secondary: #3C3C43;
+            --c-text-tertiary: #8E8E93;  
+            --c-border: #E5E5EA;
+            --c-active-ui: #000000;
+            --c-active-text: #FFFFFF;
+            --c-accent: #FF3B30;
+            --c-link-line: #666666;
+            
+            /* 尺寸 */
+            --device-w: 540px;
+            --device-h: 960px;
+            --radius-card: 16px;
+            
+            /* 阴影 */
+            --shadow-device: 0 20px 50px rgba(0,0,0,0.5);
+            --shadow-card: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-drag: none; }
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-canvas);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* --- UI Controls --- */
+        .ui-overlay { position: fixed; z-index: 1000; display: flex; gap: 12px; pointer-events: none; }
+        .ui-top-left { top: 20px; left: 20px; pointer-events: auto; }
+        .ui-top-right { top: 20px; right: 20px; pointer-events: auto; }
+        .ui-bottom-left { bottom: 20px; left: 20px; color: #888; font-size: 12px; }
+
+        .btn-ui {
+            background: rgba(255,255,255,0.1); color: #FFF; border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;
+            transition: all 0.2s; backdrop-filter: blur(4px); display: flex; align-items: center; gap: 6px;
+        }
+        .btn-ui:hover { background: rgba(255,255,255,0.2); }
+        .btn-ui.active { background: var(--c-accent); border-color: var(--c-accent); }
+
+        /* --- Canvas --- */
+        #canvas-container {
+            width: 100%; height: 100%; cursor: grab; transform-origin: 0 0;
+            background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
+        }
+        #canvas-container.grabbing { cursor: grabbing; }
+
+        #stage {
+            position: absolute; transform-origin: 0 0;
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            width: 8000px; height: 5000px;
+        }
+
+        #connections-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5; overflow: visible;
+            opacity: 1; transition: opacity 0.3s;
+        }
+        body[data-mode="single"] #connections-layer { opacity: 0; }
+        
+        path.connector {
+            fill: none; stroke: var(--c-link-line); stroke-width: 2; stroke-dasharray: 6 6;
+            transition: stroke 0.3s; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+        }
+
+        /* --- Page Wrapper --- */
+        .page-wrapper {
+            position: absolute; transition: opacity 0.3s; overflow: visible; z-index: 10;
+        }
+        body[data-mode="single"] .page-wrapper { display: none; }
+        body[data-mode="single"] .page-wrapper.active { display: block; z-index: 100; cursor: default; }
+        body[data-mode="flow"] .page-wrapper { cursor: pointer; }
+        body[data-mode="flow"] .page-wrapper:hover { transform: scale(1.02); z-index: 20; }
+        body[data-mode="flow"] .page-wrapper:hover .device-frame { box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
+
+        .device-frame {
+            width: var(--device-w); height: var(--device-h);
+            background: var(--bg-device); border-radius: 40px;
+            box-shadow: var(--shadow-device); position: relative; overflow: hidden;
+            transform-origin: center; display: flex; flex-direction: column;
+            pointer-events: none;
+        }
+        .device-frame > * { pointer-events: auto; }
+        body[data-mode="flow"] .device-frame > * { pointer-events: none; }
+
+        .page-label {
+            position: absolute; top: -50px; left: 0; width: 100%; text-align: center;
+            color: #FFF; font-size: 20px; font-weight: 500; letter-spacing: 1px;
+            opacity: 1; transition: opacity 0.3s; pointer-events: none;
+        }
+        body[data-mode="single"] .page-label { opacity: 0; }
+
+        /* --- Annotations --- */
+        .annotation-dot {
+            position: absolute; width: 24px; height: 24px;
+            background: var(--c-accent); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 900; cursor: help;
+            border: 2px solid #FFF; 
+            transform: translate(50%, -50%); 
+            pointer-events: auto;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .annotation-dot:hover { z-index: 901; transform: translate(50%, -50%) scale(1.3); }
+        body[data-mode="flow"] .annotation-dot { display: none; } 
+
+        .sidebar-notes {
+            position: absolute; top: 0; left: calc(100% + 60px); width: 420px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            color: #CCC; z-index: 200;
+        }
+        body[data-mode="single"] .sidebar-notes { opacity: 1; pointer-events: auto; }
+
+        .note-card {
+            background: rgba(40,40,40, 0.95); border-left: 4px solid var(--c-accent);
+            padding: 16px; margin-bottom: 12px; border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: transform 0.2s, background 0.2s;
+        }
+        .note-card.active-highlight { 
+            box-shadow: 0 0 0 2px var(--c-accent), 0 8px 24px rgba(0,0,0,0.5); 
+            background: rgba(60,60,60,1); 
+            transform: translateX(-10px);
+        }
+        .note-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; color: #FFF; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+        .note-badge { background: var(--c-accent); color: white; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .note-title { font-weight: bold; font-size: 15px; }
+        .note-body { font-size: 13px; line-height: 1.5; color: #DDD; }
+        .note-line { display: block; margin-bottom: 4px; }
+        .note-label { color: #888; font-weight: bold; margin-right: 4px; }
+
+        /* --- APP UI Components --- */
+        .app-header {
+            padding: 60px 24px 0px; background: #FFF;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .header-title { font-size: 32px; font-weight: 800; color: var(--c-text-primary); margin-bottom: 24px; }
+        
+        .tab-bar { display: flex; gap: 32px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .tab-item { 
+            font-size: 16px; font-weight: 600; color: #999; padding-bottom: 12px; 
+            cursor: pointer; position: relative; transition: color 0.2s;
+        }
+        .tab-item.active { color: var(--c-active-ui); font-size: 18px; font-weight: 700; }
+        .tab-item.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px;
+            background: var(--c-active-ui); border-radius: 2px;
+        }
+        
+        .app-scroll-content { flex: 1; overflow-y: auto; padding: 24px; }
+        .app-scroll-content::-webkit-scrollbar { width: 0; }
+
+        .section-header { 
+            font-size: 14px; 
+            color: #666; font-weight: 600; 
+            margin: 24px 0 8px 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .section-header:first-child { margin-top: 8px; }
+
+        .help-icon {
+            width: 18px; height: 18px; border-radius: 50%; border: 1px solid #999;
+            color: #999; font-size: 11px; font-weight: 600;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .help-icon:hover { border-color: var(--c-text-primary); color: var(--c-text-primary); background: rgba(0,0,0,0.05); }
+
+        .group-card {
+            background: var(--c-card); border-radius: var(--radius-card);
+            overflow: hidden; box-shadow: var(--shadow-card); margin-bottom: 8px;
+        }
+
+        .list-item {
+            background: #FFF; border-bottom: 1px solid var(--c-border);
+            padding: 18px 20px; display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item:active { background: #F2F2F7; }
+        
+        .item-label { font-size: 16px; color: var(--c-text-primary); font-weight: 400; } 
+        .item-value { font-size: 16px; color: var(--c-text-secondary); display: flex; align-items: center; gap: 8px; } 
+        .item-value.placeholder { color: #AAA; }
+        .item-value.highlight { color: var(--c-active-ui); font-weight: 600; }
+        .arrow-icon { width: 14px; height: 14px; opacity: 0.3; }
+
+        .chip-group { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px; }
+        .chip {
+            padding: 8px 16px; background: #F2F2F7; border-radius: 18px;
+            font-size: 15px; color: #666; font-weight: 500;
+            border: 1px solid transparent; cursor: pointer; transition: all 0.2s;
+        }
+        .chip.active { background: var(--c-active-ui); color: var(--c-active-text); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        .day-selector { display: flex; justify-content: space-between; padding: 20px 10px; }
+        .day-col { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+        .day-circle {
+            width: 40px; height: 40px; border-radius: 50%; background: #F2F2F7;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600; color: #999;
+            transition: all 0.2s;
+        }
+        .day-label { font-size: 10px; color: #999; font-weight: 500; }
+        .day-col.active .day-circle { background: var(--c-active-ui); color: var(--c-active-text); }
+        .day-col.active .day-label { color: var(--c-active-ui); font-weight: 600; }
+
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 200; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s; display: flex; flex-direction: column; justify-content: flex-end;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        
+        .bottom-sheet {
+            background: #FFF; border-radius: 24px 24px 0 0; padding: 24px;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            padding-bottom: 40px; max-height: 80%; overflow-y: auto;
+        }
+        .modal-overlay.open .bottom-sheet { transform: translateY(0); }
+        
+        .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .sheet-title { font-size: 20px; font-weight: 700; }
+        .sheet-close { color: var(--c-active-ui); font-weight: 600; cursor: pointer; font-size: 16px; }
+
+        .slider-container { margin: 30px 0; }
+        .slider-val-display { font-size: 56px; font-weight: 700; text-align: center; color: var(--c-text-primary); margin-bottom: 20px; letter-spacing: -1px; }
+        .slider-unit { font-size: 18px; color: #999; font-weight: 500; margin-left: 6px;}
+        input[type=range] {
+            width: 100%; -webkit-appearance: none; height: 4px; background: #E5E5EA; border-radius: 2px; outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 32px; height: 32px; border-radius: 50%;
+            background: #FFF; border: 2px solid var(--c-active-ui); box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer;
+        }
+
+        .toggle-switch {
+            display: flex; background: #F2F2F7; border-radius: 9px; padding: 2px; width: fit-content; margin: 0 auto;
+        }
+        .toggle-opt { padding: 6px 20px; font-size: 14px; font-weight: 600; border-radius: 7px; color: #999; cursor: pointer; transition: all 0.1s;}
+        .toggle-opt.active { background: #FFF; color: #000; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
+        .date-columns { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .date-col select { 
+            padding: 12px; font-size: 18px; border-radius: 12px; border: 1px solid #E5E5EA; 
+            background: #FFF; color: #000; -webkit-appearance: none; text-align: center;
+        }
+
+        .info-card {
+            padding: 16px 20px; border-bottom: 1px solid var(--c-border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .info-card:last-child { border-bottom: none; }
+        .info-label { font-size: 16px; color: var(--c-text-secondary); }
+        .info-num { font-size: 17px; font-weight: 600; color: var(--c-text-primary); }
+
+        /* Shape Placeholder */
+        .shape-option {
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            padding: 16px; background: #F2F2F7; border-radius: 12px; cursor: pointer;
+            border: 2px solid transparent; transition: all 0.2s;
+        }
+        .shape-option.active { border-color: var(--c-active-ui); background: #FFF; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .shape-svg { width: 60px; height: 100px; fill: #CCC; }
+        .shape-option.active .shape-svg { fill: var(--c-active-ui); }
+    </style>
+</head>
+<body data-mode="flow">
+
+    <div class="ui-overlay ui-top-left">
+        <button class="btn-ui" id="btn-back" onclick="app.setMode('flow')" style="display: none;">
+            <span>←</span> 返回流程 (Esc)
+        </button>
+        <div style="color:white; font-weight:bold; padding: 8px; font-family: monospace;">Workout Profile v4.3</div>
+    </div>
+    <div class="ui-overlay ui-top-right">
+        <button class="btn-ui" id="btn-export" onclick="exporter.capture()">📷 导出 PNG</button>
+        <button class="btn-ui active" id="btn-lang" onclick="app.toggleLang()">中 / En</button>
+    </div>
+    <div class="ui-overlay ui-bottom-left"><p>中键/空格拖拽 • 滚轮缩放 • 点击卡片进入单页详情</p></div>
+
+    <div id="canvas-container">
+        <div id="stage">
+            <svg id="connections-layer">
+                <defs>
+                    <marker id="arrow-start" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+                      <path d="M9,0 L0,3 L9,6" fill="none" stroke="#666" stroke-width="1.5" />
+                    </marker>
+                    <marker id="arrow-end" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto" markerUnits="strokeWidth">
+                      <path d="M0,0 L10,3 L0,6" fill="none" stroke="#666" stroke-width="1.5" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        const TEXTS = {
+            confirm: { zh: "确定", en: "Confirm" },
+            edit: { zh: "编辑", en: "Edit" },
+            none: { zh: "无", en: "None" },
+            // English Units Globally
+            unit_kg: { zh: "kg", en: "kg" },
+            unit_lbs: { zh: "lbs", en: "lbs" },
+            unit_cm: { zh: "cm", en: "cm" },
+            unit_min: { zh: "min", en: "min" },
+            current_val: { zh: "当前", en: "Current" },
+            health_metrics: { zh: "健康指标", en: "Health Metrics" },
+            days_count: { zh: "天/周", en: "days/week" },
+            lbl_train: { zh: "训练", en: "Train" },
+            lbl_rest: { zh: "休息", en: "Rest" },
+            tap_missing: { zh: "点击您<b>没有</b>的器械：", en: "Tap items you <b>DO NOT</b> have:" },
+            
+            // Help Content
+            help_style_title: { zh: "训练风格说明", en: "Training Style" },
+            help_style_desc: { zh: "• 传统型：均衡的组数与次数，适合大多数人。\n• 多变型：动作组合经常变化，保持新鲜感。\n• 激进型：高强度、短间歇，挑战极限。", en: "• Traditional: Balanced sets/reps.\n• Varied: Frequently changing routines.\n• Intense: High intensity, short breaks." },
+            
+            help_pain_title: { zh: "疼痛部位说明", en: "Pain Areas" },
+            help_pain_desc: { zh: "请如实选择您感到不适的关节或部位。系统将自动屏蔽会给这些部位带来压力的动作，确保运动安全。", en: "Select areas where you feel discomfort. The system will exclude exercises that stress these joints." },
+            
+            help_equip_title: { zh: "器械选择说明", en: "Equipment" },
+            help_equip_desc: { zh: "默认假设您拥有所有基础器械。请勾选您【确实没有】的器械，计划将自动替换为自重或替代动作。", en: "We assume you have basic equipment. Tap items you DO NOT own to filter them out." },
+
+            sec_personal: { zh: "个人信息", en: "Personal Info" },
+            sec_body: { zh: "身体数据", en: "Body Data" },
+            sec_schedule: { zh: "训练日程", en: "Schedule" },
+            sec_details: { zh: "偏好细节", en: "Preferences" },
+            sec_objectives: { zh: "核心目标", en: "Objectives" },
+            sec_target: { zh: "目标体态", en: "Target Body" },
+            tab_basic: { zh: "基础", en: "Basic" },
+            tab_pref: { zh: "偏好", en: "Preference" },
+            tab_goal: { zh: "目标", en: "Goals" },
+            p1_title: { zh: "运动档案", en: "Workout Profile" },
+            
+            gender: { zh: "性别", en: "Gender" },
+            birthday: { zh: "生日", en: "Birthday" },
+            height: { zh: "身高", en: "Height" },
+            weight: { zh: "体重", en: "Weight" },
+            bmi: { zh: "BMI 指数", en: "BMI" },
+            rhr: { zh: "静息心率", en: "Resting HR" },
+            mhr: { zh: "最大心率", en: "Max HR" },
+            level: { zh: "运动等级", en: "Level" },
+            days: { zh: "每周训练日", en: "Training Days" },
+            duration: { zh: "每天训练时长", en: "Daily Duration" },
+            style: { zh: "训练风格", en: "Style" },
+            pain: { zh: "疼痛部位", en: "Pain Areas" },
+            equip: { zh: "没有的器械", en: "Missing Equip" },
+            goal_1: { zh: "一级目标", en: "Main Goal" },
+            goal_2: { zh: "二级目标", en: "Sub Goal" },
+            body_shape: { zh: "目标体型", en: "Target Body" },
+            target_weight: { zh: "目标体重", en: "Target Weight" },
+            
+            male: { zh: "男", en: "Male" },
+            female: { zh: "女", en: "Female" },
+            beginner: { zh: "初级", en: "Beginner" },
+            intermediate: { zh: "中级", en: "Intermediate" },
+            advanced: { zh: "高级", en: "Advanced" },
+            style_trad: { zh: "传统型", en: "Traditional" },
+            style_var: { zh: "多变型", en: "Varied" },
+            style_agg: { zh: "激进型", en: "Intense" },
+            equip_all: { zh: "全都有", en: "Have All" },
+            g_muscle: { zh: "增肌", en: "Build Muscle" },
+            g_fat: { zh: "减脂", en: "Lose Fat" },
+            g_health: { zh: "健康", en: "Health" },
+            pain_wrist: { zh: "手腕", en: "Wrist" },
+            pain_elbow: { zh: "肘部", en: "Elbow" },
+            pain_shoulder: { zh: "肩部", en: "Shoulder" },
+            pain_waist: { zh: "腰部", en: "Waist" },
+            pain_hip: { zh: "髋部", en: "Hip" },
+            pain_knee: { zh: "膝盖", en: "Knee" },
+            pain_ankle: { zh: "脚踝", en: "Ankle" },
+            eq_bench: { zh: "健身凳", en: "Bench" },
+            eq_block: { zh: "瑜伽砖", en: "Block" },
+            eq_roller: { zh: "泡沫轴", en: "Foam Roller" },
+            goal2_strength: { zh: "力量", en: "Strength" },
+            goal2_endurance: { zh: "耐力", en: "Endurance" },
+            goal2_power: { zh: "爆发", en: "Power" },
+            goal2_recovery: { zh: "恢复", en: "Recovery" },
+            goal2_flex: { zh: "柔韧", en: "Flexibility" },
+            goal2_coord: { zh: "协调", en: "Coordination" },
+            goal2_posture: { zh: "体态", en: "Posture" },
+            goal2_sport: { zh: "专项", en: "Sport Specific" },
+            shape_std: { zh: "均衡标准型", en: "Standard" },
+            shape_mus: { zh: "标准肌肉型", en: "Muscular" },
+            shape_lean: { zh: "紧致精瘦型", en: "Lean" },
+            shape_body: { zh: "健美肌肉型", en: "Bodybuilder" }
+        };
+
+        const STORE = {
+            lang: 'zh',
+            mode: 'flow',
+            profile: {
+                gender: 'male',
+                birthday: '1990-01-01',
+                height: 170,
+                weight: 60,
+                unit: 'kg', 
+                level: 'beginner',
+                days: [1, 3, 5], 
+                duration: 20,
+                style: 'trad',
+                pains: [],
+                missingEquip: [], 
+                goal1: 'muscle',
+                goal2: 'goal2_strength', 
+                targetShape: 'shape_std',
+                targetWeight: 65
+            },
+            painOptions: ['pain_wrist','pain_elbow','pain_shoulder','pain_waist','pain_hip','pain_knee','pain_ankle'],
+            equipOptions: ['eq_bench','eq_block','eq_roller'],
+            goal2Options: ['goal2_strength','goal2_endurance','goal2_power','goal2_recovery','goal2_flex','goal2_coord','goal2_posture','goal2_sport'],
+            shapeOptions: ['shape_std', 'shape_mus', 'shape_lean', 'shape_body']
+        };
+
+        const formatNote = (title, desc) => `<span class="note-label">${title}:</span>${desc}`;
+
+        const PAGES = [
+            {
+                id: 'basic', name: '运动档案 (Basic)', x: 100, y: 100,
+                desc: '包含性别、年龄、身高等基础生理参数的录入与计算。',
+                annotations: [
+                    { id: 1, target: 'f-gender', title: '性别', text: formatNote('说明','必填，单选，默认：男。') },
+                    { id: 2, target: 'f-birthday', title: '生日', text: formatNote('说明','必填，默认：1990-01-01。自动计算年龄用于MHR公式。') },
+                    { id: 3, target: 'f-height', title: '身高', text: formatNote('交互','必填，滑动控件。范围：100-250cm，步进：1，默认：170。') },
+                    { id: 4, target: 'f-weight', title: '体重', text: formatNote('说明','必填，范围：30-150kg。支持kg/lbs切换。首次初始化使用，后续跟随体脂秤更新。') },
+                    { id: 5, target: 'card-bmi', title: 'BMI 指数', text: formatNote('自动','无需填写。自动计算 = 体重(kg) ÷ 身高(m)²。规避冲击等级。') },
+                    { id: 6, target: 'card-rhr', title: '静息心率', text: formatNote('数据','无需填写。来源自心肺测评，初始为空。') },
+                    { id: 7, target: 'card-mhr', title: '最大心率', text: formatNote('公式','无需填写。MHR = 208 - (0.7 × 年龄)。随年龄自动更新。') }
+                ],
+                links: [{ target: 'prefs' }],
+                render: (lang) => renderBasicContent(lang)
+            },
+            {
+                id: 'prefs', name: '运动偏好 (Preferences)', x: 700, y: 100,
+                desc: '配置用户的运动能力等级、时间安排及身体状况规避。',
+                annotations: [
+                    { id: 1, target: 'f-level', title: '运动等级', text: formatNote('用途','必填，单选，默认：初级。用于内容难度匹配。') },
+                    { id: 2, target: 'f-days', title: '每周训练日', text: formatNote('逻辑','必填，多选，默认：一/三/五。勾选为“训练日”，未选为“休息日”。') },
+                    { id: 3, target: 'f-duration', title: '每天训练时长', text: formatNote('控件','必填，滑动控件。范围：20-60min，步进：1，默认：20。') },
+                    { id: 4, target: 'f-style', title: '训练风格', text: formatNote('说明','非必填，单选，默认：传统型。') },
+                    { id: 5, target: 'f-pain', title: '疼痛部位', text: formatNote('用途','非必填，多选，默认：无。用于动作规避算法。') },
+                    { id: 6, target: 'f-equip', title: '没有的器械', text: formatNote('用途','非必填，单选反向逻辑。默认“全都有”。选择“没有XX”时规避对应动作。') }
+                ],
+                links: [{ target: 'goals' }],
+                render: (lang) => renderPrefsContent(lang)
+            },
+            {
+                id: 'goals', name: '目标设定 (Goals)', x: 1300, y: 100,
+                desc: '设定核心运动目标，决定计划生成的底层逻辑。',
+                annotations: [
+                    { id: 1, target: 'f-goal1', title: '一级目标', text: formatNote('用途','必填，单选，默认：增肌。') },
+                    { id: 2, target: 'f-goal2', title: '二级目标', text: formatNote('用途','必填，单选，默认：力量。用于精确的内容匹配。') },
+                    { id: 3, target: 'f-shape', title: '目标体型', text: formatNote('说明','选填，单选，默认：均衡标准型。用于计划推荐。') },
+                    { id: 4, target: 'f-target-w', title: '目标体重', text: formatNote('交互','必填，滑动。展示当前体重对比。增肌仅可加，减脂仅可减，健康可随意。') }
+                ],
+                links: [],
+                render: (lang) => renderGoalsContent(lang)
+            }
+        ];
+
+        function t(key, lang) { return TEXTS[key] ? TEXTS[key][lang] : key; }
+
+        function renderPageLayout(activeTabId, lang, contentHtml) {
+            return `
+            <div class="app-header">
+                <div class="header-title">${t('p1_title', lang)}</div>
+                <div class="tab-bar">
+                    <div class="tab-item ${activeTabId==='basic'?'active':''}" onclick="app.router('basic')">${t('tab_basic', lang)}</div>
+                    <div class="tab-item ${activeTabId==='prefs'?'active':''}" onclick="app.router('prefs')">${t('tab_pref', lang)}</div>
+                    <div class="tab-item ${activeTabId==='goals'?'active':''}" onclick="app.router('goals')">${t('tab_goal', lang)}</div>
+                </div>
+            </div>
+            <div class="app-scroll-content">
+                ${contentHtml}
+            </div>
+            `;
+        }
+
+        function renderBasicContent(lang) {
+            const p = STORE.profile;
+            const h_m = p.height / 100;
+            const w_kg = p.unit === 'kg' ? p.weight : p.weight / 2.20462;
+            const bmi = (w_kg / (h_m * h_m)).toFixed(1);
+            const birthDate = new Date(p.birthday);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+            const mhr = Math.floor(208 - (0.7 * age));
+            
+            return renderPageLayout('basic', lang, `
+                <div class="section-header">${t('sec_personal', lang)}</div>
+                <div class="group-card">
+                    <div class="list-item" id="f-gender" onclick="app.openSheet('gender')">
+                        <span class="item-label">${t('gender', lang)}</span>
+                        <span class="item-value">${p.gender === 'male' ? t('male',lang) : t('female',lang)} <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQkJCIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTkgMTggNi02LTYtNiIvPjwvc3ZnPg==" class="arrow-icon"></span>
+                    </div>
+                    <div class="list-item" id="f-birthday" onclick="app.openSheet('birthday')">
+                        <span class="item-label">${t('birthday', lang)}</span>
+                        <span class="item-value">${p.birthday} (${age}) <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjQkJCIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTkgMTggNi02LTYtNiIvPjwvc3ZnPg==" class="arrow-icon"></span>
+                    </div>
+                </div>
+                <div class="section-header">${t('sec_body', lang)}</div>
+                <div class="group-card">
+                    <div class="list-item" id="f-height" onclick="app.openSheet('height')">
+                        <span class="item-label">${t('height', lang)}</span>
+                        <span class="item-value highlight">${p.height} cm</span>
+                    </div>
+                    <div class="list-item" id="f-weight" onclick="app.openSheet('weight')">
+                        <span class="item-label">${t('weight', lang)}</span>
+                        <span class="item-value highlight">${p.weight} ${t(p.unit === 'kg' ? 'unit_kg' : 'unit_lbs', lang)}</span>
+                    </div>
+                </div>
+                <div class="section-header">${t('health_metrics', lang)}</div>
+                <div class="group-card">
+                    <div class="info-card" id="card-bmi">
+                        <span class="info-label">${t('bmi', lang)}</span>
+                        <span class="info-num">${bmi}</span>
+                    </div>
+                    <div class="info-card" id="card-rhr">
+                        <span class="info-label">${t('rhr', lang)}</span>
+                        <span class="info-num" style="color:#CCC">--</span>
+                    </div>
+                    <div class="info-card" id="card-mhr">
+                        <span class="info-label">${t('mhr', lang)}</span>
+                        <span class="info-num">${mhr} bpm</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        function renderPrefsContent(lang) {
+            const p = STORE.profile;
+            const dayLabels = ['S','M','T','W','T','F','S'];
+            const equipText = p.missingEquip.length === 0 
+                ? t('equip_all', lang) 
+                : `${t('none',lang)}: ${p.missingEquip.map(k => t(k, lang)).join(', ')}`;
+
+            return renderPageLayout('prefs', lang, `
+                <div class="section-header">${t('level', lang)}</div>
+                <div class="group-card">
+                    <div class="chip-group" id="f-level">
+                        <div class="chip ${p.level==='beginner'?'active':''}" onclick="app.updateField('level','beginner')">${t('beginner',lang)}</div>
+                        <div class="chip ${p.level==='intermediate'?'active':''}" onclick="app.updateField('level','intermediate')">${t('intermediate',lang)}</div>
+                        <div class="chip ${p.level==='advanced'?'active':''}" onclick="app.updateField('level','advanced')">${t('advanced',lang)}</div>
+                    </div>
+                </div>
+                <div class="section-header">${t('sec_schedule', lang)}</div>
+                <div class="group-card">
+                     <div class="day-selector" id="f-days">
+                        ${dayLabels.map((d, i) => {
+                            const active = p.days.includes(i);
+                            return `<div class="day-col ${active?'active':''}" onclick="app.toggleDay(${i})">
+                                <div class="day-circle">${d}</div>
+                                <div class="day-label">${active ? t('lbl_train', lang) : t('lbl_rest', lang)}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <div class="list-item" id="f-duration" onclick="app.openSheet('duration')">
+                        <span class="item-label">${t('duration', lang)}</span>
+                        <span class="item-value highlight">${p.duration} ${t('unit_min', lang)}</span>
+                    </div>
+                </div>
+                <div class="section-header">${t('sec_details', lang)}</div>
+                <div class="group-card">
+                    <div class="section-header" style="margin:16px 0 0 20px;">${t('style', lang)} <span class="help-icon" onclick="event.stopPropagation(); app.openSheet('help_style')">?</span></div>
+                    <div class="chip-group" id="f-style" style="padding-top:12px; padding-bottom:12px;">
+                        <div class="chip ${p.style==='trad'?'active':''}" onclick="app.updateField('style','trad')">${t('style_trad',lang)}</div>
+                        <div class="chip ${p.style==='var'?'active':''}" onclick="app.updateField('style','var')">${t('style_var',lang)}</div>
+                        <div class="chip ${p.style==='agg'?'active':''}" onclick="app.updateField('style','agg')">${t('style_agg',lang)}</div>
+                    </div>
+                    <div style="border-top:1px solid #E5E5EA; margin:0 20px;"></div>
+                    <div class="section-header" style="margin:16px 0 0 20px;">${t('pain', lang)} <span class="help-icon" onclick="event.stopPropagation(); app.openSheet('help_pain')">?</span></div>
+                    <div class="chip-group" id="f-pain" style="padding-top:12px; padding-bottom:12px;">
+                        <div class="chip ${p.pains.length===0?'active':''}" onclick="app.updatePains('none')">${t('none',lang)}</div>
+                        ${STORE.painOptions.map(pain => `<div class="chip ${p.pains.includes(pain)?'active':''}" onclick="app.updatePains('${pain}')">${t(pain, lang)}</div>`).join('')}
+                    </div>
+                     <div class="list-item" id="f-equip" onclick="app.openSheet('equip')" style="border-top:1px solid #E5E5EA">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span class="item-label">${t('equip', lang)}</span>
+                            <span class="help-icon" onclick="event.stopPropagation(); app.openSheet('help_equip')">?</span>
+                        </div>
+                        <span class="item-value highlight" style="font-size:15px; text-align:right; max-width:60%">${equipText}</span>
+                     </div>
+                </div>
+            `);
+        }
+
+        function renderGoalsContent(lang) {
+            const p = STORE.profile;
+            return renderPageLayout('goals', lang, `
+                <div class="section-header">${t('sec_objectives', lang)}</div>
+                <div class="group-card">
+                    <div class="chip-group" id="f-goal1">
+                        <div class="chip ${p.goal1==='muscle'?'active':''}" onclick="app.updateField('goal1','muscle')">${t('g_muscle',lang)}</div>
+                        <div class="chip ${p.goal1==='fat'?'active':''}" onclick="app.updateField('goal1','fat')">${t('g_fat',lang)}</div>
+                        <div class="chip ${p.goal1==='health'?'active':''}" onclick="app.updateField('goal1','health')">${t('g_health',lang)}</div>
+                    </div>
+                    <div class="list-item" id="f-goal2" onclick="app.openSheet('goal2')">
+                        <span class="item-label">${t('goal_2', lang)}</span>
+                        <span class="item-value highlight">${t(p.goal2, lang)}</span>
+                    </div>
+                </div>
+                <div class="section-header">${t('sec_target', lang)}</div>
+                <div class="group-card">
+                     <div class="list-item" id="f-shape" onclick="app.openSheet('shape')">
+                        <span class="item-label">${t('body_shape', lang)}</span>
+                        <span class="item-value highlight">${t(p.targetShape, lang)}</span>
+                    </div>
+                    <div class="list-item" id="f-target-w" onclick="app.openSheet('targetW')">
+                        <div style="display:flex; flex-direction:column">
+                            <span class="item-label">${t('target_weight', lang)}</span>
+                            <span style="font-size:12px; color:var(--c-text-tertiary)">${t('current_val', lang)}: ${p.weight} ${t(p.unit==='kg'?'unit_kg':'unit_lbs', lang)}</span>
+                        </div>
+                        <span class="item-value highlight" style="font-size:24px">${p.targetWeight} <span style="font-size:16px; margin-left:4px">${t(p.unit==='kg'?'unit_kg':'unit_lbs', lang)}</span></span>
+                    </div>
+                </div>
+            `);
+        }
+
+        class SnapshotEngine {
+            capture() {
+                const mode = app.state.mode;
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Get style content
+                const css = Array.from(document.querySelectorAll('style')).map(s => s.innerText).join('\n');
+                
+                let width, height, htmlContent, offsetX = 0, offsetY = 0;
+
+                if (mode === 'flow') {
+                    // Calculate bounds
+                    const wrappers = document.querySelectorAll('.page-wrapper');
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    wrappers.forEach(w => {
+                        const r = w.getBoundingClientRect(); // relative to viewport
+                        // Get position relative to stage (approx)
+                        const x = parseInt(w.style.left);
+                        const y = parseInt(w.style.top);
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x + 540 + 420); // + sidebar width
+                        maxY = Math.max(maxY, y + 960);
+                    });
+                    
+                    // Add padding
+                    const p = 100;
+                    width = (maxX - minX) + p * 2;
+                    height = (maxY - minY) + p * 2;
+                    offsetX = -minX + p;
+                    offsetY = -minY + p;
+
+                    // Clone stage logic for SVG
+                    const stageClone = document.getElementById('stage').cloneNode(true);
+                    stageClone.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+                    // Remove current dots from clone (optional, maybe we want them?)
+                    // Let's keep them.
+                    
+                    htmlContent = stageClone.outerHTML;
+                } else {
+                    // Single Mode
+                    width = 540 + 420 + 100; // Device + Sidebar + Padding
+                    height = 960 + 100;
+                    
+                    // Construct a scene manually for single mode to look good
+                    const activeId = app.state.activePageId;
+                    const page = PAGES.find(p => p.id === activeId);
+                    
+                    // We need to construct the DOM string manually to ensure it renders without the main stage transform
+                    // But easiest is to grab the page wrapper
+                    const wrapper = document.getElementById(`page-${activeId}`);
+                    const clone = wrapper.cloneNode(true);
+                    
+                    // Reset position
+                    clone.style.left = '50px';
+                    clone.style.top = '50px';
+                    clone.style.display = 'block';
+                    clone.classList.add('active'); // ensure visible
+                    
+                    htmlContent = `<div id="stage" style="transform:none">${clone.outerHTML}</div>`;
+                }
+
+                const svgData = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+                        <style>${css} 
+                            body { margin: 0; background: white; } 
+                            .page-wrapper { display: block !important; }
+                        </style>
+                        <foreignObject width="100%" height="100%">
+                            <div xmlns="http://www.w3.org/1999/xhtml" style="background:white; width:${width}px; height:${height}px">
+                                ${htmlContent}
+                            </div>
+                        </foreignObject>
+                    </svg>`;
+
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = width * 2; // Retina
+                    canvas.height = height * 2;
+                    ctx.scale(2, 2);
+                    ctx.drawImage(img, 0, 0);
+                    const link = document.createElement('a');
+                    link.download = `workout-profile-${mode}-${Date.now()}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                };
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            }
+        }
+
+        class ProtoEngine {
+            constructor() {
+                this.state = { mode: 'flow', activePageId: null, scale: 0.5, pan: {x: 50, y: 50} };
+                this.dragging = false; this.lastMouse = {x:0, y:0};
+                this.init();
+            }
+
+            init() {
+                this.renderAll();
+                this.bindEvents();
+                this.updateTransform();
+            }
+
+            renderAll() {
+                const stage = document.getElementById('stage');
+                const svg = document.getElementById('connections-layer');
+                stage.querySelectorAll('.page-wrapper').forEach(e => e.remove());
+                svg.innerHTML = `<defs><marker id="arrow-start" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M9,0 L0,3 L9,6" fill="none" stroke="#666" stroke-width="1.5" /></marker><marker id="arrow-end" markerWidth="10" markerHeight="10" refX="10" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L10,3 L0,6" fill="none" stroke="#666" stroke-width="1.5" /></marker></defs>`; 
+
+                PAGES.forEach(page => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'page-wrapper';
+                    wrapper.id = `page-${page.id}`;
+                    wrapper.style.left = `${page.x}px`;
+                    wrapper.style.top = `${page.y}px`;
+                    wrapper.innerHTML = `
+                        <div class="page-label">${page.name}</div>
+                        <div class="device-frame" id="frame-${page.id}">
+                            ${page.render(STORE.lang)}
+                            <div class="modal-overlay" id="modal-${page.id}" onclick="app.closeSheet()">
+                                <div class="bottom-sheet" onclick="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                        <div class="sidebar-notes">
+                            <div style="color:var(--c-accent); font-weight:800; font-size:20px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #444;">${page.name}</div>
+                            <p style="color:#888; margin-bottom:20px;">${page.desc}</p>
+                            ${page.annotations.map(n => `<div class="note-card" data-note-id="${n.id}"><div class="note-header"><div class="note-badge">${n.id}</div><span class="note-title">${n.title}</span></div><div class="note-body">${n.text}</div></div>`).join('')}
+                        </div>`;
+                    
+                    wrapper.onclick = (e) => {
+                        if (this.state.mode === 'flow' && !this.dragging) {
+                            e.stopPropagation();
+                            this.router(page.id);
+                        }
+                    };
+                    stage.appendChild(wrapper);
+                    
+                    // Bind Card Hover Events
+                    wrapper.querySelectorAll('.note-card').forEach(card => {
+                        card.addEventListener('mouseenter', () => {
+                            const id = card.getAttribute('data-note-id');
+                            const dot = wrapper.querySelector(`.annotation-dot[data-id="${id}"]`);
+                            if(dot) {
+                                dot.style.transform = 'translate(50%, -50%) scale(1.5)';
+                                dot.style.zIndex = 999;
+                            }
+                        });
+                        card.addEventListener('mouseleave', () => {
+                            const id = card.getAttribute('data-note-id');
+                            const dot = wrapper.querySelector(`.annotation-dot[data-id="${id}"]`);
+                            if(dot) {
+                                dot.style.transform = 'translate(50%, -50%)';
+                                dot.style.zIndex = '';
+                            }
+                        });
+                    });
+
+                    setTimeout(() => { this.updateAnnotations(page.id); }, 50);
+                });
+
+                setTimeout(() => {
+                   PAGES.forEach(page => {
+                       if(page.links) {
+                           page.links.forEach(link => {
+                               const targetPage = PAGES.find(p => p.id === link.target);
+                               if(targetPage) {
+                                   const startX = page.x + 540; 
+                                   const startY = page.y + 480; 
+                                   const endX = targetPage.x; 
+                                   const endY = targetPage.y + 480;
+                                   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                                   path.setAttribute("class", "connector");
+                                   path.setAttribute("marker-start", "url(#arrow-start)");
+                                   path.setAttribute("marker-end", "url(#arrow-end)");
+                                   path.setAttribute("d", `M ${startX} ${startY} C ${startX+80} ${startY}, ${endX-80} ${endY}, ${endX} ${endY}`);
+                                   svg.appendChild(path);
+                               }
+                           });
+                       }
+                   }); 
+                }, 50);
+            }
+
+            updateAnnotations(pageId) {
+                const wrapper = document.getElementById(`page-${pageId}`);
+                if (!wrapper) return;
+                const frame = document.getElementById(`frame-${pageId}`);
+                const page = PAGES.find(p => p.id === pageId);
+                
+                wrapper.querySelectorAll('.annotation-dot').forEach(d => d.remove());
+
+                // Helper for highlighting card
+                const toggleNote = (id, show) => {
+                    const card = wrapper.querySelector(`.note-card[data-note-id="${id}"]`);
+                    if (card) {
+                        if (show) card.classList.add('active-highlight');
+                        else card.classList.remove('active-highlight');
+                    }
+                };
+
+                page.annotations.forEach(note => {
+                    const target = frame.querySelector(`#${note.target}`);
+                    if(target) {
+                        const dot = document.createElement('div');
+                        dot.className = 'annotation-dot';
+                        dot.innerText = note.id;
+                        dot.setAttribute('data-id', note.id); // Add ID for reverse lookup
+                        
+                        let el = target;
+                        let top = 0;
+                        let left = 0;
+                        while(el && el !== wrapper) {
+                            top += el.offsetTop;
+                            left += el.offsetLeft;
+                            el = el.offsetParent;
+                        }
+                        
+                        dot.style.top = (top + target.offsetHeight/2) + 'px';
+                        dot.style.left = (left + target.offsetWidth) + 'px';
+                        
+                        // Bind Events
+                        dot.addEventListener('mouseenter', () => toggleNote(note.id, true));
+                        dot.addEventListener('mouseleave', () => toggleNote(note.id, false));
+                        target.onmouseenter = () => toggleNote(note.id, true);
+                        target.onmouseleave = () => toggleNote(note.id, false);
+
+                        wrapper.appendChild(dot);
+                    }
+                });
+            }
+
+            setMode(mode) {
+                this.state.mode = mode;
+                document.body.setAttribute('data-mode', mode);
+                const stage = document.getElementById('stage');
+                const btnBack = document.getElementById('btn-back');
+                if (mode === 'flow') {
+                    stage.style.transform = `translate(${this.state.pan.x}px, ${this.state.pan.y}px) scale(${this.state.scale})`;
+                    btnBack.style.display = 'none';
+                    this.state.activePageId = null;
+                    document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('open'));
+                } else {
+                    btnBack.style.display = 'flex';
+                }
+            }
+
+            router(pageId) {
+                this.setMode('single');
+                this.state.activePageId = pageId;
+                const pageData = PAGES.find(p => p.id === pageId);
+                const winW = window.innerWidth;
+                const winH = window.innerHeight;
+                const scale = Math.min((winH-40)/960, (winW-520)/540); 
+                const finalScale = Math.min(Math.max(scale, 0.4), 1.2); 
+                const targetX = (winW - 420)/2 - (pageData.x + 270) * finalScale; 
+                const targetY = winH/2 - (pageData.y + 480) * finalScale;
+                const stage = document.getElementById('stage');
+                stage.style.transform = `translate(${targetX}px, ${targetY}px) scale(${finalScale})`;
+                document.querySelectorAll('.page-wrapper').forEach(p => {
+                    p.classList.remove('active');
+                    if(p.id === `page-${pageId}`) p.classList.add('active');
+                });
+                // Ensure annotations are correct after transition
+                requestAnimationFrame(() => this.updateAnnotations(pageId));
+            }
+
+            toggleLang() {
+                STORE.lang = STORE.lang === 'zh' ? 'en' : 'zh';
+                this.renderAll(); 
+                if(this.state.mode === 'single') this.router(this.state.activePageId); 
+            }
+
+            toggleUnit(newUnit) {
+                if (STORE.profile.unit === newUnit) return;
+                const p = STORE.profile;
+                if (newUnit === 'lbs') {
+                    p.weight = Math.round(p.weight * 2.20462 * 10) / 10;
+                    p.targetWeight = Math.round(p.targetWeight * 2.20462 * 10) / 10;
+                } else {
+                    p.weight = Math.round(p.weight / 2.20462 * 10) / 10;
+                    p.targetWeight = Math.round(p.targetWeight / 2.20462 * 10) / 10;
+                }
+                p.unit = newUnit;
+                this.openSheet(this._tempField === 'targetWeight' ? 'targetW' : 'weight');
+                this.refreshCurrentPage();
+            }
+
+            updateField(field, value) {
+                STORE.profile[field] = value;
+                if (['gender', 'level', 'style', 'goal1', 'goal2', 'targetShape'].includes(field)) {
+                     this.closeSheet();
+                } else {
+                    this.refreshCurrentPage(); 
+                }
+            }
+
+            toggleDay(dayIndex) {
+                const idx = STORE.profile.days.indexOf(dayIndex);
+                if(idx > -1) STORE.profile.days.splice(idx, 1);
+                else STORE.profile.days.push(dayIndex);
+                STORE.profile.days.sort();
+                this.refreshCurrentPage();
+            }
+
+            updatePains(pain) {
+                if(pain === 'none') STORE.profile.pains = [];
+                else {
+                    const idx = STORE.profile.pains.indexOf(pain);
+                    if(idx > -1) STORE.profile.pains.splice(idx, 1);
+                    else STORE.profile.pains.push(pain);
+                }
+                this.refreshCurrentPage();
+            }
+
+            updateEquip(eq, el) {
+                const idx = STORE.profile.missingEquip.indexOf(eq);
+                if(idx > -1) STORE.profile.missingEquip.splice(idx, 1);
+                else STORE.profile.missingEquip.push(eq);
+                if (el) el.classList.toggle('active');
+                if(this._refreshTimer) clearTimeout(this._refreshTimer);
+                this._refreshTimer = setTimeout(() => this.refreshCurrentPage(), 500);
+            }
+
+            updateDate() {
+                const y = document.getElementById('sel-y').value;
+                const m = document.getElementById('sel-m').value;
+                const d = document.getElementById('sel-d').value;
+                STORE.profile.birthday = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                this.refreshCurrentPage();
+            }
+
+            refreshCurrentPage() {
+                if(!this.state.activePageId) return;
+                const pageId = this.state.activePageId;
+                const page = PAGES.find(p => p.id === pageId);
+                const frame = document.getElementById(`frame-${pageId}`);
+                
+                const overlay = document.querySelector(`#page-${pageId} .modal-overlay`);
+                const isSheetOpen = overlay && overlay.classList.contains('open');
+                const sheetHTML = overlay ? overlay.innerHTML : '';
+                const scrollContainer = frame.querySelector('.app-scroll-content');
+                const scrollPos = scrollContainer ? scrollContainer.scrollTop : 0;
+
+                if (frame) {
+                    frame.innerHTML = `
+                        ${page.render(STORE.lang)}
+                        <div class="modal-overlay ${isSheetOpen ? 'open' : ''}" id="modal-${pageId}" onclick="app.closeSheet()">
+                            ${sheetHTML} 
+                        </div>
+                    `;
+                    
+                    const newScrollContainer = frame.querySelector('.app-scroll-content');
+                    if(newScrollContainer) {
+                        newScrollContainer.scrollTop = scrollPos;
+                        newScrollContainer.addEventListener('scroll', () => { this.updateAnnotations(pageId); });
+                    }
+
+                    requestAnimationFrame(() => {
+                        this.updateAnnotations(pageId);
+                    });
+                }
+            }
+
+            openSheet(type) {
+                if(this.state.mode !== 'single') return;
+                const pageId = this.state.activePageId;
+                const overlay = document.querySelector(`#page-${pageId} .modal-overlay`);
+                const content = overlay.querySelector('.bottom-sheet');
+                const p = STORE.profile;
+                let html = '';
+                const closeBtn = `<div class="sheet-close" onclick="app.closeSheet()">${t('confirm', STORE.lang)}</div>`;
+
+                if(type === 'height') {
+                    html = `
+                        <div class="sheet-header"><div class="sheet-title">${t('height', STORE.lang)}</div>${closeBtn}</div>
+                        <div class="slider-val-display" id="val-disp">${p.height}<span class="slider-unit">cm</span></div>
+                        <div class="slider-container"><input type="range" min="100" max="250" value="${p.height}" oninput="app.updateTemp(this.value, 'cm')"></div>
+                    `;
+                    this._tempField = 'height';
+                } else if(type === 'weight' || type === 'targetW') {
+                    const field = type === 'weight' ? 'weight' : 'targetWeight';
+                    const unitLabel = t(p.unit==='kg'?'unit_kg':'unit_lbs', STORE.lang);
+                    html = `
+                        <div class="sheet-header"><div class="sheet-title">${t('weight', STORE.lang)}</div>${closeBtn}</div>
+                        <div class="toggle-switch" style="margin-bottom:20px">
+                            <div class="toggle-opt ${p.unit==='kg'?'active':''}" onclick="app.toggleUnit('kg')">KG</div>
+                            <div class="toggle-opt ${p.unit==='lbs'?'active':''}" onclick="app.toggleUnit('lbs')">LBS</div>
+                        </div>
+                        <div class="slider-val-display" id="val-disp">${p[field]}<span class="slider-unit">${unitLabel}</span></div>
+                        <div class="slider-container"><input type="range" min="30" max="350" step="0.5" value="${p[field]}" oninput="app.updateTemp(this.value, '${unitLabel}')"></div>
+                    `;
+                    this._tempField = field;
+                } else if (type === 'duration') {
+                    html = `
+                        <div class="sheet-header"><div class="sheet-title">${t('duration', STORE.lang)}</div>${closeBtn}</div>
+                        <div class="slider-val-display" id="val-disp">${p.duration}<span class="slider-unit">${t('unit_min', STORE.lang)}</span></div>
+                        <div class="slider-container"><input type="range" min="20" max="60" step="1" value="${p.duration}" oninput="app.updateTemp(this.value, '${t('unit_min', STORE.lang)}')"></div>
+                    `;
+                    this._tempField = 'duration';
+                } else if (type === 'gender') {
+                    html = `
+                         <div class="sheet-header"><div class="sheet-title">${t('gender', STORE.lang)}</div></div>
+                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding-bottom:20px;">
+                            <div class="chip ${p.gender==='male'?'active':''}" style="text-align:center; justify-content:center; padding:12px" onclick="app.updateField('gender','male')">${t('male', STORE.lang)}</div>
+                            <div class="chip ${p.gender==='female'?'active':''}" style="text-align:center; justify-content:center; padding:12px" onclick="app.updateField('gender','female')">${t('female', STORE.lang)}</div>
+                         </div>
+                    `;
+                    this._tempField = null;
+                } else if (type === 'birthday') {
+                    const [y, m, d] = p.birthday.split('-');
+                    const years = Array.from({length: 100}, (_, i) => 2024 - i);
+                    const months = Array.from({length: 12}, (_, i) => i + 1);
+                    const days = Array.from({length: 31}, (_, i) => i + 1);
+
+                    html = `
+                         <div class="sheet-header"><div class="sheet-title">${t('birthday', STORE.lang)}</div>${closeBtn}</div>
+                         <div class="date-columns">
+                            <div class="date-col">
+                                <select id="sel-y" onchange="app.updateDate()">${years.map(v => `<option value="${v}" ${v==y?'selected':''}>${v}</option>`).join('')}</select>
+                            </div>
+                            <div class="date-col">
+                                <select id="sel-m" onchange="app.updateDate()">${months.map(v => `<option value="${v}" ${v==parseInt(m)?'selected':''}>${v}</option>`).join('')}</select>
+                            </div>
+                            <div class="date-col">
+                                <select id="sel-d" onchange="app.updateDate()">${days.map(v => `<option value="${v}" ${v==parseInt(d)?'selected':''}>${v}</option>`).join('')}</select>
+                            </div>
+                         </div>
+                    `;
+                    this._tempField = 'birthday';
+                } else if (type === 'goal2') {
+                     html = `
+                        <div class="sheet-header"><div class="sheet-title">${t('goal_2', STORE.lang)}</div></div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding-bottom:20px;">
+                            ${STORE.goal2Options.map(g => `<div class="chip ${p.goal2===g?'active':''}" style="text-align:center; justify-content:center" onclick="app.updateField('goal2','${g}')">${t(g, STORE.lang)}</div>`).join('')}
+                        </div>
+                    `;
+                    this._tempField = null;
+                } else if (type === 'shape') {
+                     html = `
+                        <div class="sheet-header"><div class="sheet-title">${t('body_shape', STORE.lang)}</div></div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding-bottom:20px;">
+                            ${STORE.shapeOptions.map(g => {
+                                // SVG Placeholders
+                                let svgPath = '';
+                                if(g.includes('std')) svgPath = 'M30,20 Q40,20 50,30 L50,60 L60,90 L20,90 L30,60 Z'; // Simple Torso
+                                else if(g.includes('mus')) svgPath = 'M20,20 L60,20 L70,40 L50,90 L30,90 L10,40 Z'; // V-Shape
+                                else if(g.includes('lean')) svgPath = 'M30,20 L50,20 L50,90 L30,90 Z'; // Slim
+                                else svgPath = 'M20,20 L60,20 L75,35 L60,90 L20,90 L5,35 Z'; // Bulky
+                                
+                                return `
+                                <div class="shape-option ${p.targetShape===g?'active':''}" onclick="app.updateField('targetShape','${g}')">
+                                    <svg class="shape-svg" viewBox="0 0 80 100">
+                                        <path d="${svgPath}" />
+                                    </svg>
+                                    <span style="font-size:13px; font-weight:600">${t(g, STORE.lang)}</span>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                    this._tempField = null;
+                } else if (type === 'equip') {
+                    html = `
+                        <div class="sheet-header"><div class="sheet-title">${t('equip', STORE.lang)}</div>${closeBtn}</div>
+                        <div style="padding-bottom:20px;">
+                            <p style="color:#999; margin-bottom:15px; font-size:14px;">${t('tap_missing', STORE.lang)}</p>
+                            <div class="chip-group" style="padding:0">
+                                ${STORE.equipOptions.map(eq => `<div class="chip ${p.missingEquip.includes(eq)?'active':''}" onclick="app.updateEquip('${eq}', this)">${t(eq, STORE.lang)}</div>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                    this._tempField = null;
+                } else if (type.startsWith('help_')) {
+                    // Help Modal Content
+                    const title = t(`${type}_title`, STORE.lang);
+                    const desc = t(`${type}_desc`, STORE.lang).replace(/\n/g, '<br/>');
+                    html = `
+                        <div class="sheet-header"><div class="sheet-title">${title}</div>${closeBtn}</div>
+                        <div style="padding-bottom:40px; font-size:15px; color:#333; line-height:1.6;">
+                            ${desc}
+                        </div>
+                    `;
+                    this._tempField = null;
+                }
+                
+                content.innerHTML = '';
+                content.innerHTML = html;
+                overlay.classList.add('open');
+            }
+
+            closeSheet() {
+                document.querySelectorAll('.modal-overlay').forEach(el => el.classList.remove('open'));
+                this.refreshCurrentPage(); 
+            }
+
+            updateTemp(val, unit) {
+                const disp = document.getElementById('val-disp');
+                if(disp) disp.innerHTML = `${val}<span class="slider-unit">${unit}</span>`;
+                if(this._tempField && this._tempField !== 'birthday') {
+                    STORE.profile[this._tempField] = parseFloat(val);
+                }
+            }
+
+            bindEvents() {
+                const container = document.getElementById('canvas-container');
+                container.addEventListener('mousedown', e => {
+                    if (this.state.mode === 'flow' && (e.button === 1 || e.code === 'Space' || e.target === container || e.target.id === 'stage')) {
+                        this.dragging = true;
+                        this.lastMouse = {x: e.clientX, y: e.clientY};
+                        container.classList.add('grabbing');
+                    }
+                });
+                window.addEventListener('mousemove', e => {
+                    if (this.dragging) {
+                        this.state.pan.x += e.clientX - this.lastMouse.x;
+                        this.state.pan.y += e.clientY - this.lastMouse.y;
+                        this.lastMouse = {x: e.clientX, y: e.clientY};
+                        this.updateTransform();
+                    }
+                });
+                window.addEventListener('mouseup', () => { this.dragging = false; container.classList.remove('grabbing'); });
+                window.addEventListener('wheel', e => {
+                    if (this.state.mode === 'single') {
+                        const deviceContent = e.target.closest('.app-scroll-content');
+                        if (deviceContent && deviceContent.scrollHeight > deviceContent.clientHeight) return;
+                    }
+                    e.preventDefault();
+                    const newScale = Math.min(Math.max(0.1, this.state.scale + e.deltaY * -0.001), 3);
+                    this.state.scale = newScale;
+                    this.updateTransform();
+                }, { passive: false });
+                window.addEventListener('keydown', e => { if(e.key === 'Escape') this.setMode('flow'); });
+            }
+
+            updateTransform() {
+                const stage = document.getElementById('stage');
+                if(this.state.mode === 'flow')
+                    stage.style.transform = `translate(${this.state.pan.x}px, ${this.state.pan.y}px) scale(${this.state.scale})`;
+            }
+        }
+
+        const app = new ProtoEngine();
+        const exporter = new SnapshotEngine();
+    </script>
+</body>
+</html>

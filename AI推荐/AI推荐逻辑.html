@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEKE Logic V15.0 (PRD Dictionary)</title>
+    <style>
+        :root {
+            --bg-dark: #0f1115;
+            --panel-bg: #161920;
+            --border: #2a2e35;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #00f2ea;
+            
+            /* 9 Steps Gradient */
+            --c-1: #3b82f6; --c-2: #0ea5e9; --c-3: #6366f1; --c-4: #8b5cf6;
+            --c-5: #a855f7; --c-6: #d946ef; --c-7: #f43f5e; --c-8: #f97316; --c-9: #10b981;
+        }
+
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            height: 50px; background: rgba(22, 25, 32, 0.95);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; flex-shrink: 0;
+        }
+        .brand { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 1px; display: flex; align-items: center; gap: 15px; }
+        
+        .scenario-switch {
+            display: flex; background: #000; border: 1px solid var(--border);
+            border-radius: 4px; padding: 2px;
+        }
+        .switch-btn {
+            padding: 4px 12px; font-size: 12px; cursor: pointer; color: #888;
+            border-radius: 2px; transition: 0.2s;
+        }
+        .switch-btn.active { background: var(--text-main); color: #000; font-weight: bold; }
+
+        .tabs { display: flex; gap: 20px; font-size: 13px; height: 100%; margin-left: auto; }
+        .tab { 
+            display: flex; align-items: center; padding: 0 10px; cursor: pointer; color: var(--text-muted); 
+            border-bottom: 2px solid transparent; transition: 0.3s; 
+        }
+        .tab:hover { color: #fff; }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+
+        /* --- Layout --- */
+        .viewport { flex: 1; display: none; padding: 20px; overflow: hidden; }
+        .viewport.active { display: flex; flex-direction: column; }
+
+        /* VIEW 1: Architecture */
+        #view-arch { align-items: center; justify-content: flex-start; gap: 20px; }
+        .arch-diagram {
+            display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 20px;
+            width: 100%; max-width: 1100px; height: 320px;
+        }
+        .arch-col {
+            background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px;
+            padding: 15px; display: flex; flex-direction: column; gap: 10px; position: relative;
+        }
+        .col-tag { 
+            text-align: center; font-size: 11px; color: var(--text-muted); text-transform: uppercase; 
+            border-bottom: 1px dashed #333; padding-bottom: 8px; margin-bottom: 5px; 
+        }
+        .module {
+            flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-direction: column;
+            cursor: default; transition: 0.2s;
+        }
+        .module:hover { 
+            background: rgba(255,255,255,0.08); border-color: var(--accent); 
+            box-shadow: 0 0 15px rgba(0, 242, 234, 0.1); transform: scale(1.02);
+        }
+        .mod-icon { font-size: 20px; margin-bottom: 5px; color: #ccc; }
+        .mod-name { font-size: 13px; font-weight: bold; color: #fff; }
+
+        .info-panel {
+            width: 100%; max-width: 1100px; height: 180px;
+            background: #131519; border: 1px solid var(--border); border-left: 4px solid var(--accent);
+            border-radius: 8px; padding: 25px; display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .info-panel.visible { opacity: 1; }
+        .info-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .info-desc { font-size: 14px; color: #ddd; margin-bottom: 15px; line-height: 1.5; }
+        .info-meta { display: flex; gap: 40px; font-size: 12px; color: var(--text-muted); border-top: 1px solid #333; padding-top: 15px; }
+        .meta-item b { color: var(--accent); display: block; margin-bottom: 4px; }
+
+        /* VIEW 2: Journey */
+        #view-flow { flex-direction: row; justify-content: center; gap: 30px; }
+        .flow-nav {
+            width: 260px; display: flex; flex-direction: column; gap: 6px;
+            overflow-y: auto; padding-right: 5px;
+        }
+        .flow-btn {
+            background: var(--panel-bg); border: 1px solid transparent; padding: 10px 15px;
+            border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s;
+        }
+        .flow-btn:hover { background: #222; }
+        .flow-btn.active { background: #252830; border-color: rgba(255,255,255,0.2); }
+        .flow-idx { 
+            width: 22px; height: 22px; border-radius: 50%; font-size: 11px; 
+            display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid;
+        }
+
+        .flow-content {
+            width: 720px; background: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+        .story-header { padding: 20px 25px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
+        .story-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;}
+        .story-text { font-size: 13px; line-height: 1.6; color: #ccc; font-style: italic; margin-bottom: 15px; }
+        
+        /* Sub-steps (Interactive) */
+        .sub-steps-box {
+            padding-top: 15px; border-top: 1px dashed #333;
+        }
+        .sub-step-label { font-size: 10px; color: #666; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+        .sub-step-list { display: flex; gap: 8px; flex-wrap: wrap; }
+        .sub-item { 
+            font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.05); border: 1px solid transparent;
+            padding: 4px 10px; border-radius: 4px; cursor: help; transition: 0.2s; position: relative;
+        }
+        .sub-item:hover { color: #fff; background: rgba(255,255,255,0.1); border-color: var(--accent); }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+            background: #111; border: 1px solid #444; color: #fff;
+            padding: 8px 12px; border-radius: 6px; font-size: 12px; width: 250px;
+            pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 100;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); margin-bottom: 8px; text-align: center;
+        }
+        .sub-item:hover .tooltip { opacity: 1; }
+        .tooltip::after {
+            content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            border-width: 5px; border-style: solid; border-color: #444 transparent transparent transparent;
+        }
+
+        .content-scroll { flex: 1; overflow-y: auto; padding: 25px; }
+
+        /* Tables */
+        .block-title { font-size: 12px; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .block-title::after { content:''; flex:1; height:1px; background:#333; }
+        
+        .pro-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 25px; background: #111; border-radius: 6px; overflow: hidden; }
+        .pro-table td { padding: 10px 15px; border-bottom: 1px solid #222; color: #ccc; vertical-align: top; }
+        .pro-label { width: 110px; color: #888; font-weight: bold; }
+        
+        .diff-table { width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #333; }
+        .diff-table th { background: rgba(255,255,255,0.05); text-align: left; padding: 8px 12px; color: #aaa; font-weight: normal; border-bottom: 1px solid #333; }
+        .diff-table td { padding: 8px 12px; border-bottom: 1px solid #222; color: #999; vertical-align: top; }
+        
+        .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.08); color: #fff; font-size: 11px; margin-right: 8px; }
+        .hl { color: var(--accent); font-weight: bold; }
+        .mode-badge { font-size: 12px; padding: 4px 8px; border-radius: 4px; opacity: 0.9; }
+        .badge-gain { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .badge-loss { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        AEKE LOGIC V15.0
+        <div class="scenario-switch">
+            <div class="switch-btn active" id="btn-gain" onclick="setMode('gain')">增肌场景</div>
+            <div class="switch-btn" id="btn-loss" onclick="setMode('loss')">减重场景</div>
+        </div>
+    </div>
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('arch')">系统宏观架构 (System)</div>
+        <div class="tab" onclick="switchTab('flow')">用户旅程 (Journey)</div>
+    </div>
+</header>
+
+<div id="view-arch" class="viewport active">
+    <div class="arch-diagram">
+        <div class="arch-col" style="border-top:3px solid var(--c-1)">
+            <div class="col-tag">输入层 · 档案与反馈</div>
+            <div class="module" onmouseenter="showInfo('user')" onmouseleave="clearInfo()"><div class="mod-icon">👤</div><div class="mod-name">生理与偏好</div></div>
+            <div class="module" onmouseenter="showInfo('risk')" onmouseleave="clearInfo()"><div class="mod-icon">⚠️</div><div class="mod-name">风险与禁忌</div></div>
+            <div class="module" onmouseenter="showInfo('feed')" onmouseleave="clearInfo()"><div class="mod-icon">📈</div><div class="mod-name">运动反馈数据</div></div>
+        </div>
+        <div class="arch-col" style="border-top:3px solid var(--c-4)">
+            <div class="col-tag">处理层 · AI 引擎</div>
+            <div class="module" onmouseenter="showInfo('route')" onmouseleave="clearInfo()"><div class="mod-icon">🧭</div><div class="mod-name">策略路由</div></div>
+            <div class="module" onmouseenter="showInfo('phase')" onmouseleave="clearInfo()"><div class="mod-icon">📅</div><div class="mod-name">计划与阶段</div></div>
+            <div class="module" onmouseenter="showInfo('segment')" onmouseleave="clearInfo()"><div class="mod-icon">🧩</div><div class="mod-name">环节与负荷定义</div></div>
+            <div class="module" onmouseenter="showInfo('assembly')" onmouseleave="clearInfo()"><div class="mod-icon">⚙️</div><div class="mod-name">微观组装与过滤</div></div>
+        </div>
+        <div class="arch-col" style="border-top:3px solid var(--c-9)">
+            <div class="col-tag">输出层 · 交付</div>
+            <div class="module" onmouseenter="showInfo('plan')" onmouseleave="clearInfo()"><div class="mod-icon">📜</div><div class="mod-name">周期计划</div></div>
+            <div class="module" onmouseenter="showInfo('course')" onmouseleave="clearInfo()"><div class="mod-icon">🏋️</div><div class="mod-name">执行课表</div></div>
+            <div class="module" onmouseenter="showInfo('loop')" onmouseleave="clearInfo()"><div class="mod-icon">🔄</div><div class="mod-name">闭环动态更新</div></div>
+        </div>
+    </div>
+    <div class="info-panel" id="info-box">
+        <div style="height:100%; display:flex; align-items:center; justify-content:center; color:#444;">
+            请将鼠标悬停在上方模块查看通俗解释与数据关系
+        </div>
+    </div>
+</div>
+
+<div id="view-flow" class="viewport">
+    <div class="flow-nav" id="step-list"></div>
+    <div class="flow-content">
+        <div class="story-header">
+            <div class="story-title">
+                <span id="s-title"></span>
+                <span id="s-badge" class="mode-badge"></span>
+            </div>
+            <div class="story-text" id="s-desc"></div>
+            <div class="sub-steps-box">
+                <div class="sub-step-label">本步骤包含的二级任务 (Sub-steps) · 悬停查看定义</div>
+                <div class="sub-step-list" id="s-subs"></div>
+            </div>
+        </div>
+        <div class="content-scroll">
+            
+            <div class="block-title">专业逻辑解析 (故事描述 + 数据关系)</div>
+            <table class="pro-table">
+                <tbody id="s-pro"></tbody>
+            </table>
+
+            <div class="block-title">算法分支差异 (Variance Map)</div>
+            <table class="diff-table">
+                <thead><tr><th width="30%">场景 / 条件</th><th>处理逻辑差异</th></tr></thead>
+                <tbody id="s-diff"></tbody>
+            </table>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Data: Architecture Info ---
+    const archInfo = {
+        'user': { t: '生理与偏好', d: '输入基石。基础生理数据+主观意愿。', f: '性别, BMI, RHR | 目标, 训练日', e: '“每周训练日”决定了排日程的逻辑。' },
+        'risk': { t: '风险与禁忌', d: '系统的红线。决定动作清洗规则。', f: '疼痛部位, 缺失器械', e: '膝盖痛 -> 深蹲、跳箱等动作拉黑。' },
+        'feed': { t: '运动反馈数据', d: '闭环核心。反哺计划动态调整。', f: 'RPE, 完成度, 错题集', e: 'RPE偏低 -> 触发渐进超负荷。' },
+        'route': { t: '策略路由', d: '决策大脑。关联目标与底层逻辑库。', f: '计划类型', e: '目标=增肌 -> 锁定增肌塑形库。' },
+        'phase': { t: '计划与阶段', d: '排期中枢。确定周期、阶段属性并派发单周模板。', f: '阶段ID, 单周模板', e: '适应期 -> 派发全身循环模板。' },
+        'segment': { t: '环节与负荷定义', d: '核心逻辑层。确定环节结构、循环模式与负荷策略。', f: '循环模式, 负荷策略', e: '减重场景 -> 计时组+高密度循环。' },
+        'assembly': { t: '微观组装与过滤', d: '装配车间。动作筛选、难度加权、肌群分配。', f: '动作筛选, 难度分配', e: 'BMI过大 -> 剔除高冲击动作。' },
+        'plan': { t: '周期计划', d: '生成的长周期方案实体。', f: 'PlanID, 阶段列表', e: '包含完整的阶段划分序列。' },
+        'course': { t: '执行课表', d: '生成的单次训练实体。', f: '热身/主训/放松, 环节容量', e: '包含具体的动作序列、次数与间歇。' },
+        'loop': { t: '闭环动态更新', d: '基于反馈数据的计划修正。', f: '动态调整', e: '标记错题 -> 下次加入纠正训练。' }
+    };
+
+    // --- Data: 9 Steps + Substep Definitions ---
+    const logicData = {
+        'gain': {
+            badge: '增肌场景', badgeClass: 'badge-gain',
+            steps: [
+                {
+                    title: "1. 定方向 (Goal)", color: "var(--c-1)",
+                    substeps: [
+                        {n: "运动目标", d: "用户档案中的核心字段（一级目标）。如：增肌、减脂、健康。"},
+                        {n: "计划类型", d: "系统底层算法库的分类。目标与类型存在映射关系（如增肌->增肌塑形）。"}
+                    ],
+                    desc: "用户输入“增肌”目标。系统通过PRD定义的映射表，直接锁定底层策略库为“增肌塑形”。",
+                    pro: [
+                        { k: "输入数据", v: "运动目标 = 增肌" },
+                        { k: "核心逻辑", v: "目标匹配：增肌 -> 增肌塑形计划 (占比100%)" },
+                        { k: "输出结果", v: "<b>计划类型: 增肌塑形 (Hypertrophy)</b>" }
+                    ],
+                    diff: [
+                        { k: "减重场景", v: "目标匹配 -> 减脂心肺计划。" },
+                        { k: "健康场景", v: "混合配置 (有氧/力量/柔韧均衡)。" }
+                    ]
+                },
+                {
+                    title: "2. 排日程 (Schedule)", color: "var(--c-2)",
+                    substeps: [
+                        {n: "每周训练日", d: "用户勾选的每周空闲日期（如周一/周三）。"},
+                        {n: "计划周频", d: "根据训练日计算出的每周训练天数（整数）。"}
+                    ],
+                    desc: "系统读取用户档案中的“每周训练日”，确定全局训练窗口。此步骤不涉及内容，仅确立时间框架。",
+                    pro: [
+                        { k: "输入数据", v: "每周训练日 = [周一, 周二, 周四, 周五, 周六]" },
+                        { k: "核心逻辑", v: "日历映射：将用户时间映射至全局日历，未选日期强制休息。" },
+                        { k: "输出结果", v: "<b>计划周频: 5天/周</b>" }
+                    ],
+                    diff: [
+                        { k: "3天/周", v: "仅锁定用户选择的3天。" },
+                        { k: "未设置", v: "提示用户必须至少选择1天。" }
+                    ]
+                },
+                {
+                    title: "3. 定计划 (Plan)", color: "var(--c-3)",
+                    substeps: [
+                        {n: "计划周期", d: "生成计划的总长度（如4周、12周）。"},
+                        {n: "阶段列表", d: "按生理适应规律划分的时间段（适应期/增长期/突破期）。"}
+                    ],
+                    desc: "系统生成全局计划ID，并根据增肌逻辑划分阶段。增长期是增肌的核心阶段。",
+                    pro: [
+                        { k: "输入数据", v: "计划类型=增肌塑形" },
+                        { k: "核心逻辑", v: "阶段生成：第1周(适应期) -> 第2-3周(增长期) -> 第4周(突破期)" },
+                        { k: "输出结果", v: "<b>阶段列表 (Phase List)</b>" }
+                    ],
+                    diff: [
+                        { k: "减重场景", v: "划分为适应期与强化期。重点在于工休比变化。" },
+                        { k: "恢复需求", v: "包含“恢复期”，大幅降低容量。" }
+                    ]
+                },
+                {
+                    title: "4. 定阶段 (Phase)", color: "var(--c-4)",
+                    substeps: [
+                        {n: "阶段目标", d: "该阶段的生理目的（如：累积代谢压力）。"},
+                        {n: "单周模板", d: "一周内的训练结构分化（如五分化、全身循环）。"}
+                    ],
+                    desc: "基于高频次（5天）和高级水平，系统为当前阶段派发“五分化”模板，决定每天练什么部位。",
+                    pro: [
+                        { k: "输入数据", v: "频次=5天 & 等级=高级" },
+                        { k: "核心逻辑", v: "分化逻辑：高频+高级 -> <b>五分化模板 (Bro Split)</b>" },
+                        { k: "输出结果", v: "<b>单周模板: 胸-背-肩-腿-臂</b>" }
+                    ],
+                    diff: [
+                        { k: "低频 (1-2天)", v: "派发<b>全身循环模板</b>。" },
+                        { k: "中频 (3-4天)", v: "派发<b>二分化(上下肢)</b>。" }
+                    ]
+                },
+                {
+                    title: "5. 定课程 (Course)", color: "var(--c-5)",
+                    substeps: [
+                        {n: "课程时长", d: "单节课的总时间（Σ环节时长）。"},
+                        {n: "环节列表", d: "标准结构：热身 + 主训 + 放松。"}
+                    ],
+                    desc: "系统确定今日训练部位（如练胸），并搭建课程骨架。增肌课包含动态热身与静态拉伸。",
+                    pro: [
+                        { k: "输入数据", v: "今日模板=胸部" },
+                        { k: "核心逻辑", v: "结构生成：动态热身(5min) → 主训(45min) → 拉伸(10min)" },
+                        { k: "输出结果", v: "<b>课程骨架: 胸部力量课</b>" }
+                    ],
+                    diff: [
+                        { k: "减重场景", v: "结构包含：HIIT循环 + 有氧冲刺。" },
+                        { k: "时间紧", v: "压缩热身与组间休息时间。" }
+                    ]
+                },
+                {
+                    title: "6. 定环节 (Segment)", color: "var(--c-6)",
+                    substeps: [
+                        {n: "环节类型", d: "热身、主训或放松。"},
+                        {n: "循环模式", d: "常规组(做完休)、循环组(连续做)、超级组(对抗)。"},
+                        {n: "负荷策略", d: "金字塔(重量递增)、恒定组、计时组(减脂用)。"}
+                    ],
+                    desc: "系统定义环节的执行规则。增肌主训环节采用“常规组”模式与“正金字塔”策略。",
+                    pro: [
+                        { k: "输入数据", v: "类型=增肌 & 阶段=增长期" },
+                        { k: "核心逻辑", v: "策略定义：<b>强度=计次, 模式=常规组, 策略=正金字塔</b>" },
+                        { k: "输出结果", v: "<b>环节规则定义完毕</b>" }
+                    ],
+                    diff: [
+                        { k: "减重场景", v: "强度=计时(Sec), 模式=循环组, 策略=计时组。" },
+                        { k: "适应期", v: "策略=恒定组 (固定重量熟悉动作)。" }
+                    ]
+                },
+                {
+                    title: "7. 填动作 (Action)", color: "var(--c-7)",
+                    substeps: [
+                        {n: "动作筛选", d: "基于疼痛部位和器械限制，剔除黑名单动作。"},
+                        {n: "难度分配", d: "按用户等级分配动作难度比例（如高级60%）。"},
+                        {n: "肌群分配", d: "按部位分配肌群占比（如胸中束40%）。"}
+                    ],
+                    desc: "系统从候选池中选择动作。执行安全过滤（如剔除肩痛动作），并按PRD执行难度和肌群配比。",
+                    pro: [
+                        { k: "输入数据", v: "风险=肩痛 & 等级=高级" },
+                        { k: "筛选逻辑", v: "<b>过滤</b>: 剔除平板杠铃卧推(肩风险)。" },
+                        { k: "配比逻辑", v: "<b>难度</b>: 高级60% | <b>肌群</b>: 胸中束40%+上束40%" },
+                        { k: "输出结果", v: "<b>动作列表 (Action List)</b>" }
+                    ],
+                    diff: [
+                        { k: "初级用户", v: "初级动作占比 60%。确保安全性。" },
+                        { k: "无器械", v: "仅保留自重变式动作。" }
+                    ]
+                },
+                {
+                    title: "8. 算参数 (Parameters)", color: "var(--c-8)",
+                    substeps: [
+                        {n: "环节容量", d: "具体的动作次数或时长。"},
+                        {n: "环节时长", d: "总训练时长计算（包含休息）。"},
+                        {n: "组间休息", d: "组与组之间的休息时间。"}
+                    ],
+                    desc: "基于“定环节”确定的金字塔策略，计算具体的组数、次数和间歇时间。",
+                    pro: [
+                        { k: "输入数据", v: "策略=正金字塔 & 阶段=增长期" },
+                        { k: "核心逻辑", v: "参数计算：Weight↑ Reps↓ (12-10-8-8) | Rest: 90s" },
+                        { k: "输出结果", v: "<b>最终执行指令 (Final Command)</b>" }
+                    ],
+                    diff: [
+                        { k: "减重场景", v: "计算工休比 (如做30s/休45s)。" },
+                        { k: "单边动作", v: "时长/次数 x 2。" }
+                    ]
+                },
+                {
+                    title: "9. 闭环结算 (Loop)", color: "var(--c-9)",
+                    substeps: [
+                        {n: "RPE反馈", d: "用户的主观疲劳度评分 (1-10)。"},
+                        {n: "动态调整", d: "基于反馈调整下一次计划的负荷或动作。"}
+                    ],
+                    desc: "训练结束，收集RPE和错题数据。若用户反馈“太轻松”，下周自动加重。",
+                    pro: [
+                        { k: "输入数据", v: "反馈: RPE < 6 (轻松)" },
+                        { k: "核心逻辑", v: "渐进超负荷：Next Weight += 2.5kg" },
+                        { k: "输出结果", v: "<b>更新用户档案 (1RM)</b>" }
+                    ],
+                    diff: [
+                        { k: "动作疼痛", v: "标记风险，下次自动降阶或替换。" },
+                        { k: "常错动作", v: "标记错题，下次加入纠正训练。" }
+                    ]
+                }
+            ]
+        },
+        'loss': {
+            badge: '减重场景', badgeClass: 'badge-loss',
+            steps: [
+                {
+                    title: "1. 定方向 (Goal)", color: "var(--c-1)",
+                    substeps: [{n:"运动目标",d:"一级目标"}, {n:"计划类型",d:"底层策略"}],
+                    desc: "用户选择“减重”。系统锁定减脂心肺计划。策略转变为优先消耗热量。",
+                    pro: [
+                        { k: "输入数据", v: "用户目标 = 减重" },
+                        { k: "核心逻辑", v: "目标匹配 -> 减脂心肺计划" },
+                        { k: "输出结果", v: "<b>Plan Type: 减脂心肺</b>" }
+                    ]
+                },
+                {
+                    title: "2. 排日程 (Schedule)", color: "var(--c-2)",
+                    substeps: [{n:"每周训练日",d:"空闲时间"}, {n:"计划周频",d:"训练天数"}],
+                    desc: "用户是初级，每周仅3天可用（一、三、五）。系统锁定这三天为训练日。",
+                    pro: [
+                        { k: "输入数据", v: "训练日 = [Mon, Wed, Fri]" },
+                        { k: "输出结果", v: "<b>周频次: 3天/周</b>" }
+                    ]
+                },
+                {
+                    title: "3. 定计划 (Plan)", color: "var(--c-3)",
+                    substeps: [{n:"计划周期",d:"总时长"}, {n:"阶段列表",d:"阶段划分"}],
+                    desc: "系统生成减脂周期计划。划分为适应期与强化期。",
+                    pro: [
+                        { k: "输入数据", v: "计划类型=减脂心肺" },
+                        { k: "核心逻辑", v: "阶段生成：第1周(适应期) -> 第2-4周(强化期)" },
+                        { k: "输出结果", v: "<b>阶段列表生成完毕</b>" }
+                    ]
+                },
+                {
+                    title: "4. 定阶段 (Phase)", color: "var(--c-4)",
+                    substeps: [{n:"阶段目标",d:"生理目的"}, {n:"单周模板",d:"分化逻辑"}],
+                    desc: "因频次低（3天），系统派发“全身循环”模板。确保每次训练都能维持全身代谢水平。",
+                    pro: [
+                        { k: "输入数据", v: "频次=3天 & 等级=初级" },
+                        { k: "核心逻辑", v: "分化逻辑：低频 -> <b>全身循环模板 (Full Body)</b>" },
+                        { k: "输出结果", v: "<b>模板: 全身-全身-全身</b>" }
+                    ]
+                },
+                {
+                    title: "5. 定课程 (Course)", color: "var(--c-5)",
+                    substeps: [{n:"课程时长",d:"总时间"}, {n:"环节列表",d:"课表结构"}],
+                    desc: "系统构建HIIT课程骨架。结构为多动作循环。",
+                    pro: [
+                        { k: "输入数据", v: "类型=HIIT & 部位=全身" },
+                        { k: "核心逻辑", v: "结构生成：关节热身 → HIIT循环 → 放松" },
+                        { k: "输出结果", v: "<b>课程骨架: HIIT Circuit</b>" }
+                    ]
+                },
+                {
+                    title: "6. 定环节 (Segment)", color: "var(--c-6)",
+                    substeps: [{n:"强度类型",d:"计时/计次"}, {n:"循环模式",d:"循环组"}, {n:"负荷策略",d:"计时组"}],
+                    desc: "减重场景下，系统定义强度为“计时（Time）”，采用“循环组”模式，以及“计时组”负荷策略。",
+                    pro: [
+                        { k: "输入数据", v: "类型=减脂 & 阶段=适应期" },
+                        { k: "核心逻辑", v: "策略定义：<b>强度=计时, 模式=循环组, 策略=计时组</b>" },
+                        { k: "输出结果", v: "<b>环节规则定义完毕</b>" }
+                    ]
+                },
+                {
+                    title: "7. 填动作 (Action)", color: "var(--c-7)",
+                    substeps: [{n:"动作筛选",d:"剔除风险"}, {n:"难度分配",d:"初级占比"}],
+                    desc: "填入动作。初级用户匹配60%的初级动作。检测到BMI>29，剔除高冲击动作（如波比跳）。",
+                    pro: [
+                        { k: "输入数据", v: "BMI>29 & 等级=初级" },
+                        { k: "筛选逻辑", v: "<b>过滤</b>: 剔除波比跳(高冲击)。" },
+                        { k: "配比逻辑", v: "<b>难度</b>: 初级60% | 中级30% | 高级10%" },
+                        { k: "输出结果", v: "<b>动作列表 (低难度/无冲击)</b>" }
+                    ]
+                },
+                {
+                    title: "8. 算参数 (Parameters)", color: "var(--c-8)",
+                    substeps: [{n:"环节容量",d:"工休比"}, {n:"组间休息",d:"EPOC间歇"}],
+                    desc: "基于“计时组”策略，计算工休比。适应期设定为 1:1.5（做30秒休45秒）。",
+                    pro: [
+                        { k: "输入数据", v: "策略=计时组 & 阶段=适应期" },
+                        { k: "核心逻辑", v: "参数计算：Work 30s / Rest 45s" },
+                        { k: "输出结果", v: "<b>工休比设定完毕</b>" }
+                    ],
+                    diff: [
+                        { k: "强化期", v: "工休比调整为 1:1 (做30s/休30s) 以提升强度。" }
+                    ]
+                },
+                {
+                    title: "9. 闭环结算 (Loop)", color: "var(--c-9)",
+                    substeps: [{n:"RPE反馈",d:"疲劳度"}, {n:"动态调整",d:"纠正训练"}],
+                    desc: "监测到深蹲膝内扣。系统标记错题，下次热身加入弹力带纠正。",
+                    pro: [
+                        { k: "输入数据", v: "错误监测: 膝内扣" },
+                        { k: "输出结果", v: "<b>下节课热身加入弹力带纠正</b>" }
+                    ]
+                }
+            ]
+        }
+    };
+
+    let currMode = 'gain';
+    let currStepIdx = 0;
+
+    function init() { renderFlowNav(); updateFlowContent(); }
+    
+    function switchTab(id) {
+        document.querySelectorAll('.viewport').forEach(e => e.classList.remove('active'));
+        document.getElementById('view-' + id).classList.add('active');
+        document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function showInfo(key) {
+        const d = archInfo[key];
+        const box = document.getElementById('info-box');
+        box.classList.add('visible');
+        box.innerHTML = `<div class="info-title"><span style="color:var(--accent)">${d.t}</span></div><div class="info-desc">${d.d}</div><div class="info-meta"><div class="meta-item"><b>核心字段</b>${d.f}</div><div class="meta-item"><b>通俗解释</b>${d.e}</div></div>`;
+    }
+    function clearInfo() { document.getElementById('info-box').classList.remove('visible'); }
+
+    function setMode(mode) {
+        currMode = mode;
+        document.querySelectorAll('.switch-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + mode).classList.add('active');
+        updateFlowContent();
+    }
+
+    function renderFlowNav() {
+        const list = document.getElementById('step-list');
+        const steps = logicData['gain'].steps; 
+        list.innerHTML = '';
+        steps.forEach((s, i) => {
+            const btn = document.createElement('div');
+            btn.className = `flow-btn ${i===currStepIdx?'active':''}`;
+            btn.onclick = () => { currStepIdx = i; renderFlowNav(); updateFlowContent(); };
+            btn.innerHTML = `<div class="flow-idx" style="color:${s.color}; border-color:${s.color}">${i+1}</div><div style="font-size:13px; font-weight:bold; color:${s.color}">${s.title.split(' ')[1]}</div>`;
+            list.appendChild(btn);
+        });
+    }
+
+    function updateFlowContent() {
+        const data = logicData[currMode].steps[currStepIdx];
+        const badgeData = logicData[currMode];
+        
+        document.querySelectorAll('.flow-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.flow-btn')[currStepIdx].classList.add('active');
+
+        document.getElementById('s-title').innerText = data.title;
+        document.getElementById('s-title').style.color = data.color;
+        
+        const badge = document.getElementById('s-badge');
+        badge.innerText = badgeData.badge;
+        badge.className = `mode-badge ${badgeData.badgeClass}`;
+
+        document.getElementById('s-desc').innerHTML = data.desc;
+        
+        // Render Sub-steps (Dictionary)
+        const subs = document.getElementById('s-subs');
+        subs.innerHTML = data.substeps.map(sub => `
+            <div class="sub-item">
+                ${sub.n}
+                <div class="tooltip">${sub.d}</div>
+            </div>
+        `).join('');
+
+        const pro = document.getElementById('s-pro');
+        pro.innerHTML = data.pro ? data.pro.map(r => `<tr><td class="pro-label">${r.k}</td><td>${r.v}</td></tr>`).join('') : '';
+
+        const diff = document.getElementById('s-diff');
+        diff.innerHTML = data.diff ? data.diff.map(r => `<tr><td><span class="tag">${r.k}</span></td><td>${r.v}</td></tr>`).join('') : '';
+    }
+
+    init();
+</script>
+</body>
+</html>

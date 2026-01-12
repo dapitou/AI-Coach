@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEKE Coach V24.2 - Distribution Fix</title>
+    <style>
+        :root {
+            --bg-dark: #0f1012;
+            --bg-panel: #1a1c20;
+            --bg-element: #25282e;
+            --primary: #00e676;
+            --primary-dim: rgba(0, 230, 118, 0.1);
+            --text-main: #ffffff;
+            --text-sub: #9ca3af;
+            --accent: #2979ff;
+            --danger: #ff4081;
+            --border: 1px solid #333;
+            --radius: 6px;
+            --font: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; user-select: none; }
+        body { font-family: var(--font); background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; font-size: 13px; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+        /* LAYOUT */
+        #app { width: 100%; height: 100%; display: flex; position: relative; }
+        .sidebar { width: 340px; background: var(--bg-panel); border-right: var(--border); display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; height: 100%; }
+        .sidebar-header { padding: 15px; border-bottom: var(--border); flex-shrink: 0; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .sidebar-footer { padding: 15px; border-top: var(--border); flex-shrink: 0; background: var(--bg-panel); }
+        .main-view { flex: 1; background: var(--bg-dark); position: relative; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* OVERLAY */
+        .view-overlay { position: absolute; inset: 0; background: var(--bg-dark); z-index: 50; display: none; flex-direction: column; overflow-y: auto; padding: 30px; transform: translateY(100%); transition: transform 0.25s ease; }
+        .view-overlay.active { transform: translateY(0); display: flex; }
+
+        /* COMPONENTS */
+        h1 { font-size: 18px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0; }
+        .section-title { font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .control-box { background: var(--bg-element); padding: 10px; border-radius: var(--radius); border: var(--border); }
+        .form-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .col { flex: 1; }
+        label { display: block; font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+        input, select { width: 100%; background: #151515; border: var(--border); color: #fff; padding: 6px; border-radius: 4px; font-size: 12px; }
+        
+        /* TAGS */
+        .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag { padding: 4px 8px; background: #222; border: var(--border); border-radius: 4px; font-size: 11px; color: #888; cursor: pointer; transition: 0.2s; user-select: none; }
+        .tag.active { background: var(--primary-dim); color: var(--primary); border-color: var(--primary); font-weight: 600; }
+        .tag.pain.active { border-color: var(--danger); color: var(--danger); background: rgba(255, 64, 129, 0.1); }
+        
+        /* SLIDERS */
+        .slider-wrap { margin-top: 8px; }
+        .slider-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
+        .slider-val { color: var(--primary); font-weight: 700; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 0; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: var(--primary); margin-top: -4px; cursor: pointer; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; border-radius: 2px; }
+
+        /* BUTTONS */
+        .btn-row { display: flex; gap: 10px; }
+        .btn { width: 100%; padding: 10px; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 12px; text-align: center; flex: 1; }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-primary:hover { background: #00c853; }
+        .btn-accent { background: var(--accent); color: #fff; }
+        .btn-accent:hover { background: #2962ff; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: #ccc; width: auto; padding: 4px 10px; font-size: 11px; }
+
+        /* RESULTS */
+        .result-view { padding: 0 20px 20px 20px; overflow-y: auto; height: 100%; }
+        .result-header { position: sticky; top: 0; background: var(--bg-dark); padding: 15px 0; border-bottom: 1px solid #333; z-index: 5; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .phase-block { margin-bottom: 20px; border-left: 2px solid #333; padding-left: 10px; }
+        .phase-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .phase-title { font-size: 13px; font-weight: 700; color: #fff; }
+        
+        /* CARDS */
+        .card { background: var(--bg-panel); padding: 10px 12px; border-radius: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border: var(--border); transition: 0.2s; position: relative; }
+        .card:hover { border-color: var(--primary); transform: translateX(2px); }
+        .card-main { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .card-name { font-weight: 600; font-size: 13px; color: #fff; }
+        .card-meta { display: flex; gap: 4px; flex-wrap: wrap; }
+        .badge { font-size: 9px; padding: 1px 5px; background: #222; border-radius: 2px; color: #999; border: 1px solid #444; white-space: nowrap; }
+        .badge.highlight { color: var(--primary); border-color: rgba(0,230,118,0.3); background: rgba(0,230,118,0.05); }
+        .badge.impact { color: var(--danger); border-color: rgba(255,64,129,0.3); }
+        .card-val { text-align: right; min-width: 90px; }
+        .val-main { font-weight: 700; color: var(--primary); font-size: 13px; }
+        .val-sub { font-size: 10px; color: #666; margin-top: 2px; }
+
+        /* PLAN GRID */
+        .plan-phase-label { margin: 25px 0 10px 0; padding: 6px 10px; background: rgba(41,121,255,0.1); border-left: 3px solid var(--accent); color: var(--accent); font-weight: 700; font-size: 12px; border-radius: 0 4px 4px 0; }
+        .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-box { background: var(--bg-panel); padding: 8px; border-radius: 4px; height: 65px; border: var(--border); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+        .day-box:hover { border-color: var(--primary); background: #222; }
+        .day-box.rest { opacity: 0.3; cursor: default; border-style: dashed; }
+        .day-num { font-size: 10px; color: #666; }
+        .day-content { font-size: 11px; font-weight: 700; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .day-sub { font-size: 9px; color: #888; }
+        
+        /* MODE TOGGLE */
+        .mode-toggle { display: flex; gap: 2px; background: #222; padding: 2px; border-radius: 4px; border: 1px solid #444; }
+        .mode-opt { padding: 2px 6px; font-size: 10px; color: #666; cursor: pointer; border-radius: 2px; }
+        .mode-opt.active { background: var(--primary); color: #000; font-weight: 700; }
+        .mode-opt.disabled { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+
+        /* PROFILE */
+        .profile-container { max-width: 900px; margin: 0 auto; width: 100%; padding-bottom: 50px; }
+        .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .stat-display { font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px; text-align: center; }
+        .stat-label { font-size: 10px; color: var(--text-sub); text-align: center; }
+
+        /* TOOLTIP */
+        #tooltip { position: fixed; background: rgba(20,20,20,0.98); border: 1px solid #555; padding: 12px; border-radius: 6px; width: 240px; z-index: 1000; pointer-events: none; display: none; backdrop-filter: blur(5px); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .tt-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; color: #ccc; }
+        .tt-val { color: #fff; font-weight: 600; }
+
+        .c-warmup { color: var(--warmup); border-color: var(--warmup) !important; }
+        .c-main { color: var(--primary); border-color: var(--primary) !important; }
+        .c-cooldown { color: var(--cooldown); border-color: var(--cooldown) !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>AEKE Coach <span style="font-size:10px; background:#333; padding:2px 6px; border-radius:4px; color:#fff; margin-left:5px;">V24.2</span></h1>
+        </div>
+        
+        <div class="sidebar-content">
+            <div class="control-box">
+                <div class="form-row">
+                    <div class="col">
+                        <div style="font-size:10px; color:#888;">当前用户</div>
+                        <div style="font-weight:700; color:#fff; font-size:12px;" id="sb-user">Guest (男)</div>
+                    </div>
+                    <button class="btn-outline" onclick="window.nav.toProfile()">编辑档案</button>
+                </div>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <div class="badge" id="sb-goal">增肌塑形</div>
+                    <div class="badge" id="sb-level">初级</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">生成配置</div>
+                <div class="control-box">
+                    <label>目标部位 (单课必选)</label>
+                    <div class="tags" id="ui-targets"></div>
+                    
+                    <label style="margin-top:10px;">环节设置</label>
+                    <div class="tags" id="ui-phases">
+                        <div class="tag active" data-ph="Warmup" onclick="window.UI.togglePhase(this)">热身</div>
+                        <div class="tag active" data-ph="Main" onclick="window.UI.togglePhase(this)">主训</div>
+                        <div class="tag active" data-ph="Cooldown" onclick="window.UI.togglePhase(this)">放松</div>
+                    </div>
+
+                    <div class="slider-wrap">
+                        <div class="slider-header"><span>单课时长</span><span class="slider-val" id="disp-time">20 分钟</span></div>
+                        <input type="range" id="in-time" min="20" max="60" step="5" value="20" oninput="document.getElementById('disp-time').innerText=this.value+' 分钟'">
+                    </div>
+
+                    <div class="slider-wrap">
+                        <div class="slider-header"><span>计划周期</span><span class="slider-val" id="disp-cycle">4 周</span></div>
+                        <input type="range" id="in-cycle" min="1" max="24" step="1" value="4" oninput="document.getElementById('disp-cycle').innerText=this.value+' 周'">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">风控状态</div>
+                <div class="control-box">
+                    <div style="font-size:11px; color:#888; margin-bottom:4px;">剔除痛点: <span id="sb-pain" style="color:#fff;">无</span></div>
+                    <div style="font-size:11px; color:#888;">剔除器械: <span id="sb-missing" style="color:#fff;">无</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="window.Logic.genCourse()">生成单次课程</button>
+                <button class="btn btn-accent" onclick="window.Logic.genPlan()">生成周期计划</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-view">
+        <div id="view-placeholder" style="text-align:center; margin-top:35vh; opacity:0.3;">
+            <p>准备就绪，请点击生成</p>
+        </div>
+        <div id="view-content" class="result-view" style="display:none;"></div>
+    </main>
+
+    <div class="view-overlay" id="view-profile">
+        <div class="profile-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h1>运动档案设置</h1>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-outline" onclick="window.nav.closeProfile()">取消</button>
+                    <button class="btn-primary" style="width:auto; padding:8px 20px;" onclick="window.store.saveProfile()">保存并生效</button>
+                </div>
+            </div>
+            <div class="profile-grid">
+                <div class="control-box" style="padding:20px;">
+                    <div class="section-title" style="margin-bottom:15px;">生理数据</div>
+                    <div class="form-row"><div class="col"><label>性别</label><select id="p-gender"><option value="Male">男</option><option value="Female">女</option></select></div><div class="col"><label>生日</label><input type="date" id="p-dob" value="1990-01-01" onchange="window.store.calcMetrics()"></div></div>
+                    <div class="form-row"><div class="col"><label>身高(cm)</label><input type="number" id="p-height" value="175" onchange="window.store.calcMetrics()"></div><div class="col"><label>体重(kg)</label><input type="number" id="p-weight" value="70" onchange="window.store.calcMetrics()"></div></div>
+                    <div class="form-row" style="margin-top:15px; background:#222; padding:10px; border-radius:6px;">
+                        <div class="col"><div class="stat-label">BMI</div><div class="stat-display" id="d-bmi" style="color:var(--primary)">22.9</div></div>
+                        <div class="col"><div class="stat-label">静息心率</div><div class="stat-display" id="d-rhr">65</div></div>
+                        <div class="col"><div class="stat-label">最大心率</div><div class="stat-display" id="d-mhr">185</div></div>
+                    </div>
+                </div>
+                <div class="control-box" style="padding:20px;">
+                    <div class="section-title" style="margin-bottom:15px;">训练偏好</div>
+                    <label>核心目标</label>
+                    <select id="p-goal"><option value="Hypertrophy">增肌塑形</option><option value="WeightLoss">减脂减重</option><option value="Health">健康体能</option></select>
+                    <div class="form-row" style="margin-top:10px;"><div class="col"><label>等级</label><select id="p-level"><option value="Beginner">初级</option><option value="Intermediate">中级</option><option value="Advanced">高级</option></select></div><div class="col"><label>风格</label><select id="p-style"><option value="Traditional">传统型</option><option value="Varied">多变型</option><option value="Aggressive">激进型</option></select></div></div>
+                    <label style="margin-top:15px;">每周训练日</label>
+                    <div class="tags" id="p-days">
+                        <div class="tag" data-val="1">周一</div><div class="tag" data-val="2">周二</div><div class="tag" data-val="3">周三</div><div class="tag" data-val="4">周四</div><div class="tag" data-val="5">周五</div><div class="tag" data-val="6">周六</div><div class="tag" data-val="7">周日</div>
+                    </div>
+                </div>
+                <div class="control-box" style="padding:20px; border-color:#444;">
+                    <div class="section-title" style="color:var(--danger);">风控禁忌</div>
+                    <label style="color:var(--danger);">禁忌痛点</label>
+                    <div class="tags" id="p-pain">
+                        <div class="tag pain" data-val="膝盖">膝盖</div><div class="tag pain" data-val="腰部">腰部</div><div class="tag pain" data-val="肩部">肩部</div><div class="tag pain" data-val="手腕">手腕</div>
+                    </div>
+                    <label style="margin-top:15px;">缺失器械</label>
+                    <div class="tags" id="p-missing">
+                        <div class="tag" data-val="手柄">手柄 (缆绳)</div><div class="tag" data-val="横杆">横杆 (杠铃)</div><div class="tag" data-val="健身凳">健身凳</div><div class="tag" data-val="泡沫轴">泡沫轴</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tooltip">
+    <div style="color:var(--primary); font-weight:700; margin-bottom:5px;" id="tt-name">--</div>
+    <div class="tt-row"><span>ID</span><span class="tt-val" id="tt-id"></span></div>
+    <div class="tt-row"><span>部位</span><span class="tt-val" id="tt-part"></span></div>
+    <div class="tt-row"><span>肌肉</span><span class="tt-val" id="tt-muscle"></span></div>
+    <div class="tt-row"><span>冲击</span><span class="tt-val" id="tt-impact"></span></div>
+    <div id="tt-extra" style="border-top:1px dashed #444; margin-top:5px; padding-top:5px; font-size:10px; color:#aaa; display:none;"></div>
+</div>
+
+<script>
+/**
+ * AEKE COACH V24.2 - DISTRIBUTION FIX
+ * Full DB Restoration + Strict Round Robin
+ */
+
+const CONSTANTS = {
+    PARTS: ['全身', '胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心'],
+    RATIOS: { 
+        '胸部': {'胸大肌中束':0.4, '胸大肌上束':0.4, '胸大肌下束':0.1, '胸大肌内侧':0.1},
+        '背部': {'中背':0.4, '上背':0.4, '下背':0.2},
+        '肩部': {'三角肌中束':0.5, '三角肌前束':0.1, '三角肌后束':0.3, '肩袖':0.1},
+        '手臂': {'肱二头肌':0.4, '肱三头肌':0.6},
+        '腿部': {'股四头肌':0.4, '胭绳肌':0.4, '内收肌':0.1, '腓肠肌':0.1},
+        '核心': {'腹直肌':0.7, '腹斜肌':0.3},
+        '全身': 'AVG'
+    },
+    DIFF_WEIGHTS: {
+        'L1': {'L1':0.6, 'L2':0.3, 'L3':0.1, 'L4':0, 'L5':0},
+        'L3': {'L1':0.2, 'L2':0.3, 'L3':0.3, 'L4':0.1, 'L5':0.1},
+        'L5': {'L1':0.1, 'L2':0.2, 'L3':0.3, 'L4':0.2, 'L5':0.2}
+    },
+    PAIRS: { 
+        '胸大肌': '背阔肌', '背阔肌': '胸大肌',
+        '肱二头肌': '肱三头肌', '肱三头肌': '肱二头肌',
+        '股四头肌': '胭绳肌', '胭绳肌': '股四头肌',
+        '腹直肌': '下背'
+    }
+};
+
+const DB = (() => {
+    const list = [];
+    const reg = (name, part, muscle, mode, equip, impact, diff, pain, type='Strength') => {
+        const vars = [{s:'',m:1,l:'L3'}, {s:'离心',m:1.1,l:'L5'}, {s:'爆发',m:1.2,l:'L5'}, {s:'坐姿',m:0.8,l:'L1'}, {s:'半程',m:0.9,l:'L2'}, {s:'单臂',m:1.2,l:'L4',mirror:true}];
+        const eqList = Array.isArray(equip) ? equip : [equip];
+        eqList.forEach(eq => {
+            vars.forEach(v => {
+                if(eq==='自重' && (v.s==='坐姿'||v.s==='单臂')) return;
+                list.push({
+                    id: Math.random().toString(36).substr(2,8),
+                    name: `${v.s}${eq}${name}`.replace('自重',''),
+                    part, muscle, type, equip:[eq], impact, mode,
+                    difficulty: v.l || diff, 
+                    pain: pain||[], met: type==='Cardio'?8:4.5, mirror: v.mirror||false
+                });
+            });
+        });
+    };
+    // STRENGTH
+    ['杠铃卧推','哑铃卧推','器械推胸','俯卧撑'].forEach(n => reg(n,'胸部','胸大肌中束','水平推','横杆','低冲击','L3',['肩部']));
+    ['上斜卧推'].forEach(n => reg(n,'胸部','胸大肌上束','水平推','横杆','低冲击','L3',['肩部']));
+    ['下斜卧推','双杠臂屈伸'].forEach(n => reg(n,'胸部','胸大肌下束','垂直推','横杆','低冲击','L4',['肩部']));
+    ['夹胸'].forEach(n => reg(n,'胸部','胸大肌内侧','孤立','手柄','低冲击','L2',['肩部']));
+    ['划船'].forEach(n => reg(n,'背部','中背','水平拉','横杆','低冲击','L3',['腰部']));
+    ['高位下拉','引体向上'].forEach(n => reg(n,'背部','上背','垂直拉','横杆','低冲击','L3',['肩部']));
+    ['硬拉'].forEach(n => reg(n,'背部','下背','铰链','横杆','低冲击','L5',['腰部']));
+    ['深蹲','箭步蹲'].forEach(n => reg(n,'腿部','股四头肌','深蹲','横杆','高冲击','L5',['膝盖']));
+    ['腿弯举'].forEach(n => reg(n,'腿部','胭绳肌','孤立','健身凳','低冲击','L2',[]));
+    ['推举','侧平举'].forEach(n => reg(n,'肩部','三角肌','垂直推','手柄','低冲击','L3',['肩部']));
+    ['弯举','臂屈伸'].forEach(n => reg(n,'手臂','肱二头肌','孤立','手柄','低冲击','L1',[]));
+    ['绳索下压'].forEach(n => reg(n,'手臂','肱三头肌','孤立','手柄','低冲击','L1',[]));
+    ['卷腹'].forEach(n => reg(n,'核心','腹直肌','核心','自重','低冲击','L1',['腰部']));
+    
+    // FULL SET OF WARMUPS
+    reg('扩胸运动', '胸部', '胸大肌', '热身', '自重', '低冲击', 'L1', [], 'Warmup');
+    reg('肩部环绕', '肩部', '三角肌', '热身', '自重', '低冲击', 'L1', [], 'Warmup');
+    reg('髋关节绕环', '腿部', '股四头肌', '热身', '自重', '低冲击', 'L1', [], 'Warmup');
+    reg('猫牛式', '背部', '中背', '热身', '自重', '低冲击', 'L1', [], 'Warmup');
+    reg('手腕预热', '手臂', '肱二头肌', '热身', '自重', '低冲击', 'L1', [], 'Warmup');
+    reg('死虫式', '核心', '腹直肌', '热身', '自重', '低冲击', 'L1', [], 'Warmup');
+    reg('开合跳', '全身', '全身', '热身', '自重', '高冲击', 'L2', ['膝盖'], 'Warmup');
+
+    // FULL SET OF COOLDOWNS
+    reg('胸部拉伸', '胸部', '胸大肌', '拉伸', '自重', '低冲击', 'L1', [], 'Cooldown');
+    reg('背部拉伸', '背部', '背阔肌', '拉伸', '自重', '低冲击', 'L1', [], 'Cooldown');
+    reg('腿部拉伸', '腿部', '股四头肌', '拉伸', '自重', '低冲击', 'L1', [], 'Cooldown');
+    reg('三角肌拉伸', '肩部', '三角肌', '拉伸', '自重', '低冲击', 'L1', [], 'Cooldown');
+    reg('手臂拉伸', '手臂', '肱三头肌', '拉伸', '自重', '低冲击', 'L1', [], 'Cooldown');
+    reg('腹部拉伸', '核心', '腹直肌', '拉伸', '自重', '低冲击', 'L1', [], 'Cooldown');
+    reg('全身放松', '全身', '全身', '拉伸', '瑜伽垫', '低冲击', 'L1', [], 'Cooldown');
+
+    // CARDIO
+    reg('波比跳', '全身', '全身', '心肺', '自重', '高冲击', 'L5', ['膝盖'], 'Cardio');
+    reg('登山跑', '全身', '全身', '心肺', '自重', '高冲击', 'L4', ['肩部'], 'Cardio');
+
+    return list;
+})();
+
+window.store = {
+    user: { 
+        targets:['胸部'], phases:['Warmup','Main','Cooldown'], days:[1,2,4,5,6], 
+        pain:[], missing:[], gender:'Male', dob:'1990-01-01', height:175, weight:70, bmi:22.9,
+        goal:'增肌', funcGoal:'增肌', level:'L1', style:'Traditional', bodyType:'均衡标准型', targetWeight:70
+    },
+    setMode: 'AABB',
+    loadStrategy: 'Constant',
+    saveProfile: function() {
+        const u = this.user;
+        u.gender = document.getElementById('p-gender').value;
+        u.dob = document.getElementById('p-dob').value;
+        u.height = document.getElementById('p-height').value;
+        u.weight = document.getElementById('p-weight').value;
+        u.goal = document.getElementById('p-goal').value;
+        u.level = document.getElementById('p-level').value;
+        u.style = document.getElementById('p-style').value;
+        u.pain = Array.from(document.querySelectorAll('#p-pain .tag.active')).map(e=>e.dataset.val);
+        u.missing = Array.from(document.querySelectorAll('#p-missing .tag.active')).map(e=>e.dataset.val);
+        u.days = Array.from(document.querySelectorAll('#p-days .tag.active')).map(e=>parseInt(e.dataset.val));
+        if(!u.days.length) return alert("请至少选一天训练日");
+        this.calcMetrics();
+        this.updateSidebar();
+        window.nav.closeProfile();
+    },
+    syncUI: function() {
+        document.querySelectorAll('#view-profile .tag').forEach(t => t.classList.remove('active'));
+        this.user.pain.forEach(v => document.querySelector(`#p-pain .tag[data-val="${v}"]`)?.classList.add('active'));
+        this.user.missing.forEach(v => document.querySelector(`#p-missing .tag[data-val="${v}"]`)?.classList.add('active'));
+        this.user.days.forEach(v => document.querySelector(`#p-days .tag[data-val="${v}"]`)?.classList.add('active'));
+        this.calcMetrics();
+    },
+    calcMetrics: function() {
+        const h = document.getElementById('p-height').value, w = document.getElementById('p-weight').value;
+        const bmi = (w/((h/100)**2)).toFixed(1);
+        document.getElementById('d-bmi').innerText = bmi;
+        document.getElementById('d-bmi').style.color = bmi>28?'var(--danger)':'var(--primary)';
+        document.getElementById('d-mhr').innerText = 208 - (0.7 * (new Date().getFullYear() - new Date(document.getElementById('p-dob').value).getFullYear()));
+    },
+    updateSidebar: function() {
+        document.getElementById('sb-user').innerText = `用户 (${this.user.gender==='Male'?'男':'女'})`;
+        document.getElementById('sb-goal').innerText = this.user.goal;
+        document.getElementById('sb-level').innerText = this.user.level;
+    }
+};
+
+window.PhaseEngine = {
+    generateSchedule: (totalWeeks) => {
+        let schedule = new Array(totalWeeks);
+        if (totalWeeks <= 4) {
+            for(let i=0; i<totalWeeks; i++) schedule[i] = Math.min(i, 3);
+        } else {
+            let p1=1, p4=1;
+            let rem = totalWeeks - 2;
+            let p2 = Math.ceil(rem / 2);
+            let p3 = Math.floor(rem / 2);
+            let idx = 0;
+            for(let i=0; i<p1; i++) schedule[idx++] = 0;
+            for(let i=0; i<p2; i++) schedule[idx++] = 1;
+            for(let i=0; i<p3; i++) schedule[idx++] = 2;
+            for(let i=0; i<p4; i++) schedule[idx++] = 3;
+        }
+        const phaseDefs = [
+            { n: '适应激活期', r: '15次', l: '适中', rest: '45秒' },
+            { n: '肌肥大增长期', r: '10-12次', l: '大重量', rest: '60秒' },
+            { n: '力量突破期', r: '6-8次', l: '极限', rest: '90秒' },
+            { n: '减载恢复期', r: '12-15次', l: '轻重量', rest: '45秒' }
+        ];
+        return schedule.map(idx => phaseDefs[idx]);
+    }
+};
+
+window.Logic = {
+    filter: (type, targetPart) => {
+        const { pain, missing, bmi, level } = window.store.user;
+        const isHeavy = (bmi >= 28 && level !== 'L5'); 
+        return DB.filter(a => {
+            if (a.type !== type) return false;
+            if (a.equip.some(e => missing.includes(e))) return false;
+            if (a.pain.some(p => pain.includes(p))) return false;
+            if (isHeavy && a.impact === '高冲击') return false; 
+            
+            if (type === 'Strength') return targetPart === '全身' ? true : a.part === targetPart;
+            if (type === 'Warmup' || type === 'Cooldown') {
+                if (a.part === targetPart) return true; // Strict
+                if (a.part === '全身') return true; // Fallback only if picked
+                return false;
+            }
+            return true; 
+        });
+    },
+
+    pickActions: (targets, count, type) => {
+        const targetList = Array.isArray(targets) ? targets : [targets];
+        let result = [];
+        
+        // 1. NON-STRENGTH: STRICT ROUND ROBIN
+        if (type !== 'Strength') {
+            const pools = targetList.map(t => {
+                // Strict Filter for Specific Part
+                const p = window.Logic.filter(type, t);
+                const strict = p.filter(a => a.part === t); 
+                return (strict.length > 0 ? strict : p).sort(() => Math.random() - 0.5);
+            });
+
+            let i = 0;
+            while(result.length < count) {
+                let added = false;
+                for(let pIndex = 0; pIndex < pools.length; pIndex++) {
+                    if(result.length >= count) break;
+                    const pool = pools[pIndex];
+                    if(pool.length > 0) {
+                        // Avoid dupe in result
+                        const actIndex = pool.findIndex(a => !result.some(r => r.id === a.id));
+                        if(actIndex !== -1) {
+                            result.push(pool[actIndex]);
+                            pool.splice(actIndex, 1);
+                            added = true;
+                        }
+                    }
+                }
+                // Fallback to Full Body if specific pools exhausted
+                if(!added) {
+                    const fallback = window.Logic.filter(type, '全身').sort(()=>0.5-Math.random());
+                    const fill = fallback.find(a => !result.some(r => r.id === a.id));
+                    if(fill) result.push(fill);
+                    else break; 
+                }
+                if(i++ > 50) break;
+            }
+            return result;
+        }
+
+        // 2. STRENGTH: WEIGHTED + RATIO (Keep existing logic)
+        let candidates = [];
+        targetList.forEach(t => {
+            let pool = window.Logic.filter(type, t);
+            
+            const userLevel = window.store.user.level;
+            const weights = CONSTANTS.DIFF_WEIGHTS[userLevel] || CONSTANTS.DIFF_WEIGHTS['L1'];
+            pool = pool.filter(a => Math.random() < (weights[a.difficulty] + 0.3)); 
+            
+            if (CONSTANTS.RATIOS[t] && CONSTANTS.RATIOS[t] !== 'AVG') {
+                const subCount = Math.ceil(count / targetList.length);
+                const ratios = CONSTANTS.RATIOS[t];
+                Object.entries(ratios).forEach(([muscle, ratio]) => {
+                    const need = Math.round(subCount * ratio);
+                    const musPool = pool.filter(a => a.muscle.includes(muscle));
+                    for(let k=0; k<need; k++) {
+                        if(musPool.length) {
+                            const idx = Math.floor(Math.random()*musPool.length);
+                            candidates.push(musPool[idx]);
+                        }
+                    }
+                });
+                while(candidates.length < count) {
+                    const rnd = pool[Math.floor(Math.random()*pool.length)];
+                    if(rnd) candidates.push(rnd); else break;
+                }
+            } else {
+                candidates = [...candidates, ...pool];
+            }
+        });
+
+        candidates = Array.from(new Set(candidates.map(a=>a.id))).map(id=>candidates.find(a=>a.id===id));
+        candidates.sort(() => Math.random() - 0.5);
+        candidates.sort((a,b) => (a.equip.includes('横杆') ? -1 : 1));
+        
+        return candidates.slice(0, count);
+    },
+
+    checkPairs: (actions) => {
+        for(let a of actions) {
+            const antag = Object.keys(CONSTANTS.PAIRS).find(k => a.muscle.includes(k));
+            if(antag) {
+                const target = CONSTANTS.PAIRS[antag];
+                if(actions.some(b => b.muscle.includes(target))) return true;
+            }
+        }
+        return false;
+    },
+    
+    buildCourse: (obj) => { 
+        const { targets, duration, title, params } = obj;
+        const c = { title, phases: [], stats: { cal:0 }, phaseParams: params };
+        const wuCount = Math.ceil(duration / 10);
+        const targetList = Array.isArray(targets) ? targets : [targets];
+
+        if(window.store.user.phases.includes('Warmup')) {
+            c.phases.push({ name: '热身激活', actions: window.Logic.pickActions(targetList, wuCount, 'Warmup').map(a=>({...a, sets:1, reps:'30秒', load:'自重'})) });
+        }
+
+        if(window.store.user.phases.includes('Main')) {
+            const mainTime = Math.max(10, duration - (wuCount*3));
+            const slots = Math.floor(mainTime / 3);
+            let mains = window.Logic.pickActions(targetList, slots, 'Strength');
+            
+            const pReps = params && params.reps ? params.reps : '12次';
+            const pLoad = params && params.load ? params.load : '适中';
+            
+            mains = mains.map(a => {
+                const sets = 3;
+                let displaySets = `${sets} x ${pReps}`;
+                if (window.store.loadStrategy === 'Pyramid') displaySets = `${parseInt(pReps)}-${parseInt(pReps)-2}-${parseInt(pReps)-4}次`;
+                if (window.store.loadStrategy === 'Drop') displaySets = `${pReps} (递减组)`;
+                return { ...a, sets: sets, reps: pReps, load: pLoad, displaySets };
+            });
+
+            if (window.store.setMode === 'Superset') mains = window.Logic.reorderSuperset(mains);
+            c.phases.push({ name: '核心主训', actions: mains });
+        }
+
+        if(window.store.user.phases.includes('Cooldown')) {
+            c.phases.push({ name: '放松拉伸', actions: window.Logic.pickActions(targetList, wuCount, 'Cooldown').map(a=>({...a, sets:1, reps:'30秒', load:'静止'})) });
+        }
+
+        c.stats.cal = Math.floor(4.5 * window.store.user.weight * (duration/60));
+        return c;
+    },
+    reorderSuperset: (actions) => {
+        const paired = [], used = new Set();
+        for (let i=0; i<actions.length; i++) {
+            if (used.has(i)) continue;
+            const a = actions[i]; paired.push(a); used.add(i);
+            const antag = Object.keys(CONSTANTS.PAIRS).find(k => a.muscle.includes(k));
+            if (antag) {
+                const pIdx = actions.findIndex((b, idx) => !used.has(idx) && b.muscle.includes(CONSTANTS.PAIRS[antag]));
+                if (pIdx !== -1) { paired.push(actions[pIdx]); used.add(pIdx); }
+            }
+        }
+        return paired;
+    },
+    genCourse: () => {
+        const t = window.store.user.targets;
+        if (!t.length) return alert("请选择目标");
+        const c = window.Logic.buildCourse({
+            targets: t, 
+            duration: document.getElementById('in-time').value, 
+            title: `定制${t.join('+')}训练`, 
+            params: { reps:'12次', load:'适中', rest:'60秒' }
+        });
+        window.UI.renderCourse(c, true);
+    },
+    genPlan: () => {
+        const weeks = parseInt(document.getElementById('in-cycle').value);
+        const dur = parseInt(document.getElementById('in-time').value);
+        const days = window.store.user.days.sort();
+        
+        let strategy = [];
+        // FIX: 1 day split logic
+        if(days.length === 1) strategy = days.map(d => ({ d, f: ['全身'], t: '全身综合训练' }));
+        else if(days.length === 2) strategy = days.map((d,i) => ({ d, f: i%2===0?['上肢']:['下肢'], t: i%2===0?'上肢力量':'下肢轰炸' }));
+        else if(days.length === 3) strategy = days.map((d,i) => {
+            const s = [['胸部','肩部','手臂'], ['背部','核心'], ['腿部','臀部']];
+            return { d, f: s[i%3], t: ['推类力量','拉类力量','腿部驱动'][i%3] };
+        });
+        else strategy = days.map((d,i) => { 
+            const s = [['胸部'],['背部'],['肩部'],['腿部'],['手臂']];
+            const sel = s[i%s.length];
+            return { d, f: sel, t: sel[0]+'强化' };
+        });
+
+        const phaseSchedule = window.PhaseEngine.generateSchedule(weeks);
+        window.UI.renderPlan(weeks, strategy, phaseSchedule, dur);
+    }
+};
+
+window.UI = {
+    renderTargets: () => {
+        document.getElementById('ui-targets').innerHTML = CONSTANTS.PARTS.map(p => 
+            `<div class="tag ${window.store.user.targets.includes(p)?'active':''}" onclick="window.UI.toggleT(this, '${p}')">${p}</div>`
+        ).join('');
+    },
+    toggleT: (el, p) => {
+        if(el.classList.contains('active')) {
+            el.classList.remove('active');
+            window.store.user.targets = window.store.user.targets.filter(t=>t!==p);
+        } else {
+            if(window.store.user.targets.length>=3) return alert("最多3个");
+            el.classList.add('active');
+            window.store.user.targets.push(p);
+        }
+    },
+    togglePhase: (el) => {
+        el.classList.toggle('active');
+        const ph = el.dataset.ph;
+        if(el.classList.contains('active')) window.store.user.phases.push(ph);
+        else window.store.user.phases = window.store.user.phases.filter(p=>p!==ph);
+    },
+    setMode: (mode) => {
+        if(mode === 'Superset') {
+            const acts = window.currC.phases.find(p=>p.name.includes('主训')).actions;
+            if(!window.Logic.checkPairs(acts)) return alert("当前动作组无拮抗肌对，无法开启超级组");
+        }
+        window.store.setMode = mode;
+        if(window.currC) window.UI.renderCourse(window.currC, !document.querySelector('.btn-outline')); 
+    },
+    setStrategy: (strat) => {
+        window.store.loadStrategy = strat;
+        if(window.currC) {
+            window.UI.renderCourse(window.currC, !document.querySelector('.btn-outline')); 
+        }
+    },
+    renderCourse: (c, isSingle) => {
+        document.getElementById('view-placeholder').style.display='none';
+        const con = document.getElementById('view-content');
+        con.style.display='block';
+        const btn = isSingle?'':`<button class="btn-outline" onclick="window.Logic.genPlan()">← 返回计划</button>`;
+        const mode = window.store.setMode;
+        
+        let h = `<div class="result-header"><div style="display:flex;align-items:center;gap:10px;">${btn}<div><h1>${c.title}</h1><div style="font-size:11px;color:#888">消耗: ${c.stats.cal} 千卡</div></div></div></div>`;
+        
+        c.phases.forEach(p => {
+            let color = p.name.includes('热身')?'c-warmup':(p.name.includes('放松')?'c-cooldown':'c-main');
+            let extra = '';
+            if(color === 'c-main') {
+                const canSuper = window.Logic.checkPairs(p.actions);
+                const rest = mode==='ABAB'?'90秒':(mode==='Superset'?'无': (c.phaseParams ? c.phaseParams.rest : '60秒'));
+                const strat = window.store.loadStrategy;
+                
+                extra = `
+                <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:10px;color:#888">休息 <span style="color:var(--primary)">${rest}</span></span>
+                        <div class="mode-toggle">
+                            <div class="mode-opt ${strat==='Constant'?'active':''}" onclick="window.UI.setStrategy('Constant')">恒定</div>
+                            <div class="mode-opt ${strat==='Pyramid'?'active':''}" onclick="window.UI.setStrategy('Pyramid')">金字塔</div>
+                            <div class="mode-opt ${strat==='Drop'?'active':''}" onclick="window.UI.setStrategy('Drop')">递减</div>
+                        </div>
+                    </div>
+                    <div class="mode-toggle">
+                        <div class="mode-opt ${mode==='AABB'?'active':''}" onclick="window.UI.setMode('AABB')">AABB</div>
+                        <div class="mode-opt ${mode==='ABAB'?'active':''}" onclick="window.UI.setMode('ABAB')">ABAB</div>
+                        <div class="mode-opt ${mode==='Superset'?'active':(canSuper?'':'disabled')}" onclick="window.UI.setMode('Superset')" style="${canSuper?'':'opacity:0.3'}">超级组</div>
+                    </div>
+                </div>`;
+                if (mode === 'Superset' && canSuper) p.actions = window.Logic.reorderSuperset(p.actions);
+            }
+            h += `<div class="phase-block" style="border-color:var(--${color.split('-')[1]})"><div class="phase-header-row"><div class="phase-title"><span class="${color}">● ${p.name}</span></div>${extra}</div>`;
+            p.actions.forEach((a, idx) => {
+                const json = encodeURIComponent(JSON.stringify(a));
+                let connector = '';
+                if(mode==='Superset' && idx%2===0 && idx<p.actions.length-1) connector = 'border-bottom: 2px solid var(--accent); margin-bottom:0; border-radius: 4px 4px 0 0;';
+                if(mode==='Superset' && idx%2!==0) connector = 'border-top: none; margin-top:0; border-radius: 0 0 4px 4px;';
+                
+                let setTxt = a.displaySets || `${a.sets} x ${a.reps}`;
+                if (window.store.loadStrategy === 'Pyramid' && a.type === 'Strength') setTxt = `${parseInt(a.reps)}-${parseInt(a.reps)-2}-${parseInt(a.reps)-4}次`;
+                if (window.store.loadStrategy === 'Drop' && a.type === 'Strength') setTxt = `${a.reps} (递减)`;
+
+                h += `<div class="card" style="${connector}" onmouseenter="window.UI.showTT(event, '${json}')" onmouseleave="window.UI.hideTT()"><div class="card-main"><div class="card-name">${a.name}</div><div class="card-meta"><span class="badge equip">${a.equip[0]}</span><span class="badge diff">${a.difficulty}</span><span class="badge mode">${a.mode}</span><span class="badge part">${a.part}</span><span class="badge muscle">${a.muscle}</span><span class="badge impact ${a.impact==='低冲击'?'low':''}">${a.impact}</span></div></div><div class="card-val"><div class="val-main">${setTxt}</div><div class="val-sub">${a.load}</div></div></div>`;
+            });
+            h += `</div>`;
+        });
+        con.innerHTML = h;
+        window.currC = c;
+    },
+    renderPlan: (weeks, strategy, phaseSchedule, duration) => {
+        document.getElementById('view-placeholder').style.display='none';
+        const con = document.getElementById('view-content');
+        con.style.display='block';
+        let h = `<div class="result-header"><div><h1>智能周期计划</h1><div style="font-size:11px;color:#888">${weeks}周 | ${window.store.user.goal}</div></div></div><div class="week-grid">`;
+        
+        let lastPhaseName = "";
+        for(let w=1; w<=weeks; w++) {
+            const pParams = phaseSchedule[w-1];
+            if(pParams.n !== lastPhaseName) {
+                h+=`<div class="plan-phase-label" style="grid-column:1/-1">阶段：${pParams.n} (休息:${pParams.rest})</div>`;
+                lastPhaseName = pParams.n;
+            }
+            h+=`<div style="grid-column:1/-1;margin-top:5px;font-size:11px;color:#666">第 ${w} 周</div>`;
+            for(let d=1; d<=7; d++) {
+                const s = strategy.find(x=>x.d===d);
+                if(s) {
+                    const params = JSON.stringify({targets:s.f, duration:duration, title:s.t, params:{reps:pParams.r, load:pParams.l, rest:pParams.rest}}).replace(/"/g, '&quot;');
+                    h+=`<div class="day-box" onclick='window.Logic.lazyLoad(${params})'><div class="day-num">第 ${d} 天</div><div class="day-content">${s.t}</div><div class="day-sub">${pParams.r}</div></div>`;
+                } else h+=`<div class="day-box rest"><div class="day-num">第 ${d} 天</div><div class="day-sub">休息</div></div>`;
+            }
+        }
+        h+='</div>';
+        con.innerHTML = h;
+    },
+    showTT: (e, json) => {
+        const a = JSON.parse(decodeURIComponent(json));
+        const tt = document.getElementById('tooltip');
+        document.getElementById('tt-name').innerText = a.name;
+        document.getElementById('tt-id').innerText = a.id;
+        document.getElementById('tt-part').innerText = a.part;
+        document.getElementById('tt-muscle').innerText = a.muscle;
+        document.getElementById('tt-impact').innerText = a.impact;
+        const extra = document.getElementById('tt-extra');
+        if (window.store.setMode === 'Superset' && a.type==='Strength') {
+            extra.style.display = 'block'; extra.innerText = "超级组：拮抗肌配对";
+        } else if (window.store.setMode === 'ABAB' && a.type==='Strength') {
+            extra.style.display = 'block'; extra.innerText = "循环组：无间歇切换";
+        } else extra.style.display = 'none';
+        tt.style.display = 'block';
+        let y = e.clientY + 15;
+        if(y > window.innerHeight - 150) y = e.clientY - 160;
+        tt.style.left = (e.clientX + 15) + 'px'; tt.style.top = y + 'px';
+    },
+    hideTT: () => { document.getElementById('tooltip').style.display = 'none'; }
+};
+
+window.Logic.lazyLoad = (p) => {
+    const c = window.Logic.buildCourse(p);
+    window.UI.renderCourse(c, false);
+};
+
+window.nav = {
+    toProfile: () => { window.store.syncUI(); document.getElementById('view-profile').classList.add('active'); },
+    closeProfile: () => document.getElementById('view-profile').classList.remove('active')
+};
+
+// INIT
+window.UI.renderTargets();
+window.store.updateSidebar();
+document.querySelectorAll('#view-profile .tag').forEach(t => t.onclick=function(){this.classList.toggle('active')});
+</script>
+</body>
+</html>

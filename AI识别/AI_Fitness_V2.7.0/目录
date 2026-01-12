@@ -1,0 +1,18 @@
+AI_Fitness_Final/
+│
+├── main.py                  # [入口] 负责调度、循环、输入输出
+│
+├── core/                    # [核心底层]
+│   ├── __init__.py          # (空)
+│   ├── config.py            # 全局配置 (颜色、分辨率、通用阈值)
+│   ├── utils.py             # 摄像头、数学、防抖、音效
+│   ├── ui.py                # 通用渲染器 (只负责画图元)
+│   ├── spine.py             # 脊柱算法 (作为服务被动作调用)
+│   └── base.py              # 动作基类 (定义标准接口)
+│
+└── exercises/               # [业务逻辑层]
+    ├── __init__.py          # (空)
+    ├── press.py             # 推举 (包含该动作所有逻辑)
+    ├── squat.py             # 深蹲
+    ├── front_raise.py       # 前平举
+    └── lunge.py             # 弓步蹲

@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEKE Coach V2.0 - Pro Edition</title>
+    <style>
+        :root {
+            --bg-dark: #0f1012;
+            --bg-panel: #1a1c20;
+            --bg-element: #25282e;
+            --primary: #00e676;
+            --primary-dim: rgba(0, 230, 118, 0.1);
+            --text-main: #ffffff;
+            --text-sub: #8b92a0;
+            --accent: #2979ff;
+            --warmup: #ffab40;
+            --cooldown: #00b0ff;
+            --border-r: 8px;
+            --transition: all 0.2s ease-out;
+            --shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; user-select: none; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+        /* Layout */
+        #app { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 340px; background: var(--bg-panel); border-right: 1px solid #2a2d35; display: flex; flex-direction: column; padding: 20px; gap: 20px; overflow-y: auto; z-index: 10; }
+        .main-view { flex: 1; display: flex; flex-direction: column; padding: 24px; overflow: hidden; position: relative; background: var(--bg-dark); }
+
+        /* UI Components */
+        h1 { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+        h2 { font-size: 14px; font-weight: 700; color: var(--text-sub); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .control-group { background: var(--bg-element); padding: 16px; border-radius: var(--border-r); border: 1px solid #333; }
+        .control-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sub); margin-bottom: 8px; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: var(--border-r); font-weight: 600; cursor: pointer; transition: var(--transition); font-size: 13px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: #000; }
+        .btn-primary:hover { background: #00c853; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 230, 118, 0.3); }
+        .btn-secondary { background: transparent; color: var(--text-main); border: 1px solid #444; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.05); border-color: #666; }
+        
+        .tag-container { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag { padding: 5px 12px; background: #1f2228; border: 1px solid #333; border-radius: 4px; font-size: 12px; cursor: pointer; color: #888; transition: var(--transition); }
+        .tag.active { background: var(--primary-dim); color: var(--primary); border-color: var(--primary); font-weight: 600; }
+        
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: transparent; margin: 10px 0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 14px; width: 14px; border-radius: 50%; background: var(--primary); cursor: pointer; margin-top: -5px; box-shadow: 0 0 10px rgba(0,230,118,0.5); }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; border-radius: 2px; }
+
+        /* Cards & List */
+        .content-scroll { flex: 1; overflow-y: auto; padding-right: 5px; margin-top: 10px; padding-bottom: 50px; }
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #2a2d35; }
+        
+        .phase-block { margin-bottom: 25px; }
+        .phase-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .phase-dot { width: 8px; height: 8px; border-radius: 50%; }
+        
+        .card { background: var(--bg-panel); border-radius: 6px; padding: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; transition: var(--transition); border-left: 3px solid transparent; cursor: default; }
+        .card:hover { background: #22252b; transform: translateX(4px); }
+        .card-main { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .card-name { font-weight: 600; font-size: 14px; color: #fff; }
+        .card-tags { display: flex; gap: 6px; }
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #2a2d35; color: #888; border: 1px solid #333; }
+        .card-right { text-align: right; }
+        .card-val { font-weight: 700; color: var(--primary); font-size: 14px; }
+        .card-sub { font-size: 11px; color: #666; }
+
+        /* Global Tooltip (Fixed Position) */
+        #global-tooltip {
+            position: fixed;
+            background: rgba(20, 20, 23, 0.98);
+            border: 1px solid #333;
+            border-left: 3px solid var(--primary);
+            padding: 16px;
+            border-radius: 8px;
+            width: 280px;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.15s;
+            font-size: 12px;
+            display: none;
+        }
+        .tooltip-row { display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .tooltip-row:last-child { border: none; margin: 0; }
+        .tt-label { color: #888; }
+        .tt-val { color: #fff; font-weight: 600; text-align: right; max-width: 160px; }
+
+        /* Stats Header */
+        .dashboard-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-element); padding: 15px; border-radius: var(--border-r); text-align: center; border: 1px solid #333; }
+        .stat-num { font-size: 20px; font-weight: 800; color: #fff; }
+        .stat-desc { font-size: 11px; color: #888; margin-top: 4px; }
+
+        /* Calendar */
+        .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+        .day-box { background: var(--bg-panel); border: 1px solid #333; border-radius: 6px; padding: 12px; min-height: 100px; cursor: pointer; transition: var(--transition); position: relative; }
+        .day-box:hover { border-color: var(--primary); background: #222; }
+        .day-box.rest { opacity: 0.4; cursor: default; }
+        .day-num { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .day-content { font-size: 13px; font-weight: 700; color: var(--primary); }
+        .day-equip { font-size: 10px; color: #aaa; margin-top: 4px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px); }
+        .modal-win { background: #1a1c20; width: 600px; max-height: 90vh; border-radius: 12px; border: 1px solid #333; padding: 24px; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 18px; font-weight: 700; color: #fff; }
+        .modal-body { overflow-y: auto; flex: 1; padding-right: 10px; }
+        .form-row { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
+        select, input { width: 100%; background: #111; border: 1px solid #333; color: white; padding: 10px; border-radius: 6px; font-size: 13px; }
+        select[multiple] { height: 120px; }
+
+        /* Color Utility */
+        .c-warmup { border-left-color: var(--warmup); }
+        .c-main { border-left-color: var(--primary); }
+        .c-cooldown { border-left-color: var(--cooldown); }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <aside class="sidebar">
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>
+            AEKE Coach <span style="font-size:10px; background:#333; padding:2px 4px; border-radius:4px; color:#888;">PRO</span>
+        </h1>
+
+        <div class="control-group">
+            <h2>运动需求</h2>
+            
+            <div class="control-label">目标部位 (Max 3)</div>
+            <div class="tag-container" id="ui-targets"></div>
+
+            <div style="margin-top: 20px;">
+                <div class="control-label"><span>时长</span> <span id="val-time" style="color:var(--primary)">20 min</span></div>
+                <input type="range" id="in-time" min="20" max="60" step="1" value="20">
+            </div>
+
+            <div style="margin-top: 15px;">
+                <div class="control-label"><span>周期</span> <span id="val-cycle" style="color:var(--accent)">1 周</span></div>
+                <input type="range" id="in-cycle" min="1" max="24" step="1" value="1">
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div class="control-label">环节配置</div>
+                <div class="tag-container">
+                    <div class="tag active" onclick="app.togglePhase('warmup', this)">热身</div>
+                    <div class="tag active" onclick="app.togglePhase('main', this)">主训</div>
+                    <div class="tag active" onclick="app.togglePhase('cooldown', this)">放松</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-primary" onclick="app.genCourse()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                生成课程
+            </button>
+            <button class="btn btn-primary" style="background:var(--accent); color:#fff;" onclick="app.genPlan()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                生成计划
+            </button>
+        </div>
+
+        <div style="margin-top:auto; border-top:1px solid #333; padding-top:20px; display:flex; gap:10px;">
+            <button class="btn btn-secondary" onclick="app.openModal('modal-profile')">运动档案</button>
+            <button class="btn btn-secondary" onclick="app.openModal('modal-lib')">动作库 (<span id="lib-size">0</span>)</button>
+        </div>
+    </aside>
+
+    <main class="main-view" id="main-view">
+        <div style="text-align:center; margin-top:20vh; opacity:0.3;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+            <p style="margin-top:20px;">请配置左侧需求并点击生成</p>
+        </div>
+    </main>
+</div>
+
+<div id="global-tooltip">
+    <div style="color:var(--primary); font-weight:700; font-size:14px; margin-bottom:8px; border-bottom:1px solid #444; padding-bottom:5px;" id="tt-name">Action Name</div>
+    <div class="tooltip-row"><span class="tt-label">ID</span> <span class="tt-val" id="tt-id">--</span></div>
+    <div class="tooltip-row"><span class="tt-label">难度</span> <span class="tt-val" id="tt-diff">--</span></div>
+    <div class="tooltip-row"><span class="tt-label">主要肌群</span> <span class="tt-val" id="tt-muscle">--</span></div>
+    <div class="tooltip-row"><span class="tt-label">主/次部位</span> <span class="tt-val" id="tt-parts">--</span></div>
+    <div class="tooltip-row"><span class="tt-label">器械</span> <span class="tt-val" id="tt-equip">--</span></div>
+    <div class="tooltip-row"><span class="tt-label">权重</span> <span class="tt-val" id="tt-weight">--</span></div>
+    <div class="tooltip-row" style="border:none; margin-top:5px; padding-top:5px; border-top:1px dashed #333;">
+        <span class="tt-label" style="color:#f44336">禁忌痛点</span> <span class="tt-val" style="color:#f44336" id="tt-pain">无</span>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-profile">
+    <div class="modal-win">
+        <div class="modal-header">
+            <span>用户运动档案</span>
+            <span style="cursor:pointer;" onclick="app.closeModal('modal-profile')">✕</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <label class="form-label">性别</label>
+                <select id="p-gender"><option value="Male">男</option><option value="Female">女</option></select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">训练目标</label>
+                <select id="p-goal"><option value="Hypertrophy">增肌</option><option value="WeightLoss">减重</option><option value="Health">健康</option></select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">当前等级</label>
+                <select id="p-level"><option value="Beginner">初级</option><option value="Intermediate">中级</option><option value="Advanced">高级</option></select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">疼痛部位 (按住Ctrl多选)</label>
+                <select id="p-pain" multiple>
+                    <option value="无">无</option>
+                    <option value="手腕">手腕</option><option value="肘部">肘部</option>
+                    <option value="肩部">肩部</option><option value="腰部">腰部</option>
+                    <option value="髋部">髋部</option><option value="膝盖">膝盖</option>
+                    <option value="脚踝">脚踝</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label class="form-label">缺失器械 (按住Ctrl多选)</label>
+                <select id="p-missing" multiple>
+                    <option value="无">全都有</option>
+                    <option value="手柄">手柄 (缆绳)</option>
+                    <option value="横杆">横杆 (史密斯/杠铃)</option>
+                    <option value="踝带">踝带</option>
+                    <option value="健身凳">健身凳</option>
+                    <option value="泡沫轴">泡沫轴</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="app.saveProfile()">保存档案</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-lib">
+    <div class="modal-win" style="width: 800px;">
+        <div class="modal-header">
+            <span>动作库管理</span>
+            <span style="cursor:pointer;" onclick="app.closeModal('modal-lib')">✕</span>
+        </div>
+        <div class="tag-container" style="margin-bottom:15px;">
+            <div class="tag active" onclick="app.renderLibList('主训')">主训</div>
+            <div class="tag" onclick="app.renderLibList('热身')">热身</div>
+            <div class="tag" onclick="app.renderLibList('放松')">放松</div>
+        </div>
+        <div class="modal-body" id="lib-list-container" style="max-height: 400px; overflow-y:auto;">
+            </div>
+    </div>
+</div>
+
+<script>
+/**
+ * AEKE COACH V2.0 CORE
+ * Top Programmer | Top Sports Scientist | Top AI Algorithm
+ */
+
+// --- 1. DATA MODELS & CONSTANTS ---
+
+const PARTS = ['全身', '胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心'];
+const DIFFICULTIES = ['初级', '中级', '高级'];
+const TYPES = ['热身', '主训', '放松'];
+const PAIN_AREAS = ['无', '手腕', '肘部', '肩部', '腰部', '髋部', '膝盖', '脚踝'];
+const EQUIPMENTS = ['自重', '手柄', '横杆', '踝带', '健身凳', '瑜伽垫', '瑜伽砖', '泡沫轴'];
+
+// Muscle Mapping (Scientific)
+const MUSCLES = {
+    '肩部': ['三角肌前束', '三角肌中束', '三角肌后束', '肩袖'],
+    '手臂': ['肱二头肌', '肱三头肌'],
+    '胸部': ['胸大肌中束', '胸大肌上束', '胸大肌下束', '胸大肌内侧'],
+    '背部': ['上背', '中背', '下背'],
+    '核心': ['腹直肌', '腹斜肌'],
+    '臀部': ['臀大肌', '臀中肌'],
+    '腿部': ['股四头肌', '胭绳肌', '内收肌', '腓肠肌'],
+    '全身': ['全身肌群']
+};
+
+// Global Store
+const store = {
+    user: {
+        gender: 'Male', level: 'Beginner', goal: 'Hypertrophy',
+        pain: [], missingEquip: []
+    },
+    ui: {
+        targets: ['胸部'],
+        time: 20,
+        cycle: 1,
+        phases: ['warmup', 'main', 'cooldown']
+    },
+    library: [],
+    plan: null,
+    course: null
+};
+
+// --- 2. LIBRARY GENERATOR (The "300" Scientific Engine) ---
+
+function initLibrary() {
+    let actions = [];
+    
+    // Helper to Create Action
+    const create = (name, type, part, subParts, muscle, diff, equip, pain) => {
+        return {
+            id: 'ACT-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+            name: name,
+            weight: parseFloat(Math.random().toFixed(2)), // Dynamic weight for algo
+            type: type,
+            mainPart: part,
+            subParts: subParts,
+            muscle: muscle,
+            painArea: pain || [],
+            difficulty: diff,
+            equip: equip
+        };
+    };
+
+    // --- A. MAIN TRAINING (Target 70% ~ 210 actions) ---
+    // We construct these using combinatorial logic for "Handles" and "Bars" to ensure high equipment density
+
+    const mainMoves = [
+        // CHEST
+        { base: '卧推', part: '胸部', m: '胸大肌中束', eq: ['横杆', '健身凳'], p: ['肩部', '手腕'] },
+        { base: '上斜卧推', part: '胸部', m: '胸大肌上束', eq: ['横杆', '健身凳'], p: ['肩部'] },
+        { base: '绳索夹胸', part: '胸部', m: '胸大肌内侧', eq: ['手柄'], p: ['肩部'] },
+        { base: '俯卧撑', part: '胸部', m: '胸大肌中束', eq: ['自重'], p: ['手腕'] },
+        // BACK
+        { base: '高位下拉', part: '背部', m: '上背', eq: ['横杆'], p: ['肩部'] },
+        { base: '坐姿划船', part: '背部', m: '中背', eq: ['手柄'], p: ['腰部'] },
+        { base: '直臂下压', part: '背部', m: '上背', eq: ['手柄'], p: ['肩部'] },
+        { base: '硬拉', part: '背部', m: '下背', eq: ['横杆'], p: ['腰部'] },
+        // LEGS
+        { base: '深蹲', part: '腿部', m: '股四头肌', eq: ['横杆'], p: ['膝盖', '腰部'] },
+        { base: '箭步蹲', part: '腿部', m: '股四头肌', eq: ['手柄'], p: ['膝盖'] },
+        { base: '罗马尼亚硬拉', part: '腿部', m: '胭绳肌', eq: ['横杆'], p: ['腰部'] },
+        { base: '腿弯举', part: '腿部', m: '胭绳肌', eq: ['踝带', '健身凳'], p: ['膝盖'] },
+        // SHOULDERS
+        { base: '推举', part: '肩部', m: '三角肌前束', eq: ['横杆'], p: ['肩部', '腰部'] },
+        { base: '侧平举', part: '肩部', m: '三角肌中束', eq: ['手柄'], p: ['肩部'] },
+        { base: '面拉', part: '肩部', m: '三角肌后束', eq: ['手柄'], p: ['肩部'] },
+        // ARMS
+        { base: '弯举', part: '手臂', m: '肱二头肌', eq: ['手柄'], p: ['肘部'] },
+        { base: '臂屈伸', part: '手臂', m: '肱三头肌', eq: ['手柄'], p: ['肘部'] },
+        // GLUTES
+        { base: '臀推', part: '臀部', m: '臀大肌', eq: ['横杆', '健身凳'], p: ['腰部'] },
+        { base: '后踢', part: '臀部', m: '臀大肌', eq: ['踝带'], p: ['腰部'] },
+        { base: '髋外展', part: '臀部', m: '臀中肌', eq: ['踝带'], p: ['髋部'] },
+        // CORE
+        { base: '卷腹', part: '核心', m: '腹直肌', eq: ['瑜伽垫'], p: ['腰部'] },
+        { base: '伐木', part: '核心', m: '腹斜肌', eq: ['手柄'], p: ['腰部'] }
+    ];
+
+    const variations = [
+        { suffix: '标准', diff: '初级' },
+        { suffix: '单臂', diff: '中级' },
+        { suffix: '离心控制', diff: '高级' },
+        { suffix: '半程脉冲', diff: '中级' },
+        { suffix: '停顿训练', diff: '高级' }
+    ];
+
+    // Generate Main Actions
+    mainMoves.forEach(move => {
+        variations.forEach(v => {
+            // Logic to create realistic names
+            let name = "";
+            let finalEquip = [...move.eq];
+            
+            if (move.eq.includes('手柄') && v.suffix === '单臂') name = `单臂绳索${move.base}`;
+            else if (move.eq.includes('横杆') && v.suffix === '离心控制') name = `慢速离心${move.base}`;
+            else name = `${v.suffix}${move.base}`;
+
+            // Ensure unique conceptual actions
+            actions.push(create(
+                name, '主训', move.part, 
+                PARTS.filter(p => p!==move.part && Math.random()>0.7), // Random subparts
+                move.m, v.diff, finalEquip, move.p
+            ));
+        });
+        
+        // Add specific equipment variations to boost count and diversity
+        if(move.part === '腿部') {
+            actions.push(create(`相扑${move.base}`, '主训', '腿部', ['臀部'], '内收肌', '中级', move.eq, move.p));
+            actions.push(create(`窄距${move.base}`, '主训', '腿部', ['核心'], '股四头肌', '高级', move.eq, move.p));
+        }
+    });
+
+    // Fill remaining Main actions to reach high count with specific Handle/Bar focus
+    for(let i=0; i<60; i++) {
+        actions.push(create(`站姿绳索${i%2===0?'推胸':'划船'}变式-${i}`, '主训', i%2===0?'胸部':'背部', ['核心'], '全身肌群', '中级', ['手柄'], []));
+    }
+
+    // --- B. WARMUP (15%) ---
+    const warmups = [
+        '开合跳', '高抬腿', '肩部环绕', '动态扩胸', '世界最伟大拉伸', '毛毛虫爬行', 
+        '空手深蹲', '弓步转体', '臀桥激活', '平板支撑', '死虫式', '鸟狗式'
+    ];
+    warmups.forEach((n, i) => {
+        actions.push(create(n, '热身', '全身', [], '全身肌群', '初级', ['自重', '瑜伽垫'], []));
+        actions.push(create(n + ' (进阶)', '热身', '全身', [], '全身肌群', '中级', ['自重', '瑜伽垫'], []));
+    });
+
+    // --- C. COOLDOWN (15%) ---
+    const cooldowns = [
+        '婴儿式', '下犬式', '胸部拉伸', '肱二头肌拉伸', '肱三头肌拉伸', '股四头肌拉伸', 
+        '4字拉伸', '坐姿体前屈', '眼镜蛇式', '泡沫轴滚背', '泡沫轴滚腿'
+    ];
+    cooldowns.forEach(n => {
+        let eq = ['瑜伽垫'];
+        if(n.includes('泡沫轴')) eq.push('泡沫轴');
+        actions.push(create(n, '放松', n.includes('滚背')?'背部':'全身', [], '全身肌群', '初级', eq, []));
+    });
+
+    store.library = actions;
+    document.getElementById('lib-size').innerText = actions.length;
+}
+
+// --- 3. INTELLIGENT ALGORITHM (Filter & Sort) ---
+
+function getCandidates(type, targetParts) {
+    return store.library.filter(act => {
+        // 1. Type Match
+        if (act.type !== type) return false;
+
+        // 2. Pain Filter (Safety First)
+        if (store.user.pain.length > 0) {
+            // If user has pain, check if action affects that area
+            // Strict: If action's painArea intersects with user's pain
+            const hasPainConflict = act.painArea.some(area => store.user.pain.includes(area));
+            if (hasPainConflict) return false;
+            // Also avoid main movements on painful parts (e.g. Shoulder Press if Shoulder pain)
+            if (store.user.pain.includes(act.mainPart)) return false;
+        }
+
+        // 3. Equipment Filter
+        if (store.user.missingEquip.length > 0) {
+            const needsMissing = act.equip.some(e => store.user.missingEquip.includes(e));
+            if (needsMissing) return false;
+        }
+
+        // 4. Target Match
+        if (type === '主训') {
+            return targetParts.includes(act.mainPart);
+        } else {
+            // Warmup/Cooldown includes Full Body + Targets
+            return act.mainPart === '全身' || targetParts.includes(act.mainPart);
+        }
+    });
+}
+
+function generateCourseData() {
+    const dur = store.ui.time;
+    const targets = store.ui.targets;
+    if(targets.length === 0) return alert("请选择至少一个目标部位");
+
+    let course = { 
+        id: Math.random().toString(36).substr(2,8),
+        phases: [],
+        meta: { time: dur, targets: targets, cal: 0 } 
+    };
+
+    // --- Phase 1: Warmup ---
+    if(store.ui.phases.includes('warmup')) {
+        const cands = getCandidates('热身', targets);
+        const count = Math.ceil(dur / 10);
+        let selected = [];
+        for(let i=0; i<count; i++) selected.push(cands[Math.floor(Math.random()*cands.length)]);
+        selected = selected.filter(x=>x); // clean
+        
+        course.phases.push({
+            type: '热身', color: 'c-warmup',
+            actions: selected.map(a => ({...a, sets: 1, reps: '30秒', weight: '自重'}))
+        });
+    }
+
+    // --- Phase 2: Main Training (The Core Logic) ---
+    if(store.ui.phases.includes('main')) {
+        const warmupTime = course.phases.length ? 3 : 0;
+        const coolTime = store.ui.phases.includes('cooldown') ? 3 : 0;
+        let mainTime = dur - warmupTime - coolTime;
+        if(mainTime < 10) mainTime = 10;
+
+        // Calculate slots (approx 3 mins per action)
+        const slots = Math.max(2, Math.floor(mainTime / 3));
+        const cands = getCandidates('主训', targets);
+        
+        // 1. Select Actions based on Muscle Balance
+        let selected = [];
+        for(let i=0; i<slots; i++) {
+            // Rotate targets
+            const t = targets[i % targets.length];
+            // Filter by this target
+            const pool = cands.filter(a => a.mainPart === t);
+            // Difficulty matching
+            const diffPool = pool.filter(a => {
+                if(store.user.level === 'Beginner') return a.difficulty !== '高级';
+                if(store.user.level === 'Advanced') return a.difficulty !== '初级';
+                return true;
+            });
+            const finalPool = diffPool.length ? diffPool : pool;
+            if(finalPool.length) selected.push(finalPool[Math.floor(Math.random()*finalPool.length)]);
+        }
+
+        // 2. SMART SORTING: Equipment Clustering
+        // Priority: Bar -> Handle -> Machine -> Bodyweight (Minimize switching)
+        const getEqScore = (a) => {
+            if(a.equip.includes('横杆')) return 1;
+            if(a.equip.includes('手柄')) return 2;
+            if(a.equip.includes('踝带')) return 3;
+            if(a.equip.includes('健身凳')) return 4;
+            return 5;
+        };
+        
+        selected.sort((a, b) => getEqScore(a) - getEqScore(b));
+
+        course.phases.push({
+            type: '主训', color: 'c-main',
+            actions: selected.map(a => ({
+                ...a, 
+                sets: 3, 
+                reps: store.user.goal==='Hypertrophy'?'8-12次':'15次', 
+                weight: a.equip.includes('自重') ? '自重' : (store.user.gender==='Male'?'15kg':'5kg')
+            }))
+        });
+    }
+
+    // --- Phase 3: Cooldown ---
+    if(store.ui.phases.includes('cooldown')) {
+        const cands = getCandidates('放松', targets);
+        const count = Math.ceil(dur / 10);
+        let selected = [];
+        for(let i=0; i<count; i++) selected.push(cands[Math.floor(Math.random()*cands.length)]);
+        selected = selected.filter(x=>x);
+        
+        course.phases.push({
+            type: '放松', color: 'c-cooldown',
+            actions: selected.map(a => ({...a, sets: 1, reps: '30秒', weight: '静止'}))
+        });
+    }
+
+    // Calc Stats
+    let totalActs = 0;
+    course.phases.forEach(p => totalActs += p.actions.length);
+    course.meta.count = totalActs;
+    course.meta.cal = Math.floor(dur * 7.5);
+
+    return course;
+}
+
+// --- 4. UI CONTROLLER ---
+
+const app = {
+    init: () => {
+        initLibrary();
+        app.renderTargetTags();
+        app.bindEvents();
+    },
+
+    bindEvents: () => {
+        // Sliders
+        document.getElementById('in-time').oninput = (e) => {
+            store.ui.time = parseInt(e.target.value);
+            document.getElementById('val-time').innerText = e.target.value + " min";
+        };
+        document.getElementById('in-cycle').oninput = (e) => {
+            store.ui.cycle = parseInt(e.target.value);
+            document.getElementById('val-cycle').innerText = e.target.value + " 周";
+        };
+
+        // Global Tooltip Logic
+        const tt = document.getElementById('global-tooltip');
+        document.addEventListener('mouseover', (e) => {
+            const card = e.target.closest('.card');
+            if(card && card.dataset.json) {
+                const data = JSON.parse(decodeURIComponent(card.dataset.json));
+                app.updateTooltip(data);
+                tt.style.display = 'block';
+                setTimeout(()=> tt.style.opacity = 1, 10);
+            }
+        });
+        document.addEventListener('mousemove', (e) => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            // Smart positioning to avoid off-screen
+            let x = e.clientX + 15;
+            let y = e.clientY + 15;
+            if(x + 280 > w) x = e.clientX - 295;
+            if(y + 200 > h) y = e.clientY - 210;
+            tt.style.left = x + 'px';
+            tt.style.top = y + 'px';
+        });
+        document.addEventListener('mouseout', (e) => {
+            const card = e.target.closest('.card');
+            if(card) {
+                tt.style.opacity = 0;
+                tt.style.display = 'none';
+            }
+        });
+    },
+
+    updateTooltip: (data) => {
+        document.getElementById('tt-name').innerText = data.name;
+        document.getElementById('tt-id').innerText = data.id;
+        document.getElementById('tt-diff').innerText = data.difficulty;
+        document.getElementById('tt-muscle').innerText = data.muscle;
+        document.getElementById('tt-parts').innerText = `${data.mainPart} ${data.subParts.length?'+ '+data.subParts[0]:''}`;
+        document.getElementById('tt-equip').innerText = data.equip.join(', ');
+        document.getElementById('tt-weight').innerText = data.weight;
+        document.getElementById('tt-pain').innerText = data.painArea.length ? data.painArea.join(', ') : '无';
+    },
+
+    renderTargetTags: () => {
+        const con = document.getElementById('ui-targets');
+        con.innerHTML = PARTS.map(p => `
+            <div class="tag ${store.ui.targets.includes(p)?'active':''}" onclick="app.toggleTarget('${p}')">${p}</div>
+        `).join('');
+    },
+
+    toggleTarget: (p) => {
+        if(store.ui.targets.includes(p)) {
+            store.ui.targets = store.ui.targets.filter(x=>x!==p);
+        } else {
+            if(store.ui.targets.length >= 3) return alert("最多选择3个部位");
+            store.ui.targets.push(p);
+        }
+        app.renderTargetTags();
+    },
+
+    togglePhase: (type, el) => {
+        el.classList.toggle('active');
+        if(store.ui.phases.includes(type)) store.ui.phases = store.ui.phases.filter(x=>x!==type);
+        else store.ui.phases.push(type);
+    },
+
+    genCourse: () => {
+        const c = generateCourseData();
+        if(!c) return;
+        store.course = c;
+        app.renderCourseView(c);
+    },
+
+    genPlan: () => {
+        if(store.ui.targets.length === 0) return alert("请选择目标");
+        const weeks = store.ui.cycle;
+        let html = `
+            <div class="section-header">
+                <div>
+                    <h1>智能周期计划</h1>
+                    <div style="font-size:12px; color:#888;">周期: ${weeks}周 | 目标: ${store.user.goal}</div>
+                </div>
+            </div>
+            <div class="content-scroll">
+        `;
+
+        for(let w=1; w<=weeks; w++) {
+            html += `<div style="margin-bottom:20px;">
+                <div style="font-weight:700; color:var(--text-sub); margin-bottom:10px;">第 ${w} 周</div>
+                <div class="week-grid">`;
+            
+            for(let d=1; d<=7; d++) {
+                // Rest day logic (3-4 days on)
+                const isRest = (d % 2 === 0); 
+                if(isRest) {
+                    html += `<div class="day-box rest"><div class="day-num">Day ${d}</div><div class="day-content" style="color:#555">休息日</div></div>`;
+                } else {
+                    // Generate a unique course for this day
+                    const dayC = generateCourseData();
+                    const mainPhase = dayC.phases.find(p=>p.type==='主训');
+                    const mainAct = mainPhase ? mainPhase.actions[0].name : '综合训练';
+                    const mainEq = mainPhase ? mainPhase.actions.map(a=>a.equip[0]).join('/') : '';
+                    
+                    html += `<div class="day-box" onclick='app.renderCourseView(${JSON.stringify(dayC)})'>
+                        <div class="day-num">Day ${d}</div>
+                        <div class="day-content">${dayC.meta.targets[0]}训练</div>
+                        <span class="day-equip">${mainEq}</span>
+                    </div>`;
+                }
+            }
+            html += `</div></div>`;
+        }
+        html += `</div>`;
+        document.getElementById('main-view').innerHTML = html;
+    },
+
+    renderCourseView: (c) => {
+        // Fix for when passed from JSON stringify
+        if(typeof c === 'string') c = JSON.parse(c);
+
+        let html = `
+            <div class="section-header">
+                <div>
+                    <h1>训练详情</h1>
+                    <div style="font-size:12px; color:#888;">目标: ${c.meta.targets.join(', ')}</div>
+                </div>
+                <div class="dashboard-stats" style="margin-bottom:0; gap:10px;">
+                    <div class="stat-card" style="padding:5px 15px;"><div class="stat-num" style="font-size:16px;">${c.meta.time}</div><div class="stat-desc">Min</div></div>
+                    <div class="stat-card" style="padding:5px 15px;"><div class="stat-num" style="font-size:16px;">${c.meta.count}</div><div class="stat-desc">Acts</div></div>
+                    <div class="stat-card" style="padding:5px 15px;"><div class="stat-num" style="font-size:16px;">${c.meta.cal}</div><div class="stat-desc">Kcal</div></div>
+                </div>
+            </div>
+            <div class="content-scroll">
+        `;
+
+        c.phases.forEach(p => {
+            html += `<div class="phase-block">
+                <div class="phase-title" style="color:${p.type==='热身'? 'var(--warmup)' : (p.type==='主训'?'var(--primary)':'var(--cooldown)')}">
+                    <div class="phase-dot" style="background:currentColor"></div>${p.type}环节
+                </div>`;
+            
+            p.actions.forEach(a => {
+                const jsonStr = encodeURIComponent(JSON.stringify(a));
+                html += `
+                    <div class="card ${p.color}" data-json="${jsonStr}">
+                        <div class="card-main">
+                            <div class="card-name">${a.name}</div>
+                            <div class="card-tags">
+                                <span class="badge">${a.difficulty}</span>
+                                <span class="badge" style="color:#aaa">${a.equip[0]}</span>
+                                <span class="badge" style="color:#aaa">${a.muscle}</span>
+                            </div>
+                        </div>
+                        <div class="card-right">
+                            <div class="card-val">${a.sets} x ${a.reps}</div>
+                            <div class="card-sub">${a.weight}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        });
+        html += `</div>`;
+        document.getElementById('main-view').innerHTML = html;
+    },
+
+    // Modal & Data Ops
+    openModal: (id) => {
+        document.getElementById(id).style.display = 'flex';
+        if(id === 'modal-lib') app.renderLibList('主训');
+    },
+    closeModal: (id) => document.getElementById(id).style.display = 'none',
+    
+    saveProfile: () => {
+        store.user.gender = document.getElementById('p-gender').value;
+        store.user.goal = document.getElementById('p-goal').value;
+        store.user.level = document.getElementById('p-level').value;
+        
+        const getMulti = (id) => Array.from(document.getElementById(id).selectedOptions).map(o=>o.value).filter(v=>v!=='无');
+        store.user.pain = getMulti('p-pain');
+        store.user.missingEquip = getMulti('p-missing');
+        
+        app.closeModal('modal-profile');
+        alert("档案已更新，算法将自动规避痛点与缺失器械");
+    },
+
+    renderLibList: (type) => {
+        const list = document.getElementById('lib-list-container');
+        const items = store.library.filter(i => i.type === type);
+        
+        // Highlight tab
+        const tabs = document.querySelectorAll('#modal-lib .tag');
+        tabs.forEach(t => t.innerText === type ? t.classList.add('active') : t.classList.remove('active'));
+
+        list.innerHTML = items.map(a => `
+            <div class="card c-${type==='热身'?'warmup':(type==='主训'?'main':'cooldown')}" style="margin-bottom:10px;">
+                <div class="card-main">
+                    <div class="card-name">${a.name}</div>
+                    <div class="card-tags">
+                        <span class="badge">${a.mainPart}</span>
+                        <span class="badge">${a.muscle}</span>
+                    </div>
+                </div>
+                <div class="card-right">
+                    <span class="badge">${a.equip.join('/')}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+};
+
+app.init();
+</script>
+</body>
+</html>

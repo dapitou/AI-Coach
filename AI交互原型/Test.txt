@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运动健康APP - 高保真交互原型 v1.9</title>
+    <style>
+        :root {
+            /* 视觉系统 */
+            --bg-canvas: #1E1E1E;
+            --bg-device: #FFFFFF;
+            --c-text-primary: #111111;
+            --c-text-secondary: #666666;
+            --c-text-tertiary: #999999;
+            --c-border: #EEEEEE;
+            --c-surface: #F5F5F5;
+            --c-accent: #FF3B30;
+            --c-link-line: #888888;
+            
+            /* 尺寸 */
+            --device-w: 540px;
+            --device-h: 960px;
+            --radius-md: 16px;
+            
+            /* 阴影 */
+            --shadow-device: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-canvas);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* --- UI Controls --- */
+        .ui-overlay { position: fixed; z-index: 1000; display: flex; gap: 12px; pointer-events: none; }
+        .ui-top-left { top: 20px; left: 20px; pointer-events: auto; }
+        .ui-top-right { top: 20px; right: 20px; pointer-events: auto; }
+        .ui-bottom-left { bottom: 20px; left: 20px; color: #888; font-size: 12px; }
+
+        .btn-ui {
+            background: rgba(255,255,255,0.1); color: #FFF; border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;
+            transition: all 0.2s; backdrop-filter: blur(4px);
+        }
+        .btn-ui:hover { background: rgba(255,255,255,0.2); }
+        .btn-ui.active { background: var(--c-accent); border-color: var(--c-accent); }
+
+        /* --- Canvas & Stage --- */
+        #canvas-container {
+            width: 100%; height: 100%; cursor: grab; transform-origin: 0 0;
+            background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
+        }
+        #canvas-container.grabbing { cursor: grabbing; }
+
+        #stage {
+            position: absolute;
+            transform-origin: 0 0;
+            /* 默认开启画布过渡 */
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            width: 5000px; height: 5000px;
+        }
+
+        #connections-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 25; overflow: visible;
+        }
+        
+        path.connector {
+            fill: none; stroke: var(--c-link-line); stroke-width: 3; stroke-dasharray: 8 6;
+            transition: stroke 0.3s; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+        }
+        path.connector:hover { stroke: #FFF; cursor: pointer; }
+
+        /* --- Page Wrapper --- */
+        .page-wrapper {
+            position: absolute;
+            transition: opacity 0.3s;
+            overflow: visible; z-index: 10;
+        }
+
+        body[data-mode="single"] .page-wrapper {
+            display: none;
+        }
+
+        body[data-mode="single"] .page-wrapper.active {
+            display: block;
+            z-index: 100;
+            cursor: default;
+        }
+
+        /* --- 核心动画系统 (v1.9 Spring Physics) --- */
+        /* Forward: 新页面从右侧滑入 */
+        .page-enter-forward .device-frame {
+            animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* Backward: 新页面从左侧滑入 */
+        .page-enter-backward .device-frame {
+            animation: slideInLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .device-frame {
+            width: var(--device-w); height: var(--device-h);
+            background: var(--bg-device); border-radius: 40px;
+            box-shadow: var(--shadow-device); position: relative; overflow: hidden;
+            /* 确保动画变换原点居中 */
+            transform-origin: center; 
+        }
+        
+        .page-label {
+            position: absolute; top: -50px; left: 0; width: 100%; text-align: center;
+            color: #FFF; font-size: 20px; font-weight: 500; letter-spacing: 1px;
+            opacity: 1; transition: opacity 0.3s;
+        }
+        body[data-mode="single"] .page-label { opacity: 0; }
+
+        /* --- Annotations --- */
+        .annotation-dot {
+            position: absolute; width: 28px; height: 28px;
+            background: var(--c-accent); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 100; cursor: help;
+            border: 2px solid #FFF;
+        }
+
+        .sidebar-notes {
+            position: absolute; top: 0; left: calc(100% + 60px); width: 400px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            color: #CCC; z-index: 200;
+        }
+        body[data-mode="single"] .sidebar-notes { opacity: 1; pointer-events: auto; }
+        body[data-mode="flow"] .sidebar-notes { display: none; }
+
+        .note-card {
+            background: rgba(40,40,40, 0.95);
+            border-left: 4px solid var(--c-accent);
+            padding: 20px; margin-bottom: 16px; border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: none; /* 无过渡，防止闪烁 */
+        }
+        
+        .note-card.active-highlight {
+            box-shadow: 0 0 0 2px var(--c-accent), 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .note-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: #FFF; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;}
+        .note-badge { 
+            background: var(--c-accent); color: white; 
+            width: 22px; height: 22px; border-radius: 50%; 
+            font-size: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+        .note-title { font-weight: bold; font-size: 16px; }
+        .note-body { font-size: 14px; line-height: 1.6; color: #DDD; }
+        .note-key { color: #888; font-weight: bold; margin-right: 4px; display: inline-block; min-width: 40px;}
+        .note-block { margin-bottom: 8px; display: flex; align-items: baseline; }
+        .note-value { flex: 1; }
+
+        /* --- Mode Specifics --- */
+        body[data-mode="flow"] .page-wrapper { cursor: pointer; }
+        body[data-mode="flow"] .page-wrapper:hover { transform: scale(1.02); z-index: 20; }
+        body[data-mode="single"] #connections-layer { opacity: 0; pointer-events: none; }
+
+
+        /* --- Mock App UI --- */
+        .app-status-bar { height: 44px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; align-items: center; font-size: 12px; font-weight: 600; color: var(--c-text-primary); }
+        .app-content { height: calc(100% - 44px); padding: 24px; position: relative; display: flex; flex-direction: column; }
+        .text-h1 { font-size: 48px; font-weight: 800; color: var(--c-text-primary); margin: 0; letter-spacing: -1px; }
+        .text-h2 { font-size: 24px; font-weight: 700; color: var(--c-text-primary); margin-bottom: 8px; }
+        .text-body { font-size: 16px; color: var(--c-text-secondary); line-height: 1.5; }
+        .text-label { font-size: 13px; color: var(--c-text-tertiary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .card { background: var(--c-surface); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; }
+        .btn-primary {
+            width: 100%; height: 64px; background: var(--c-text-primary); color: #FFF; border-radius: 32px;
+            font-size: 20px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.2s; box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .btn-primary:active { opacity: 0.8; transform: scale(0.98); }
+        .btn-circle {
+            width: 88px; height: 88px; border-radius: 50%; border: none; cursor: pointer;
+            font-weight: 700; font-size: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+        }
+        .btn-circle:active { transform: scale(0.95); }
+        .btn-stop { background: var(--c-accent); color: white; box-shadow: 0 8px 20px rgba(255,59,48, 0.4); }
+        .btn-pause { background: var(--c-surface); color: var(--c-text-primary); }
+        .bottom-nav {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 90px; background: #FFF; border-top: 1px solid var(--c-border);
+            display: flex; justify-content: space-around; align-items: center; padding-bottom: 10px;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--c-text-tertiary); cursor: pointer; transition: color 0.2s; }
+        .nav-item.active { color: var(--c-text-primary); }
+        .nav-icon { width: 28px; height: 28px; background: currentColor; border-radius: 6px; opacity: 0.2; }
+        .nav-item.active .nav-icon { opacity: 1; }
+        .map-placeholder {
+            width: 100%; flex: 1; background: #F0F0F0; border-radius: var(--radius-md); position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; color: #AAA; font-weight: 600;
+            background-image: linear-gradient(#E0E0E0 1px, transparent 1px), linear-gradient(90deg, #E0E0E0 1px, transparent 1px);
+            background-size: 40px 40px; border: 1px solid #E0E0E0;
+        }
+        .path-line { 
+            position: absolute; width: 60%; height: 50%; border: 5px solid var(--c-accent); 
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; top: 25%; left: 20%; opacity: 0.8;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));
+        }
+    </style>
+</head>
+<body data-mode="flow">
+
+    <div class="ui-overlay ui-top-left">
+        <button class="btn-ui" id="btn-back" onclick="app.setMode('flow')" style="display: none;">← 返回流程 (Esc)</button>
+        <div style="color:white; font-weight:bold; padding: 8px; font-family: monospace;">SportsApp v1.9</div>
+    </div>
+    <div class="ui-overlay ui-top-right">
+        <button class="btn-ui active" id="btn-lang" onclick="app.toggleLang()">中 / En</button>
+    </div>
+    <div class="ui-overlay ui-bottom-left"><p>中键/空格拖拽 • 滚轮缩放 • 点击页面进入详情</p></div>
+
+    <div id="canvas-container">
+        <div id="stage">
+            <svg id="connections-layer">
+                <defs>
+                    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+                        <path d="M0,0 L12,6 L0,12 L0,0" style="fill: var(--c-link-line);" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        const DOM = {
+            container: document.getElementById('canvas-container'),
+            stage: document.getElementById('stage'),
+            svgLayer: document.getElementById('connections-layer'),
+            btnBack: document.getElementById('btn-back'),
+            btnLang: document.getElementById('btn-lang')
+        };
+        
+        const TEXTS = {
+            home_title: { zh: "今日步数", en: "Today's Steps" },
+            start_run: { zh: "开始运动", en: "Start Workout" },
+            nav_home: { zh: "首页", en: "Home" },
+            nav_profile: { zh: "我的", en: "Profile" },
+            good_morning: { zh: "早上好", en: "Good Morning" },
+            workout_time: { zh: "时长", en: "Duration" },
+            workout_pace: { zh: "配速", en: "Pace" },
+            btn_pause: { zh: "暂停", en: "Pause" },
+            btn_stop: { zh: "结束", en: "End" },
+            map_label: { zh: "地图区域", en: "Map View" },
+            profile_history: { zh: "运动历史", en: "History" },
+            profile_settings: { zh: "设置", en: "Settings" },
+            menu_title: { zh: "功能列表", en: "Menu List"}
+        };
+
+        const formatAnno = (fields) => {
+            const labels = { purpose: '用途', interaction: '交互', data: '数据', logic: '逻辑', error: '异常' };
+            let html = '';
+            for (const [key, value] of Object.entries(fields)) {
+                if (value && labels[key]) html += `<div class="note-block"><span class="note-key">${labels[key]}：</span><span class="note-value">${value}</span></div>`;
+            }
+            return html;
+        };
+
+        const PAGES = [
+            {
+                id: 'home', name: '首页 (Home)', x: 100, y: 100,
+                annotations: [
+                    { id: 1, target: 'stat-hero', title: '今日步数', text: formatAnno({ purpose: '展示用户核心数据。', data: '来源: HealthKit/Google Fit。', interaction: '点击进入历史详情。' }) },
+                    { id: 2, target: 'btn-start', title: '开始运动', text: formatAnno({ purpose: '运动主入口。', logic: '点击校验权限。status=denied? 弹窗 : 跳转。', interaction: '涟漪反馈。' }) },
+                    { id: 3, target: 'nav-bar', title: '底部导航', text: formatAnno({ purpose: '全局导航。', interaction: '高亮当前Tab。' }) }
+                ],
+                links: [{ trigger: 'btn-start', target: 'workout' }],
+                render: (lang) => `
+                    <div class="app-status-bar"><span>9:41</span><span>100%</span></div>
+                    <div class="app-content">
+                        <div class="text-h2" style="margin-top: 40px;">${getText('good_morning', lang)}</div>
+                        <div id="stat-hero" class="card" style="margin-top: 20px; display:flex; flex-direction:column; gap:10px;">
+                            <span class="text-label">${getText('home_title', lang)}</span>
+                            <span class="text-h1">6,543</span><span class="text-body" style="font-size:14px">4.2 km · 340 kcal</span>
+                        </div>
+                        <div style="flex:1"></div>
+                        <button id="btn-start" class="btn-primary" onclick="app.router('workout')">${getText('start_run', lang)}</button>
+                        <div style="height: 80px;"></div>
+                    </div>
+                    <div id="nav-bar" class="bottom-nav">
+                        <div class="nav-item active"><div class="nav-icon"></div><span>${getText('nav_home', lang)}</span></div>
+                        <div class="nav-item" onclick="app.router('profile')"><div class="nav-icon"></div><span>${getText('nav_profile', lang)}</span></div>
+                    </div>`
+            },
+            {
+                id: 'workout', name: '运动中 (Workout)', x: 900, y: 100,
+                annotations: [
+                    { id: 1, target: 'map-view', title: '地图区域', text: formatAnno({ purpose: '展示轨迹。', interaction: '支持拖动缩放。', error: '信号弱显示Toast。' }) },
+                    { id: 2, target: 'grid-stats', title: '实时数据', text: formatAnno({ logic: '每1s刷新时长，每5m刷新配速。', data: 'Now - StartTime。' }) },
+                    { id: 3, target: 'btn-end', title: '结束', text: formatAnno({ purpose: '结束记录。', interaction: '点击需二次确认。', logic: '写入本地DB并同步。' }) }
+                ],
+                links: [],
+                render: (lang) => `
+                    <div class="app-status-bar"><span>9:42</span><span>GPS</span></div>
+                    <div class="app-content">
+                        <div id="map-view" class="map-placeholder"><div class="path-line"></div>${getText('map_label', lang)}</div>
+                        <div id="grid-stats" style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0;">
+                            <div><div class="text-h2">00:12:43</div><div class="text-label">${getText('workout_time', lang)}</div></div>
+                            <div><div class="text-h2">5'30''</div><div class="text-label">${getText('workout_pace', lang)}</div></div>
+                        </div>
+                        <div id="controls" style="display:flex; justify-content:center; gap: 40px; margin-bottom: 40px;">
+                            <button class="btn-circle btn-pause">${getText('btn_pause', lang)}</button>
+                            <button id="btn-end" class="btn-circle btn-stop" onclick="app.router('home')">${getText('btn_stop', lang)}</button>
+                        </div>
+                    </div>`
+            },
+            {
+                id: 'profile', name: '个人中心 (Profile)', 
+                x: 100, y: 1200, 
+                annotations: [
+                    { id: 1, target: 'user-info', title: '用户信息', text: formatAnno({ purpose: '展示用户状态。', interaction: '点击换头像。', data: 'Local Storage。' }) },
+                    { id: 2, target: 'menu-list', title: '功能列表', text: formatAnno({ purpose: '次级入口。', interaction: 'Active态变灰。', logic: '判空检查。' }) }
+                ],
+                links: [],
+                render: (lang) => `
+                    <div class="app-status-bar"><span>9:41</span><span>100%</span></div>
+                    <div class="app-content">
+                        <div class="text-h2">${getText('nav_profile', lang)}</div>
+                        <div id="user-info" class="card" style="display:flex; align-items:center; gap:15px; margin-top:20px;">
+                            <div style="width:60px; height:60px; background:#DDD; border-radius:50%;"></div>
+                            <div><div class="text-h2" style="font-size:20px; margin:0;">User 01</div><div class="text-label">ID: 883920</div></div>
+                        </div>
+                        <div id="menu-list" style="margin-top:20px;">
+                            <div class="card" style="padding: 18px; display:flex; justify-content:space-between;"><span>${getText('profile_history', lang)}</span><span style="color:#CCC">></span></div>
+                            <div class="card" style="padding: 18px; display:flex; justify-content:space-between;"><span>${getText('profile_settings', lang)}</span><span style="color:#CCC">></span></div>
+                        </div>
+                        <div style="flex:1"></div><div style="height: 80px;"></div>
+                    </div>
+                     <div class="bottom-nav">
+                        <div class="nav-item" onclick="app.router('home')"><div class="nav-icon"></div><span>${getText('nav_home', lang)}</span></div>
+                        <div class="nav-item active"><div class="nav-icon"></div><span>${getText('nav_profile', lang)}</span></div>
+                    </div>`
+            }
+        ];
+
+        class ProtoFlow {
+            constructor() {
+                this.state = { mode: 'flow', lang: 'zh', activePageId: null, scale: 0.55, pan: { x: 50, y: 50 }, isDragging: false, lastMouse: { x: 0, y: 0 } };
+                this.historyStack = []; // 导航历史栈
+                this.init();
+            }
+
+            init() {
+                this.renderAll(); this.setupEvents(); this.updateTransform();
+                setTimeout(() => this.drawLines(), 100);
+            }
+
+            renderAll() {
+                DOM.svgLayer.innerHTML = '<defs><marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0,0 L12,6 L0,12 L0,0" style="fill: var(--c-link-line);" /></marker></defs>';
+                DOM.stage.querySelectorAll('.page-wrapper').forEach(p => p.remove());
+                
+                PAGES.forEach(page => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'page-wrapper';
+                    wrapper.id = `page-${page.id}`;
+                    wrapper.style.left = `${page.x}px`;
+                    wrapper.style.top = `${page.y}px`;
+                    wrapper.onclick = (e) => { 
+                        if (this.state.mode === 'flow') { 
+                            e.stopPropagation(); 
+                            this.historyStack = [page.id]; // Reset stack with current
+                            this.enterSingleMode(page.id, 'none'); 
+                        } 
+                    };
+
+                    wrapper.innerHTML = `<div class="page-label">${page.name}</div><div class="device-frame">${page.render(this.state.lang)}</div>`;
+
+                    const sideNotes = document.createElement('div');
+                    sideNotes.className = 'sidebar-notes';
+                    sideNotes.innerHTML = `<div style="color:var(--c-accent); font-weight:bold; margin-bottom:12px; font-size:20px; border-bottom:1px solid #444; padding-bottom:10px;">${page.name}</div>`;
+                    page.annotations.forEach(note => {
+                        sideNotes.innerHTML += `<div class="note-card" data-note-id="${note.id}"><div class="note-header"><div class="note-badge">${note.id}</div><span class="note-title">${note.title}</span></div><div class="note-body">${note.text}</div></div>`;
+                    });
+                    wrapper.appendChild(sideNotes);
+                    DOM.stage.appendChild(wrapper);
+                    setTimeout(() => this.positionDots(page, wrapper), 0);
+                });
+                setTimeout(() => this.drawLines(), 50);
+            }
+
+            positionDots(page, wrapper) {
+                wrapper.querySelectorAll('.annotation-dot').forEach(d => d.remove());
+                const deviceFrame = wrapper.querySelector('.device-frame');
+                page.annotations.forEach(note => {
+                    const targetEl = wrapper.querySelector(`#${note.target}`);
+                    if (targetEl && deviceFrame) {
+                        const dot = document.createElement('div');
+                        dot.className = 'annotation-dot'; dot.innerText = note.id;
+                        let offsetTop = targetEl.offsetTop; let offsetLeft = targetEl.offsetLeft; let el = targetEl.offsetParent;
+                        while(el && el !== deviceFrame && el !== wrapper) { offsetTop += el.offsetTop; offsetLeft += el.offsetLeft; el = el.offsetParent; }
+                        dot.style.top = (offsetTop - 14) + 'px'; dot.style.left = (offsetLeft + targetEl.offsetWidth - 14) + 'px';
+                        
+                        const toggleHighlight = (isActive) => {
+                            const noteCard = wrapper.querySelector(`.note-card[data-note-id="${note.id}"]`);
+                            if (noteCard) isActive ? noteCard.classList.add('active-highlight') : noteCard.classList.remove('active-highlight');
+                        };
+                        dot.addEventListener('mouseenter', () => toggleHighlight(true));
+                        dot.addEventListener('mouseleave', () => toggleHighlight(false));
+                        targetEl.addEventListener('mouseenter', () => toggleHighlight(true));
+                        targetEl.addEventListener('mouseleave', () => toggleHighlight(false));
+                        if (getComputedStyle(targetEl).cursor === 'auto') targetEl.style.cursor = 'default';
+                        wrapper.appendChild(dot);
+                    }
+                });
+            }
+
+            drawLines() {
+                DOM.svgLayer.querySelectorAll('path.connector').forEach(l => l.remove());
+                if (this.state.mode !== 'flow') return;
+                PAGES.forEach(page => {
+                    page.links.forEach(link => {
+                        const sourcePage = document.getElementById(`page-${page.id}`);
+                        const targetP = PAGES.find(p => p.id === link.target);
+                        const triggerBtn = sourcePage ? sourcePage.querySelector(`#${link.trigger}`) : null;
+                        if (triggerBtn && targetP) {
+                            let el = triggerBtn; let btnY = 0; let btnX = 0;
+                            while(el && !el.classList.contains('page-wrapper')) { btnY += el.offsetTop; btnX += el.offsetLeft; el = el.offsetParent; }
+                            const startX = page.x + btnX + triggerBtn.offsetWidth/2;
+                            const startY = page.y + btnY + triggerBtn.offsetHeight/2;
+                            const endX = targetP.x; const endY = targetP.y + 480;
+                            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                            path.setAttribute("class", "connector"); path.setAttribute("marker-end", "url(#arrowhead)");
+                            const d = `M ${startX} ${startY} C ${startX + Math.abs(endX-startX)*0.5} ${startY}, ${endX - Math.abs(endX-startX)*0.5} ${endY}, ${endX - 5} ${endY}`;
+                            path.setAttribute("d", d); DOM.svgLayer.appendChild(path);
+                        }
+                    });
+                });
+            }
+
+            setMode(mode) {
+                this.state.mode = mode;
+                document.body.setAttribute('data-mode', mode);
+                if (mode === 'flow') {
+                    DOM.stage.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    this.state.activePageId = null; DOM.btnBack.style.display = 'none';
+                    this.state.scale = 0.55; this.state.pan = { x: 50, y: 50 };
+                    document.querySelectorAll('.page-wrapper').forEach(el => {
+                        el.classList.remove('page-enter-forward', 'page-enter-backward');
+                    });
+                    setTimeout(() => this.drawLines(), 50);
+                } else {
+                    DOM.btnBack.style.display = 'block';
+                }
+                
+                document.querySelectorAll('.page-wrapper').forEach(el => el.classList.toggle('active', el.id === `page-${this.state.activePageId}`));
+                this.updateTransform();
+            }
+
+            /**
+             * 智能路由控制中心
+             * 根据 Tab 顺序和 History 栈自动判断左右切换方向
+             */
+            router(targetId) {
+                if (this.state.mode === 'single') {
+                    const currentId = this.state.activePageId;
+                    let direction = 'forward'; // 默认前进 (右滑入)
+
+                    // 1. 定义底部 Tab 的左右逻辑顺序
+                    const tabOrder = ['home', 'profile'];
+                    const currTabIndex = tabOrder.indexOf(currentId);
+                    const targetTabIndex = tabOrder.indexOf(targetId);
+
+                    // 2. 判断场景
+                    if (currTabIndex !== -1 && targetTabIndex !== -1) {
+                        // 场景A: Tab 平级切换
+                        if (targetTabIndex > currTabIndex) {
+                            direction = 'forward'; // Home -> Profile: 右滑入
+                        } else {
+                            direction = 'backward'; // Profile -> Home: 左滑入
+                        }
+                        // Tab 切换重置栈
+                        this.historyStack = [targetId];
+                    } else {
+                        // 场景B: 流程页面 (父子关系)
+                        // 检查是否是“返回”操作 (即目标页面是栈中的上一个)
+                        if (this.historyStack.length > 1 && this.historyStack[this.historyStack.length - 2] === targetId) {
+                            direction = 'backward';
+                            this.historyStack.pop();
+                        } else {
+                            // 否则视为进入新层级
+                            direction = 'forward';
+                            this.historyStack.push(targetId);
+                        }
+                    }
+
+                    // 3. 执行切换
+                    this.enterSingleMode(targetId, direction);
+                }
+            }
+
+            enterSingleMode(pageId, transitionType = 'forward') {
+                this.state.activePageId = pageId;
+                const pageData = PAGES.find(p => p.id === pageId);
+                
+                // 计算视窗位置
+                const deviceH = 960; const deviceW = 540; const sidebarW = 400; const gap = 60;
+                const totalW = deviceW + sidebarW + gap;
+                const vH = window.innerHeight; const vW = window.innerWidth;
+                const scaleH = (vH * 0.85) / deviceH;
+                const scaleW = (vW * 0.9) / totalW;
+                this.state.scale = Math.max(Math.min(scaleH, scaleW, 1.0), 0.4);
+
+                const visualLeft = (vW - (totalW * this.state.scale)) / 2;
+                const visualTop = (vH - (deviceH * this.state.scale)) / 2;
+                this.state.pan.x = visualLeft - (pageData.x * this.state.scale);
+                this.state.pan.y = visualTop - (pageData.y * this.state.scale);
+
+                if (transitionType !== 'none') {
+                    // 1. 瞬移画布 (切断平移过渡)
+                    DOM.stage.style.transition = 'none';
+                    
+                    // 2. 更新 DOM 可见性
+                    this.setMode('single');
+                    
+                    // 3. 强制重流 (Flush CSS)
+                    DOM.stage.offsetHeight; 
+
+                    // 4. 应用页面内动画
+                    const newPage = document.getElementById(`page-${pageId}`);
+                    if (newPage) {
+                        newPage.classList.remove('page-enter-forward', 'page-enter-backward');
+                        void newPage.offsetWidth; // 触发页面元素重流
+                        
+                        if (transitionType === 'forward') newPage.classList.add('page-enter-forward');
+                        else newPage.classList.add('page-enter-backward');
+                    }
+
+                    // 5. 恢复画布动画能力 (下一帧)
+                    requestAnimationFrame(() => {
+                        DOM.stage.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    });
+
+                } else {
+                    // 首次进入 (Flow -> Single)
+                    DOM.stage.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    this.setMode('single');
+                }
+            }
+
+            toggleLang() {
+                this.state.lang = this.state.lang === 'zh' ? 'en' : 'zh';
+                this.renderAll(); this.setMode(this.state.mode);
+                if(this.state.mode === 'single' && this.state.activePageId) this.enterSingleMode(this.state.activePageId, 'none');
+            }
+
+            setupEvents() {
+                window.addEventListener('mousedown', e => {
+                    if (this.state.mode === 'flow' && (e.button === 1 || e.code === 'Space' || e.target.id === 'canvas-container')) {
+                        this.state.isDragging = true; this.state.lastMouse = { x: e.clientX, y: e.clientY }; DOM.container.classList.add('grabbing');
+                    }
+                });
+                window.addEventListener('mousemove', e => {
+                    if (this.state.isDragging) {
+                        this.state.pan.x += e.clientX - this.state.lastMouse.x; this.state.pan.y += e.clientY - this.state.lastMouse.y;
+                        this.state.lastMouse = { x: e.clientX, y: e.clientY }; this.updateTransform();
+                    }
+                });
+                window.addEventListener('mouseup', () => { this.state.isDragging = false; DOM.container.classList.remove('grabbing'); });
+                window.addEventListener('wheel', e => {
+                    if (true) { 
+                        e.preventDefault(); const newScale = this.state.scale - e.deltaY * 0.001;
+                        this.state.scale = Math.min(Math.max(0.1, newScale), 4); this.updateTransform();
+                    }
+                }, { passive: false });
+                window.addEventListener('keydown', e => {
+                    if (e.key === 'Escape' && this.state.mode === 'single') this.setMode('flow');
+                    if (e.code === 'Space') DOM.container.style.cursor = 'grab';
+                });
+                window.addEventListener('keyup', e => { if (e.code === 'Space') DOM.container.style.cursor = 'default'; this.state.isDragging = false; });
+            }
+
+            updateTransform() {
+                DOM.stage.style.transform = `translate(${this.state.pan.x}px, ${this.state.pan.y}px) scale(${this.state.scale})`;
+            }
+        }
+
+        function getText(key, lang) { return TEXTS[key] ? TEXTS[key][lang] : key; }
+        const app = new ProtoFlow();
+    </script>
+</body>
+</html>

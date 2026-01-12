@@ -1,0 +1,34 @@
+AEKE_Fitness/
+├── main.py                     # 程序入口 (组装各模块)
+├── core/                       # 基础设施层
+│   ├── __init__.py
+│   ├── config.py               # [核心] 所有参数配置
+│   ├── camera.py               # 摄像头驱动
+│   └── sound.py                # 音效管理
+├── utils/                      # 通用工具层
+│   ├── __init__.py
+│   ├── geometry.py             # 几何计算
+│   └── smoother.py             # 关键点平滑
+├── logic/
+│   ├── detectors/         # [新增]
+│   │   ├── __init__.py    # 暴露检测器
+│   │   ├── abstract.py    # 基类
+│   │   ├── shrug.py       # 耸肩
+│   │   ├── rounding.py    # 弓背
+│   │   └── valgus.py      # 膝内外扣
+│   ├── spine.py
+│   ├── gatekeeper.py
+│   └── feedback.py
+└── ui/
+    ├── __init__.py        # (保持或更新)
+    ├── utils.py           # [新增] 通用绘图工具
+    ├── skeleton.py        # [新增] 人体骨架绘制
+    ├── visuals.py         # [新增] 纠错特效绘制
+    ├── widgets.py         # [新增] 交互组件绘制与逻辑
+    └── renderer.py        # [重写] 统一入口 (Facade)
+├── exercises/
+│   ├── base.py            # [修改] 支持检测器列表
+│   ├── press.py           # [修改] 使用检测器
+│   ├── squat.py           # [修改] 使用检测器
+│   ├── lunge.py           # [修改] 使用检测器
+│   └── front_raise.py     # [修改] 使用检测器
