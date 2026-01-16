@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025 AI工具应用分享 - 卢凯晨</title>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#32c48c',
+                        'primary-dark': '#26a072',
+                        'primary-light': '#ebfbf5',
+                    },
+                    boxShadow: {
+                        'pearl': '0 10px 40px -10px rgba(50, 196, 140, 0.15)',
+                        'pearl-hover': '0 20px 50px -10px rgba(50, 196, 140, 0.25)',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css?v=2.2">
+    <script>
+        // 自动检测运行环境，如果是 file:// 协议且加载失败，显示友好提示
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                // 如果 React 没有成功挂载内容到 root
+                if (!document.getElementById('root').hasChildNodes()) {
+                    document.body.innerHTML = `
+                        <div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#f8f9fa;font-family:sans-serif;text-align:center;color:#333;">
+                            <div style="background:white;padding:40px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,0.1);max-width:600px;">
+                                <h1 style="color:#e74c3c;margin-bottom:16px;">⚠️ 无法直接运行 (白屏)</h1>
+                                <p style="font-size:16px;line-height:1.6;color:#555;margin-bottom:24px;">
+                                    由于浏览器的 <b>CORS 安全策略</b>，拆分后的 JS 文件无法在 <b>file://</b> 协议下直接加载。<br/>
+                                    (浏览器禁止脚本读取本地硬盘上的其他 .js 文件)
+                                </p>
+                                <div style="background:#ebfbf5;padding:15px;border-radius:8px;border:1px solid #32c48c;color:#26a072;font-weight:bold;">
+                                    ✅ 解决方法：请使用 VS Code 的 "Live Server" 插件运行此文件。
+                                </div>
+                                <p style="margin-top:20px;font-size:14px;color:#999;">或者检查 js/css 文件夹结构是否正确。</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 1000); // 给 Babel 1秒钟的编译加载时间
+        });
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- 1. Load Data Configuration -->
+    <script src="js/data.js?v=2.2"></script>
+    
+    <!-- 2. Load Components (Babel) -->
+    <script type="text/babel" src="js/components.js?v=2.2"></script>
+    
+    <!-- 3. Load Slide Layouts (Babel) -->
+    <script type="text/babel" src="js/slides.js?v=2.2"></script>
+    
+    <!-- 4. Load Main App (Babel) -->
+    <script type="text/babel" src="js/app.js?v=2.2"></script>
+</body>
+</html>

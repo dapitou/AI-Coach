@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(50, 196, 140, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(200, 230, 255, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(250, 240, 255, 0.15) 0px, transparent 50%);
+    color: #1e293b;
+    overflow: hidden;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.slide-enter {
+    opacity: 0;
+    transform: scale(0.98);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-enter-active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.clean-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 20px rgba(148, 163, 184, 0.05);
+}
+
+.gradient-text-primary {
+    background: linear-gradient(135deg, #32c48c 0%, #26a072 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.card-hoverable {
+    transition: all 0.3s ease;
+}
+.card-hoverable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -10px rgba(50, 196, 140, 0.15);
+    border-color: #32c48c;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+/* Utilities */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Custom Animations for Scenario Demo */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-spin-slow {
+    animation: spin 4s linear infinite;
+}
+
+.animate-progress {
+    animation: progress 10s linear infinite;
+}
+@keyframes progress { from { width: 0%; } to { width: 100%; } }

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人脸追踪 - 鼻尖碰球爆炸游戏</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .container {
+            position: relative; width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+        }
+        /* 视频和画布都需要镜像翻转 (scaleX -1) */
+        video {
+            position: absolute; width: 100%; height: 100%;
+            object-fit: cover; transform: scaleX(-1);
+            opacity: 0; transition: opacity 0.5s; z-index: 1;
+        }
+        canvas {
+            position: absolute; width: 100%; height: 100%;
+            object-fit: cover; transform: scaleX(-1); z-index: 2;
+        }
+        .center-msg {
+            position: absolute; z-index: 10; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); pointer-events: none;
+            color: rgba(255, 255, 255, 0.9); background: rgba(0,0,0,0.6);
+            padding: 20px 40px; border-radius: 12px; backdrop-filter: blur(5px);
+            font-size: 1.5rem; letter-spacing: 2px; border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+        .control-panel {
+            position: absolute; bottom: 40px; left: 40px; z-index: 20;
+            background: rgba(20, 20, 20, 0.6); padding: 10px 20px;
+            border-radius: 30px; backdrop-filter: blur(10px);
+            display: flex; align-items: center; gap: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #34c759; }
+        input:checked + .slider:before { transform: translateX(22px); }
+        .label-text { color: white; font-size: 14px; user-select: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="center-msg" id="messageBox">请开启摄像头<br><span style="font-size:0.8em">用鼻子去撞击绿色小球！</span></div>
+        <video id="inputVideo" playsinline></video>
+        <canvas id="outputCanvas"></canvas>
+    </div>
+
+    <div class="control-panel">
+        <label class="switch">
+            <input type="checkbox" id="toggleBtn">
+            <span class="slider"></span>
+        </label>
+        <span class="label-text">开始游戏</span>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById('inputVideo');
+        const canvasElement = document.getElementById('outputCanvas');
+        const ctx = canvasElement.getContext('2d');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const messageBox = document.getElementById('messageBox');
+
+        let faceMesh, camera;
+        let isRunning = false;
+        let nosePosition = null; 
+        const NOSE_RADIUS = 15; // 鼻尖的碰撞半径
+
+        // 爆炸颜色库
+        const EXPLOSION_COLORS = ['#FFD700', '#FF4500', '#00BFFF', '#FF1493', '#7FFF00', '#9400D3'];
+
+        // 数组管理
+        let tailParticles = [];      // 红色彗星尾巴
+        let fallingBalls = [];       // 绿色下落小球
+        let explosionParticles = []; // 爆炸产生的彩色粒子
+
+        // --- 工具函数：计算两点距离 ---
+        function getDistance(x1, y1, x2, y2) {
+            const dx = x1 - x2;
+            const dy = y1 - y2;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // --- 类定义 1：通用粒子 (用于尾巴和爆炸) ---
+        class Particle {
+            // 增加了 color 和 speedMultiplier 参数
+            constructor(x, y, color, speedMultiplier = 1.0) {
+                this.x = x;
+                this.y = y;
+                // 速度随机范围受 speedMultiplier 影响，爆炸时速度更快
+                this.vx = (Math.random() - 0.5) * 5 * speedMultiplier;
+                this.vy = (Math.random() - 0.5) * 5 * speedMultiplier;
+                this.life = 1.0; 
+                // 爆炸粒子衰减更快
+                this.decay = (Math.random() * 0.02 + 0.01) * speedMultiplier; 
+                this.size = Math.random() * 5 + 4;
+                this.color = color;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                // 增加一点重力感，让爆炸粒子最终往下落
+                this.vy += 0.05; 
+                this.life -= this.decay;
+                this.size *= 0.96; 
+            }
+
+            draw(context) {
+                if (this.life <= 0) return;
+                context.beginPath();
+                // 使用自身存储的颜色
+                context.fillStyle = this.color.replace(')', `, ${this.life})`).replace('rgb', 'rgba');
+                // 如果是十六进制颜色，简单处理透明度
+                if (this.color.startsWith('#')) {
+                     context.globalAlpha = this.life;
+                     context.fillStyle = this.color;
+                }
+                context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                context.fill();
+                context.globalAlpha = 1.0; // 重置全局透明度
+            }
+        }
+
+        // --- 类定义 2：下落的绿色小球 ---
+        class FallingBall {
+            constructor(canvasWidth) {
+                this.radius = Math.random() * 15 + 10; // 半径 10-25
+                this.x = Math.random() * canvasWidth; // 随机水平位置
+                this.y = -this.radius - 10; // 从屏幕上方外部开始
+                this.vy = Math.random() * 2 + 1.5; // 下落速度
+                this.color = '#32CD32'; // 酸橙绿
+                this.isHit = false; // 标记是否被击中
+            }
+
+            update() {
+                this.y += this.vy;
+            }
+
+            draw(context) {
+                context.beginPath();
+                context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                context.fillStyle = this.color;
+                context.shadowColor = '#00FF00';
+                context.shadowBlur = 10;
+                context.fill();
+                context.shadowBlur = 0;
+            }
+        }
+
+
+        // --- 核心渲染循环 (60FPS) ---
+        function renderLoop() {
+            if (!isRunning) return;
+
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            const CW = canvasElement.width;
+            const CH = canvasElement.height;
+
+            ctx.clearRect(0, 0, CW, CH);
+
+            // --- A. 处理鼻子和彗星尾巴 ---
+            if (nosePosition) {
+                // 生成红色尾巴粒子 (速度倍率 1.0，慢速)
+                for (let i = 0; i < 2; i++) {
+                    tailParticles.push(new Particle(nosePosition.x, nosePosition.y, 'rgb(255, 50, 50)', 1.0));
+                }
+            }
+
+            // 更新并绘制尾巴
+            for (let i = tailParticles.length - 1; i >= 0; i--) {
+                tailParticles[i].update();
+                tailParticles[i].draw(ctx);
+                if (tailParticles[i].life <= 0) tailParticles.splice(i, 1);
+            }
+
+
+            // --- B. 处理下落小球和碰撞 ---
+            // 1. 随机生成新小球 (约每 60 帧生成 3 个，即每秒 3 个)
+            if (Math.random() < 0.05) {
+                fallingBalls.push(new FallingBall(CW));
+            }
+
+            for (let i = fallingBalls.length - 1; i >= 0; i--) {
+                const ball = fallingBalls[i];
+                ball.update();
+                ball.draw(ctx);
+
+                // 碰撞检测
+                if (nosePosition && !ball.isHit) {
+                    const dist = getDistance(nosePosition.x, nosePosition.y, ball.x, ball.y);
+                    // 如果距离小于两者半径之和，视为碰撞
+                    if (dist < ball.radius + NOSE_RADIUS) {
+                        ball.isHit = true; // 标记为已击中
+                        
+                        // 触发爆炸：生成 30 个彩色高速粒子
+                        for(let j=0; j < 30; j++) {
+                            const randomColor = EXPLOSION_COLORS[Math.floor(Math.random() * EXPLOSION_COLORS.length)];
+                            // 速度倍率 4.0，快速爆发
+                            explosionParticles.push(new Particle(ball.x, ball.y, randomColor, 4.0));
+                        }
+                    }
+                }
+
+                // 移除被击中的球，或者掉出屏幕的球
+                if (ball.isHit || ball.y > CH + ball.radius) {
+                    fallingBalls.splice(i, 1);
+                }
+            }
+
+
+            // --- C. 处理爆炸粒子 ---
+            for (let i = explosionParticles.length - 1; i >= 0; i--) {
+                explosionParticles[i].update();
+                explosionParticles[i].draw(ctx);
+                if (explosionParticles[i].life <= 0) explosionParticles.splice(i, 1);
+            }
+
+
+            // --- D. 最后绘制鼻尖主体 (确保在最上层) ---
+            if (nosePosition) {
+                ctx.beginPath();
+                ctx.arc(nosePosition.x, nosePosition.y, NOSE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 15;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        // --- MediaPipe 数据更新 ---
+        function onResults(results) {
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                messageBox.style.display = 'none';
+                const nose = results.multiFaceLandmarks[0][1]; // 鼻尖索引
+                nosePosition = {
+                    x: nose.x * canvasElement.width,
+                    y: nose.y * canvasElement.height
+                };
+            } else {
+                nosePosition = null;
+            }
+        }
+
+        // --- 启动与停止逻辑 ---
+        async function startTracking() {
+            messageBox.innerHTML = "初始化 AI 引擎...<br>准备好你的鼻子！";
+            messageBox.style.display = 'block';
+            // 清空所有旧数据
+            tailParticles = []; fallingBalls = []; explosionParticles = [];
+
+            if (!faceMesh) {
+                faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
+                faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+                faceMesh.onResults(onResults);
+            }
+            if (!camera) {
+                camera = new Camera(videoElement, {
+                    onFrame: async () => { await faceMesh.send({image: videoElement}); },
+                    width: 1280, height: 720
+                });
+            }
+            try {
+                await camera.start();
+                videoElement.style.opacity = 1;
+                isRunning = true;
+                renderLoop();
+            } catch (e) {
+                alert("无法启动摄像头，请检查权限。");
+                toggleBtn.checked = false;
+            }
+        }
+
+        async function stopTracking() {
+            isRunning = false;
+            if (camera) await camera.stop();
+            videoElement.style.opacity = 0;
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            messageBox.innerHTML = "请开启摄像头<br><span style='font-size:0.8em'>用鼻子去撞击绿色小球！</span>";
+            messageBox.style.display = 'block';
+        }
+
+        toggleBtn.addEventListener('change', (e) => {
+            if (e.target.checked) startTracking();
+            else stopTracking();
+        });
+    </script>
+</body>
+</html>
