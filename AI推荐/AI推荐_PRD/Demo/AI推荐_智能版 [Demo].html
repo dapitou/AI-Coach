@@ -150,7 +150,7 @@
         .chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; animation: slideUp 0.4s var(--ease-out); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
         
         /* PRO ACTION CARD */
-        .action-card-pro { background: #1a1a1a; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid #333; display: flex; flex-direction: column; gap: 0; transition: 0.2s; }
+        .action-card-pro { background: #1a1a1a; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid #333; display: flex; flex-direction: column; gap: 0; transition: 0.2s; position: relative; }
         .action-card-pro:active { background: #222; }
         .ac-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; }
         .ac-thumb { width: 40px; height: 40px; background: #2a2a2a; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #555; overflow: hidden; }
@@ -268,6 +268,9 @@
         .ae-btn { width: 24px; height: 24px; background: #222; border: 1px solid #333; color: #888; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .ae-btn:hover { color: #fff; border-color: #555; }
         
+        .add-action-btn { width: 100%; padding: 12px; border: 1px dashed #333; border-radius: 8px; color: #666; font-size: 12px; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 8px; }
+        .add-action-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(50, 196, 140, 0.05); }
+
         .stats-bar { background: #111; padding: 12px 20px; border-top: 1px solid #222; display: flex; justify-content: space-between; font-size: 10px; color: #666; z-index: 20; flex-shrink: 0; }
         .stat-val { font-size: 14px; font-weight: 700; color: var(--primary); display: block; }
         
@@ -314,6 +317,20 @@
         /* TOAST */
         #toast { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,69,58,0.9); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 200; }
         
+        /* DIALOG MODAL */
+        .dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; backdrop-filter: blur(5px); }
+        .dialog-overlay.active { opacity: 1; pointer-events: auto; }
+        .dialog-box { width: 80%; max-width: 320px; background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 24px; transform: scale(0.9); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .dialog-overlay.active .dialog-box { transform: scale(1); }
+        .dialog-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .dialog-msg { font-size: 13px; color: #888; margin-bottom: 24px; line-height: 1.5; }
+        .dialog-btns { display: flex; gap: 12px; width: 100%; }
+        .dialog-btn { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
+        .dialog-btn.cancel { background: #2a2a2a; color: #ccc; }
+        .dialog-btn.cancel:hover { background: #333; color: #fff; }
+        .dialog-btn.confirm { background: var(--primary); color: #000; }
+        .dialog-btn.confirm:hover { background: #00e676; }
+
         /* START BUTTON FIXED POSITION */
         #home-start-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; cursor: pointer; z-index: 200; pointer-events: auto; width: 200px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #home-start-btn:active { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
@@ -321,6 +338,10 @@
 
         /* UTILS */
         .hidden { display: none !important; }
+
+        /* ACTION CARD DELETE BTN */
+        .ac-del-corner { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; background: transparent; border: none; color: #666; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; cursor: pointer; z-index: 100; transition: 0.2s; opacity: 0.6; }
+        .ac-del-corner:hover { color: var(--danger); opacity: 1; transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -492,6 +513,18 @@
         </div>
     </div>
     
+    <!-- DIALOG: CONFIRM -->
+    <div id="dialog-confirm" class="dialog-overlay">
+        <div class="dialog-box">
+            <div class="dialog-title">提示</div>
+            <div class="dialog-msg" id="dialog-msg">--</div>
+            <div class="dialog-btns">
+                <button class="dialog-btn cancel" onclick="App.closeConfirmModal()">取消</button>
+                <button class="dialog-btn confirm" id="dialog-confirm-btn">确认</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast"></div>
 
 </div>
@@ -502,7 +535,7 @@
 // ==========================================
 
 const CONSTANTS = {
-    PARTS: ['全身', '胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心', '全身有氧'],
+    PARTS: ['全身', '胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心'],
     RATIOS: { 
         '胸部': {'胸大肌中束':0.4, '胸大肌上束':0.4, '胸大肌下束':0.1, '胸大肌内侧':0.1},
         '背部': {'中背':0.4, '上背':0.4, '下背':0.2},
@@ -558,7 +591,7 @@ const CONFIG = {
         '激活': { sets: 2, rest: 0, intensity: 0.40, mode: '常规组', strategy: '恒定', diff: '标准', rpe: 4 },
         '柔韧': { sets: 2, rest: 0, intensity: 0.30, mode: '常规组', strategy: '计时', diff: '标准', rpe: 3 },
         'HIIT': { sets: 6, rest: 30, intensity: 0.75, mode: '循环组', strategy: '计时', diff: '标准', rpe: 8 },
-        '有氧': { sets: 1, rest: 0, intensity: 0.60, mode: '常规组', strategy: '计时', diff: '标准', rpe: 6 },
+        '有氧': { sets: 4, rest: 15, intensity: 0.60, mode: '循环组', strategy: '计时', diff: '标准', rpe: 6 },
         '瑜伽': { sets: 1, rest: 0, intensity: 0.40, mode: '常规组', strategy: '计时', diff: '标准', rpe: 4 },
         '普拉提': { sets: 3, rest: 30, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准', rpe: 5 },
         '拉伸': { sets: 1, rest: 0, intensity: 0.20, mode: '常规组', strategy: '计时', diff: '保守', rpe: 2 },
@@ -569,6 +602,13 @@ const CONFIG = {
         '专项': { sets: 3, rest: 90, intensity: 0.70, mode: '常规组', strategy: '推荐', diff: '标准', rpe: 8 }
     },
     LEVEL_COEFF: { 'L1': 0.5, 'L2': 0.8, 'L3': 1.0, 'L4': 1.2, 'L5': 1.5 },
+    LEVEL_SCALING: {
+        'L1': { vol: 0.7, int: 0.85, rest: 1.2 }, // 新手: 低容量, 低强度, 长休息
+        'L2': { vol: 0.85, int: 0.9, rest: 1.1 },
+        'L3': { vol: 1.0, int: 1.0, rest: 1.0 },  // 标准
+        'L4': { vol: 1.2, int: 1.05, rest: 0.9 },
+        'L5': { vol: 1.4, int: 1.1, rest: 0.8 }   // 大神: 高容量, 高强度, 短休息(高密度)
+    },
     PHASES: {
         '适应期': { intensity: 0.8, volume: 0.8, name: '适应激活期' },
         '进阶期': { intensity: 1.0, volume: 1.0, name: '肌肥大增长期' },
@@ -607,13 +647,13 @@ const CONFIG = {
 };
 
 const FALLBACK_DB = [
-    { id: 'FB01', name: '标准俯卧撑', part: '胸部', muscle: '胸大肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [] },
-    { id: 'FB02', name: '自重深蹲', part: '腿部', muscle: '股四头肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [] },
-    { id: 'FB03', name: '开合跳', part: '全身', muscle: '全身', equip: ['自重'], difficulty: 'L1', impact: '高冲击', paradigm: '间歇范式', func: ['心肺','减脂'], pain: [] },
-    { id: 'FB04', name: '平板支撑', part: '核心', muscle: '腹直肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['核心','稳定'], pain: [] },
-    { id: 'FB05', name: '猫牛式', part: '背部', muscle: '竖脊肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '流式范式', func: ['放松','柔韧'], pain: [] },
-    { id: 'FB06', name: '模拟划船', part: '背部', muscle: '背阔肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [] },
-    { id: 'FB07', name: '婴儿式', part: '全身', muscle: '全身', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '流式范式', func: ['放松','恢复'], pain: [] }
+    { id: 'FB01', name: '标准俯卧撑', part: '胸部', muscle: '胸大肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [], construct: '复合动作' },
+    { id: 'FB02', name: '自重深蹲', part: '腿部', muscle: '股四头肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [], construct: '复合动作' },
+    { id: 'FB03', name: '开合跳', part: '全身', muscle: '全身', equip: ['自重'], difficulty: 'L1', impact: '高冲击', paradigm: '间歇范式', func: ['心肺','减脂'], pain: [], construct: '复合动作' },
+    { id: 'FB04', name: '平板支撑', part: '核心', muscle: '腹直肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['核心','稳定'], pain: [], construct: '孤立动作' },
+    { id: 'FB05', name: '猫牛式', part: '背部', muscle: '竖脊肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '流式范式', func: ['放松','柔韧'], pain: [], construct: '复合动作' },
+    { id: 'FB06', name: '模拟划船', part: '背部', muscle: '背阔肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [], construct: '复合动作' },
+    { id: 'FB07', name: '婴儿式', part: '全身', muscle: '全身', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '流式范式', func: ['放松','恢复'], pain: [], construct: '孤立动作' }
 ];
 
 let DB = [];
@@ -667,6 +707,28 @@ window.PhaseEngine = {
     }
 };
 
+// 模拟数据库：用户能力档案 (1RM) - 支持反馈闭环更新
+window.UserAbility = {
+    oneRM: {}, 
+    init: () => {
+        const level = window.store.user.level || 'L3';
+        const coeff = CONFIG.LEVEL_COEFF[level] || 1.0;
+        for(let k in CONSTANTS.ENUMS.ONE_RM) {
+            window.UserAbility.oneRM[k] = Math.round(CONSTANTS.ENUMS.ONE_RM[k] * coeff);
+        }
+    },
+    update: (part, load, reps) => {
+        // Epley Formula: 1RM = Weight * (1 + Reps/30)
+        const est1RM = Math.round(load * (1 + reps/30));
+        if (est1RM > (window.UserAbility.oneRM[part] || 0)) {
+            window.UserAbility.oneRM[part] = est1RM;
+            console.log(`[Feedback] New PR for ${part}: ${est1RM}kg`);
+            return true;
+        }
+        return false;
+    }
+};
+
 window.Logic = {
     createContext: (input, planContext = null) => {
         const user = window.store.user;
@@ -696,7 +758,7 @@ window.Logic = {
             status: { fatigue: bodyStatus }
         };
     },
-    
+
     confirmCourse: (ctx) => {
         const user = window.store.user;
         let finalTargets = [...ctx.meta.targets];
@@ -752,8 +814,15 @@ window.Logic = {
         const cdStrategy = CONFIG.STRATEGY['柔韧'];
         const paradigm = CONSTANTS.COURSE_TYPES[type] || '抗阻范式';
 
+        // 1. Level Adaptation (Sports Science Core)
+        // 基于运动科学调整：容量(Volume)、强度(Intensity)、密度(Density/Rest)
+        const level = ctx.meta.level || 'L3';
+        const scaling = CONFIG.LEVEL_SCALING[level] || CONFIG.LEVEL_SCALING['L3'];
+        let adjustedSets = Math.max(1, Math.round(mainStrategy.sets * scaling.vol));
+        let adjustedIntensity = Math.min(1.0, Math.max(0.1, mainStrategy.intensity * scaling.int));
+        let adjustedRest = Math.max(10, Math.round(mainStrategy.rest * scaling.rest));
+
         // Time-Constraint Adaptation
-        let adjustedRest = mainStrategy.rest;
         if (duration <= 30) {
             if (['力量', '爆发'].includes(ctx.meta.goal)) adjustedRest = Math.min(adjustedRest, 120);
             else if (['增肌'].includes(ctx.meta.goal)) adjustedRest = Math.min(adjustedRest, 60);
@@ -761,15 +830,14 @@ window.Logic = {
         }
         
         let singleDuration = paradigm === '抗阻范式' ? (45 + adjustedRest) : (60 + adjustedRest);
-        let adjustedSets = mainStrategy.sets;
         let count = Math.floor((mainTime * 60) / (adjustedSets * singleDuration));
         
         if (count < 3 && adjustedSets > 2) {
-            adjustedSets = Math.max(2, Math.min(mainStrategy.sets, Math.floor((mainTime * 60) / 3 / singleDuration)));
+            adjustedSets = Math.max(2, Math.min(adjustedSets, Math.floor((mainTime * 60) / 3 / singleDuration)));
             count = Math.floor((mainTime * 60) / (adjustedSets * singleDuration));
         }
 
-        const phaseStrategy = { ...mainStrategy, sets: adjustedSets, rest: adjustedRest };
+        const phaseStrategy = { ...mainStrategy, sets: adjustedSets, rest: adjustedRest, intensity: adjustedIntensity };
         const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
 
         ctx.phases = [
@@ -784,6 +852,7 @@ window.Logic = {
         const { constraints, meta } = ctx;
         const user = window.store.user;
         const isHeavy = (user.bmi >= 28 && user.level !== 'L5');
+        const isMain = (p) => p.type === '主训';
 
         // Ensure DB is populated
         if (DB.length === 0) DB = FALLBACK_DB;
@@ -800,7 +869,7 @@ window.Logic = {
         };
         
         ctx.phases.forEach(p => {
-            // 1. Safety Filter
+            // 0. Safety Filter (Global Constraint - Always Active)
             let pool = DB.filter(a => {
                 if (a.equip.some(e => !constraints.availableEquip.includes(e))) return false;
                 if (a.pain.some(pt => constraints.forbiddenParts.includes(pt))) return false;
@@ -809,43 +878,110 @@ window.Logic = {
                 return true;
             });
 
-            // 2. Paradigm & Function Filter
-            pool = pool.filter(a => a.paradigm === p.paradigm);
-            
-            if (p.type === '主训') {
-                // Main: Match Target Parts
-                pool = pool.filter(a => ctx.meta.targets.includes('全身') || ctx.meta.targets.includes(a.part))
-                           .map(calculateScore).sort((a,b) => b.score - a.score);
-            } else {
-                // Warmup/Cooldown: Match Function (e.g. 激活/放松)
-                pool = pool.filter(a => a.func.includes(p.func))
-                           .map(calculateScore).sort((a,b) => b.score - a.score);
-            }
-            
-            // Select Top N with variety
-            let selected = [];
-            const needed = p.targetCount;
-            if (p.type === '主训') {
-                const parts = meta.targets;
-                let pIdx = 0;
-                while(selected.length < needed && pool.length > 0) {
-                    const currentTarget = parts[pIdx % parts.length];
-                    const validCandidates = pool.filter(a => a.part === currentTarget || currentTarget === '全身');
-                    if (validCandidates.length > 0) {
-                        const pickRange = Math.min(validCandidates.length, 3);
-                        const randomIdx = Math.floor(Math.random() * pickRange);
-                        const selectedAct = validCandidates[randomIdx];
-                        selected.push(selectedAct);
-                        const idxInPool = pool.indexOf(selectedAct);
-                        if (idxInPool > -1) pool.splice(idxInPool, 1);
-                    } else {
-                        if(pool.length) selected.push(pool.shift());
+            // Helper: Search with criteria (Supports Relaxation)
+            const search = (criteria) => {
+                return pool.filter(a => {
+                    // Paradigm Check (Strict)
+                    if (a.paradigm !== p.paradigm) return false;
+                    
+                    // Part Check
+                    if (isMain(p)) {
+                        // Main: Must match target parts (or Full Body)
+                        // Fallback Level 4 (Keep Skeleton) implies we stick to this.
+                        const matchPart = ctx.meta.targets.includes('全身') || ctx.meta.targets.includes(a.part);
+                        if (!matchPart) return false;
                     }
-                    pIdx++;
+                    
+                    // Function Check (Relaxable)
+                    if (criteria.checkFunc) {
+                        if (isMain(p)) {
+                            // For main, usually we don't strictly filter by func unless specified, 
+                            // but let's assume we prefer the phase function (e.g. Hypertrophy)
+                            if (p.func && !a.func.includes(p.func)) return false;
+                        } else {
+                            // Warmup/Cooldown: Strict function
+                            if (!a.func.includes(p.func)) return false;
+                        }
+                    }
+
+                    // Difficulty Check (Relaxable)
+                    if (criteria.checkDiff) {
+                        const diffVal = CONSTANTS.LEVEL_MAP[a.difficulty];
+                        const userVal = CONSTANTS.LEVEL_MAP[meta.level];
+                        if (Math.abs(diffVal - userVal) > 1) return false;
+                    }
+
+                    return true;
+                }).map(calculateScore).sort((a,b) => b.score - a.score);
+            };
+
+            let selected = [];
+            const usedIds = new Set();
+            const needed = p.targetCount;
+
+            // 1. Level 0: Strict Search
+            let candidates = search({ checkFunc: true, checkDiff: true });
+
+            // Selection Loop (Top-K Random)
+            const pick = (sourceList) => {
+                while(selected.length < needed && sourceList.length > 0) {
+                    const pickRange = Math.min(sourceList.length, 3);
+                    const randomIdx = Math.floor(Math.random() * pickRange);
+                    const picked = sourceList[randomIdx];
+                    if (!usedIds.has(picked.id)) {
+                        selected.push(picked);
+                        usedIds.add(picked.id);
+                    }
+                    sourceList.splice(randomIdx, 1);
                 }
-            } else {
-                selected = pool.slice(0, needed);
+            };
+            pick(candidates);
+
+            // 2. Level 2: Relax Difficulty (Skip L1 Expand Scope as we use Part directly)
+            if (selected.length < needed) {
+                candidates = search({ checkFunc: true, checkDiff: false }).filter(a => !usedIds.has(a.id));
+                pick(candidates);
             }
+
+            // 3. Level 3: Change Nature (Relax Function)
+            if (selected.length < needed) {
+                candidates = search({ checkFunc: false, checkDiff: false }).filter(a => !usedIds.has(a.id));
+                pick(candidates);
+            }
+
+            // 2. 缺口填充 (Gap Filling) - 核心逻辑优化
+            // 若筛选出的动作不足以填满时长，自动增加已选动作的组数
+            if (selected.length > 0 && selected.length < needed) {
+                let missingSlots = needed - selected.length;
+                let fillIdx = 0;
+                // 熔断限制：单个动作最大组数 ≤ 6
+                const MAX_SETS = 6; 
+                
+                while(missingSlots > 0) {
+                    // 轮询增加组数
+                    if (selected[fillIdx].sets === undefined) selected[fillIdx].sets = p.strategy.sets; // Init if needed
+                    
+                    if (selected[fillIdx].sets < MAX_SETS) {
+                        selected[fillIdx].sets = (selected[fillIdx].sets || p.strategy.sets) + 1;
+                        missingSlots--;
+                    }
+                    fillIdx = (fillIdx + 1) % selected.length;
+                    
+                    // 防止死循环：如果所有动作都达到上限仍有缺口，则停止填充
+                    if (selected.every(a => (a.sets || p.strategy.sets) >= MAX_SETS)) break;
+                }
+            }
+
+            // 3. 序列编排 (Sequence Arrangement) - 核心逻辑优化
+            // 体能分配：复合动作 > 孤立动作 (仅针对抗阻主训)
+            if (p.type === '主训' && p.paradigm === '抗阻范式') {
+                selected.sort((a, b) => {
+                    const scoreA = (a.construct === '复合动作' ? 1 : 0);
+                    const scoreB = (b.construct === '复合动作' ? 1 : 0);
+                    return scoreB - scoreA; // 复合动作排前面
+                });
+            }
+
             p.actions = selected;
         });
         return ctx;
@@ -860,26 +996,38 @@ window.Logic = {
             const vCoeff = coeffs ? coeffs.volume : 1.0;
 
             phase.actions = phase.actions.map(a => {
-                const isLoadPriority = (phase.paradigm === '抗阻范式' && phase.type === '主训');
-                let sets = Math.round(strategy.sets * vCoeff);
-                let intensity = strategy.intensity * iCoeff;
+                // 1. 计算模式判定 (Calculation Mode Judgment)
+                // 负荷优先模式：抗阻范式 (关注重量)
+                // 容量优先模式：间歇/流式范式 (关注时长/次数)
+                const isCapacityPriority = (phase.paradigm === '间歇范式' || phase.paradigm === '流式范式' || globalStrategy === '计时');
+                const isLoadPriority = !isCapacityPriority;
+
+                // 2. 基准参数计算
+                // 组数：优先使用 selectActions 中 Gap Filling 调整后的组数，否则使用策略基准
+                let sets = a.sets || Math.round(strategy.sets * vCoeff);
+                if (phase.type === '热身' || phase.type === '放松') sets = 1;
                 
+                let intensity = strategy.intensity * iCoeff;
                 let load = 0;
                 let reps = '12';
                 let rpe = strategy.rpe || 8;
 
                 if (isLoadPriority) {
-                    const base1RM = CONSTANTS.ENUMS.ONE_RM[a.part] || 20;
+                    // 模式 A：负荷优先 (定重量 -> 定次数)
+                    const base1RM = window.UserAbility.oneRM[a.part] || 20; // Use dynamic 1RM
                     load = Math.round(base1RM * intensity);
                     
+                    // 基于强度反推次数 (简单查表模拟)
                     let theoReps = 12;
                     if (intensity >= 0.9) theoReps = 4;
                     else if (intensity >= 0.8) theoReps = 8;
                     else if (intensity >= 0.7) theoReps = 12;
+                    // RPE 修正
                     reps = Math.max(1, theoReps - (10 - rpe)).toString();
                 } else {
-                    sets = (phase.type === '热身' || phase.type === '放松') ? 1 : sets;
-                    reps = (phase.paradigm === '间歇范式') ? '45' : '30';
+                    // 模式 B：容量优先 (定容量 -> 定重量)
+                    // 强度系数作用于速度/频率(由教练口令控制)，时长保持与规划层一致(60s)以确保总时长准确
+                    reps = (phase.paradigm === '间歇范式') ? '60' : '30';
                     if (phase.type === '热身') reps = '60';
                 }
 
@@ -891,7 +1039,7 @@ window.Logic = {
                 for(let i=0; i<sets; i++) {
                     let sLoad = load;
                     let sReps = parseInt(reps);
-                    
+                    // 仅在负荷优先模式下应用金字塔策略
                     if (isLoadPriority) {
                         if (activeStrategy === '递增') {
                             if (i === 0) { sLoad = Math.round(load * 0.85); sReps += 2; }
@@ -983,6 +1131,29 @@ window.Logic = {
             schedule.push(weekData);
         }
         return { meta: input, schedule };
+    },
+
+    // Node 8: 反馈闭环 (Feedback Loop)
+    completeTraining: (ctx) => {
+        // 1. Update Fatigue (Mock: Reduce status)
+        window.store.user.fatigue = Math.min(10, window.store.user.fatigue + 2);
+        window.store.calcMetrics(); // Update UI
+
+        // 2. Update 1RM (Mock: Based on last set of main actions)
+        let prCount = 0;
+        ctx.phases.forEach(p => {
+            if (p.type === '主训' && p.paradigm === '抗阻范式') {
+                p.actions.forEach(a => {
+                    // Assume user completed the last set successfully
+                    const lastSet = a.setDetails[a.setDetails.length-1];
+                    if (lastSet && lastSet.load > 0) {
+                        if (window.UserAbility.update(a.part, lastSet.load, lastSet.reps)) prCount++;
+                    }
+                });
+            }
+        });
+
+        return { prCount };
     }
 };
 
@@ -993,9 +1164,10 @@ window.store = {
     user: {
         gender: '男', age: 28, height: 178, weight: 72, targetWeight: 70,
         goal: '增肌', funcGoal: '增肌', level: 'L3', style: '传统型', days: ['周一','周三','周五'],
-        pain: [], missing: [], bodyType: '均衡标准型', dob: '1995-01-01', fatiguedParts: ['腿部'],
+        pain: [], missing: [], bodyType: '均衡标准型', dob: '1995-01-01', fatiguedParts: ['腿部'], duration: 30,
         rhr: 60, fatigue: 3
-    }, 
+    },
+    activeTab: 'basic',
     courseSettings: { loopMode: '常规组', loadStrategy: '推荐' },
     flow: null, // 'course' | 'plan'
     step: 0,
@@ -1211,6 +1383,7 @@ const Voice = {
 
 const App = {
     init: () => {
+        window.UserAbility.init();
         App.renderProfile();
         App.renderProfileForm();
         // Force bind click event to ensure it works
@@ -1271,27 +1444,8 @@ const App = {
         document.getElementById('modal-profile').classList.add('active');
     },
     saveProfile: () => {
-        // Collect form data (Simplified)
-        const u = window.store.user;
-        // Basic
-        u.gender = document.getElementById('in-gender').value;
-        u.dob = document.getElementById('in-dob').value;
-        u.height = document.getElementById('in-height').value;
-        u.weight = document.getElementById('in-weight').value;
-        u.rhr = parseInt(document.getElementById('in-rhr').value);
-        u.fatigue = parseInt(document.getElementById('in-fatigue').value);
-        // Pref
-        u.level = document.getElementById('in-level').value;
-        u.days = Array.from(document.querySelectorAll('#pref-days .opt-chip.active')).map(e => e.innerText);
-        u.pain = Array.from(document.querySelectorAll('#pref-pain .opt-chip.active')).map(e => e.innerText).filter(t => t !== '无');
-        u.missing = Array.from(document.querySelectorAll('#pref-missing .opt-chip.active')).map(e => e.innerText);
-        // Goal
-        u.goal = document.getElementById('in-goal').value;
-        u.funcGoal = document.getElementById('in-func-goal').value;
-        u.bodyType = document.getElementById('in-body-type').value;
-        u.targetWeight = document.getElementById('in-target-weight').value;
+        // Data is already updated reactively via onchange/onclick handlers
         App.renderProfile();
-        App.renderProfileForm(); // Refresh form values
         document.getElementById('modal-profile').classList.remove('active');
     },
     renderProfile: () => {
@@ -1327,6 +1481,7 @@ const App = {
 
     renderProfileForm: () => {
         const u = window.store.user; 
+        const activeTab = window.store.activeTab || 'basic';
         const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
         const fInfo = App.getFatigueInfo(u.fatigue);
         
@@ -1336,15 +1491,15 @@ const App = {
         const mhr = Math.round(208 - 0.7 * age);
         
         const basicHtml = `
-            <div class="tab-content active" id="tab-basic">
+            <div class="tab-content ${activeTab==='basic'?'active':''}" id="tab-basic">
                 <div class="form-group"><label class="form-label">性别</label><select id="in-gender" class="form-input" onchange="window.store.user.gender=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.GENDER, u.gender)}</select></div>
                 <div class="form-group"><label class="form-label">生日</label><input type="date" id="in-dob" class="form-input" value="${u.dob}" onchange="window.store.user.dob=this.value; App.renderProfileForm()"></div>
-                <div class="form-group"><label class="form-label">身高 (cm)</label><input type="number" id="in-height" class="form-input" value="${u.height}" onchange="window.store.user.height=this.value; App.renderProfileForm()"></div>
-                <div class="form-group"><label class="form-label">体重 (kg)</label><input type="number" id="in-weight" class="form-input" value="${u.weight}" onchange="window.store.user.weight=this.value; App.renderProfileForm()"></div>
+                <div class="form-group"><label class="form-label">身高 (cm)</label><input type="number" id="in-height" class="form-input" value="${u.height}" onchange="window.store.user.height=parseFloat(this.value); App.renderProfileForm()"></div>
+                <div class="form-group"><label class="form-label">体重 (kg)</label><input type="number" id="in-weight" class="form-input" value="${u.weight}" onchange="window.store.user.weight=parseFloat(this.value); App.renderProfileForm()"></div>
                 
                 <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
                     <div><label class="form-label" style="font-size:10px;">BMI</label><div style="font-weight:700; color:${bmi>24?'var(--danger)':'#fff'}">${bmi}</div></div>
-                    <div><label class="form-label" style="font-size:10px;">静息心率</label><input type="number" id="in-rhr" value="${u.rhr||60}" style="width:100%;background:transparent;border:none;border-bottom:1px solid #444;color:#fff;font-weight:700;padding:0;"></div>
+                    <div><label class="form-label" style="font-size:10px;">静息心率</label><input type="number" id="in-rhr" value="${u.rhr||60}" style="width:100%;background:transparent;border:none;border-bottom:1px solid #444;color:#fff;font-weight:700;padding:0;" onchange="window.store.user.rhr=this.value"></div>
                     <div><label class="form-label" style="font-size:10px;">最大心率</label><div style="font-weight:700;">${mhr}</div></div>
                 </div>
 
@@ -1353,44 +1508,44 @@ const App = {
                         <span>主观疲劳 (1-10)</span>
                         <span id="fatigue-val" style="color:${fInfo.color}">${u.fatigue} - ${fInfo.label}</span>
                     </label>
-                    <input type="range" id="in-fatigue" min="1" max="10" class="form-input" value="${u.fatigue}" oninput="App.updateFatigueDisplay(this.value)">
+                    <input type="range" id="in-fatigue" min="1" max="10" class="form-input" value="${u.fatigue}" oninput="window.store.user.fatigue=this.value; App.updateFatigueDisplay(this.value)">
                     <div id="fatigue-desc" style="font-size:11px; color:#888; margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px;">${fInfo.desc}</div>
                 </div>
             </div>
         `;
         
         const prefHtml = `
-            <div class="tab-content" id="tab-pref">
-                <div class="form-group"><label class="form-label">运动等级</label><select id="in-level" class="form-input">${opts(CONSTANTS.ENUMS.LEVEL, u.level)}</select></div>
-                <div class="form-group"><label class="form-label">每日运动时长 (min)</label><input type="number" class="form-input" value="30"></div>
+            <div class="tab-content ${activeTab==='pref'?'active':''}" id="tab-pref">
+                <div class="form-group"><label class="form-label">运动等级</label><select id="in-level" class="form-input" onchange="window.store.user.level=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.LEVEL, u.level)}</select></div>
+                <div class="form-group"><label class="form-label">每日运动时长 (min)</label><input type="number" class="form-input" value="${u.duration}" onchange="window.store.user.duration=parseInt(this.value); App.renderProfileForm()"></div>
                 <div class="form-group">
                     <label class="form-label">疼痛部位</label>
                     <div class="options-grid" id="pref-pain" style="gap:8px;">
-                        ${CONSTANTS.ENUMS.PAIN_AREAS.map(p => `<div class="opt-chip ${u.pain.includes(p)?'active':''}" onclick="this.classList.toggle('active')" style="padding:8px;min-width:40px;">${p}</div>`).join('')}
+                        ${CONSTANTS.ENUMS.PAIN_AREAS.map(p => `<div class="opt-chip ${u.pain.includes(p)?'active':''}" onclick="App.toggleArrayItem('pain', '${p}')" style="padding:8px;min-width:40px;">${p}</div>`).join('')}
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">没有的器械</label>
                     <div class="options-grid" id="pref-missing" style="gap:8px;">
-                        ${CONSTANTS.ENUMS.MISSING_EQUIP.map(m => `<div class="opt-chip ${u.missing.includes(m)?'active':''}" onclick="this.classList.toggle('active')" style="padding:8px;min-width:40px;">${m}</div>`).join('')}
+                        ${CONSTANTS.ENUMS.MISSING_EQUIP.map(m => `<div class="opt-chip ${u.missing.includes(m)?'active':''}" onclick="App.toggleArrayItem('missing', '${m}')" style="padding:8px;min-width:40px;">${m}</div>`).join('')}
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">每周训练日</label>
                     <div class="options-grid" id="pref-days" style="gap:8px;">
-                        ${['周一','周二','周三','周四','周五','周六','周日'].map(d => `<div class="opt-chip ${u.days.includes(d)?'active':''}" onclick="this.classList.toggle('active')" style="padding:8px;min-width:40px;">${d}</div>`).join('')}
+                        ${['周一','周二','周三','周四','周五','周六','周日'].map(d => `<div class="opt-chip ${u.days.includes(d)?'active':''}" onclick="App.toggleArrayItem('days', '${d}')" style="padding:8px;min-width:40px;">${d}</div>`).join('')}
                     </div>
                 </div>
-                <div class="form-group"><label class="form-label">喜欢的训练风格</label><select class="form-input">${opts(CONSTANTS.ENUMS.STYLE, u.style)}</select></div>
+                <div class="form-group"><label class="form-label">喜欢的训练风格</label><select class="form-input" onchange="window.store.user.style=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.STYLE, u.style)}</select></div>
             </div>
         `;
         
         const goalHtml = `
-            <div class="tab-content" id="tab-goal">
-                <div class="form-group"><label class="form-label">主要目标</label><select id="in-goal" class="form-input">${opts(CONSTANTS.ENUMS.GOAL, u.goal)}</select></div>
-                <div class="form-group"><label class="form-label">功能目标</label><select id="in-func-goal" class="form-input">${opts(CONSTANTS.ENUMS.FUNC_GOAL, u.funcGoal)}</select></div>
-                <div class="form-group"><label class="form-label">目标体型</label><select id="in-body-type" class="form-input">${opts(CONSTANTS.ENUMS.BODY_TYPE, u.bodyType)}</select></div>
-                <div class="form-group"><label class="form-label">目标体重 (kg)</label><input type="number" id="in-target-weight" class="form-input" value="${u.targetWeight}"></div>
+            <div class="tab-content ${activeTab==='goal'?'active':''}" id="tab-goal">
+                <div class="form-group"><label class="form-label">主要目标</label><select id="in-goal" class="form-input" onchange="window.store.user.goal=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.GOAL, u.goal)}</select></div>
+                <div class="form-group"><label class="form-label">功能目标</label><select id="in-func-goal" class="form-input" onchange="window.store.user.funcGoal=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.FUNC_GOAL, u.funcGoal)}</select></div>
+                <div class="form-group"><label class="form-label">目标体型</label><select id="in-body-type" class="form-input" onchange="window.store.user.bodyType=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.BODY_TYPE, u.bodyType)}</select></div>
+                <div class="form-group"><label class="form-label">目标体重 (kg)</label><input type="number" id="in-target-weight" class="form-input" value="${u.targetWeight}" onchange="window.store.user.targetWeight=parseFloat(this.value); App.renderProfileForm()"></div>
             </div>
         `;
 
@@ -1398,10 +1553,19 @@ const App = {
     },
     
     switchTab: (tabId) => {
+        window.store.activeTab = tabId;
+        App.renderProfileForm();
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('tab-' + tabId).classList.add('active');
+        const map = {'basic':0, 'pref':1, 'goal':2};
+        document.querySelectorAll('.tab')[map[tabId]].classList.add('active');
+    },
+
+    toggleArrayItem: (key, val) => {
+        const arr = window.store.user[key];
+        const idx = arr.indexOf(val);
+        if(idx > -1) arr.splice(idx, 1);
+        else arr.push(val);
+        App.renderProfileForm();
     },
 
     // --- FLOW START ---
@@ -1476,6 +1640,18 @@ const App = {
             ]
         };
 
+        // 1. 自动跳过部位选择 (Auto-skip Targets for Cardio/HIIT)
+        if (flow === 'course' && step === 1) {
+             const type = window.store.inputs['type'];
+             const lockTypes = ['HIIT', '有氧', '搏击'];
+             if (lockTypes.includes(type)) {
+                 window.store.inputs['targets'] = ['全身'];
+                 window.store.step++;
+                 App.nextStep();
+                 return;
+             }
+        }
+
         const currentFlow = flows[flow];
         
         if (step >= currentFlow.length) {
@@ -1484,6 +1660,12 @@ const App = {
         }
 
         const config = currentFlow[step];
+        
+        // FIX: Inject User Defaults for Duration
+        if (config.key === 'duration') {
+            config.default = window.store.user.duration;
+        }
+
         // Pick random text variant if available
         let variants = [config.q];
         if (config.key === 'type') variants = TEXT_VARIANTS.askType;
@@ -1514,7 +1696,7 @@ const App = {
                             <span>时长</span><span id="slider-val">${config.default || config.min} ${config.unit}</span>
                         </div>
                         <input type="range" min="${config.min}" max="${config.max}" step="${config.step}" value="${config.default || config.min}" style="width:100%" oninput="document.getElementById('slider-val').innerText = this.value + ' ${config.unit}'">
-                        <div class="opt-chip active" style="margin-top:15px;text-align:center;" onclick="App.handleInput('${config.key}', document.querySelector('input[type=range]').value, false)">确认</div>
+                        <div class="opt-chip active" style="margin-top:15px;text-align:center;" onclick="App.handleInput('${config.key}', this.previousElementSibling.value, false)">确认</div>
                     </div>`;
             } else {
                 optionsHtml = `<div class="options-grid">` + config.opts.map(o => {
@@ -2235,7 +2417,13 @@ const App = {
         
         if (flow === 'course') {
             btnMain.innerText = '开始训练';
-            btnMain.onclick = () => alert('开始训练！');
+            btnMain.onclick = () => {
+                const res = window.Logic.completeTraining(window.currentCtx);
+                let msg = "训练完成！身体状态已更新。";
+                if (res.prCount > 0) msg += ` 恭喜！打破了 ${res.prCount} 项力量纪录！`;
+                App.showToast(msg);
+                App.reset();
+            };
             const ctx = window.Logic.genCourse(inputs);
             document.getElementById('res-title').innerText = `${inputs.type}训练`;
             document.getElementById('res-sub').innerText = `${inputs.duration} | ${inputs.targets} | ${window.store.user.level}`;
@@ -2429,19 +2617,21 @@ const App = {
                 // Professional Action Card Layout
                 html += `
                 <div class="action-card-pro">
+                    <div class="ac-del-corner" onclick="event.stopPropagation(); App.deleteAction(${pIdx}, ${aIdx})">✕</div>
                     <div class="ac-header" onclick="App.toggleAction(${pIdx}, ${aIdx})">
                         ${thumb}
                         <div class="ac-info">
                             <div class="ac-title">${a.name}</div>
                             <div class="ac-meta">
                                 <span class="ac-tag">${a.part}</span>
+                                <span class="ac-tag">${a.muscle}</span>
                                 ${summary}
                             </div>
                         </div>
                         <div class="ae-tools" onclick="event.stopPropagation()">
-                            <div class="ae-btn" onclick="App.openLibrary(${pIdx}, ${aIdx})">↻</div>
                             <div class="ae-btn" onclick="App.moveAction(${pIdx}, ${aIdx}, -1)">↑</div>
                             <div class="ae-btn" onclick="App.moveAction(${pIdx}, ${aIdx}, 1)">↓</div>
+                            <div class="ae-btn" onclick="App.openLibrary(${pIdx}, ${aIdx})">↻</div>
                             <div class="ae-btn" style="border:none; background:transparent;">${arrow}</div>
                         </div>
                     </div>
@@ -2458,6 +2648,7 @@ const App = {
                     </div>
                 </div>`;
             });
+            html += `<div class="add-action-btn" onclick="App.addAction(${pIdx})">+ 添加动作</div>`;
         });
         resBody.innerHTML = html;
         App.updateStats();
@@ -2526,8 +2717,21 @@ const App = {
     },
 
     // --- ACTION LIBRARY & REPLACE ---
+    addAction: (pIdx) => {
+        window.store.replaceState = { pIdx, mode: 'add' };
+        // Init Filters: Default to current context target part if available
+        let defaultPart = '全部';
+        if (window.currentCtx && window.currentCtx.meta && window.currentCtx.meta.targets && window.currentCtx.meta.targets.length > 0) {
+            defaultPart = window.currentCtx.meta.targets[0];
+        }
+        window.store.libFilter = { part: defaultPart, tag: '全部' };
+        App.renderLibraryFilters();
+        App.renderLibraryList();
+        App.switchView('view-library');
+    },
+
     openLibrary: (pIdx, aIdx) => {
-        window.store.replaceState = { pIdx, aIdx };
+        window.store.replaceState = { pIdx, aIdx, mode: 'replace' };
         const currentAction = window.currentCtx.phases[pIdx].actions[aIdx];
         
         // Init Filters
@@ -2568,12 +2772,12 @@ const App = {
         // Simple scoring/sorting could go here
         
         const html = list.map(a => {
-            const isSelected = window.store.replaceState.selectedId === a.id;
+            const isSelected = (window.store.replaceState.selectedIds || []).includes(a.id);
             return `
             <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.selectLibAction('${a.id}')">
                 <div class="lib-info">
                     <div class="lib-name">${a.name}</div>
-                    <div class="lib-meta">${a.part} · ${a.equip[0]} · ${a.difficulty}</div>
+                    <div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div>
                 </div>
                 <div class="lib-check"></div>
             </div>`;
@@ -2582,26 +2786,76 @@ const App = {
     },
 
     selectLibAction: (id) => {
-        window.store.replaceState.selectedId = id;
+        const state = window.store.replaceState;
+        if (!state.selectedIds) state.selectedIds = [];
+        
+        if (state.mode === 'replace') {
+            // Single select for replace
+            state.selectedIds = [id];
+        } else {
+            // Multi select for add
+            const idx = state.selectedIds.indexOf(id);
+            if (idx > -1) state.selectedIds.splice(idx, 1);
+            else state.selectedIds.push(id);
+        }
         App.renderLibraryList();
     },
 
     confirmReplace: () => {
-        const { pIdx, aIdx, selectedId } = window.store.replaceState;
-        if (!selectedId) return App.closeLibrary();
+        const { pIdx, aIdx, selectedIds, mode } = window.store.replaceState;
+        if (!selectedIds || selectedIds.length === 0) return App.closeLibrary();
         
-        const newAction = DB.find(a => a.id === selectedId);
-        if (newAction) {
-            // Replace action in context
-            // We copy the raw action data
-            window.currentCtx.phases[pIdx].actions[aIdx] = JSON.parse(JSON.stringify(newAction));
-            
-            // Re-calculate load strategy for the whole context to apply correct weights/reps
-            App.recalculateLoadStrategy();
-            
-            App.renderFineTuning(window.currentCtx);
+        if (mode === 'add') {
+            // Add multiple
+            selectedIds.forEach(id => {
+                const newAction = DB.find(a => a.id === id);
+                if (newAction) {
+                    const rawAction = JSON.parse(JSON.stringify(newAction));
+                    window.currentCtx.phases[pIdx].actions.push(rawAction);
+                }
+            });
+        } else {
+            // Replace single (take first)
+            const newAction = DB.find(a => a.id === selectedIds[0]);
+            if (newAction) {
+                const rawAction = JSON.parse(JSON.stringify(newAction));
+                window.currentCtx.phases[pIdx].actions[aIdx] = rawAction;
+            }
         }
+        
+        // Re-calculate load strategy for the whole context to apply correct weights/reps
+        App.recalculateLoadStrategy();
+        App.renderFineTuning(window.currentCtx);
         App.closeLibrary();
+    },
+
+    deleteAction: (pIdx, aIdx) => {
+        if (!window.currentCtx) {
+            console.error("Delete failed: No active context");
+            return;
+        }
+        App.openConfirmModal('确定要删除该动作吗？', () => {
+            try {
+                const p = window.currentCtx.phases[pIdx];
+                if (p && p.actions) {
+                    p.actions.splice(aIdx, 1);
+                    App.renderFineTuning(window.currentCtx);
+                }
+            } catch (e) {
+                console.error("Delete operation error:", e);
+            }
+            App.closeConfirmModal();
+        });
+    },
+
+    openConfirmModal: (msg, onConfirm) => {
+        document.getElementById('dialog-msg').innerText = msg;
+        document.getElementById('dialog-confirm-btn').onclick = onConfirm;
+        document.getElementById('dialog-confirm').classList.add('active');
+    },
+
+    closeConfirmModal: () => {
+        document.getElementById('dialog-confirm').classList.remove('active');
     },
 
     openScheduleModal: () => {

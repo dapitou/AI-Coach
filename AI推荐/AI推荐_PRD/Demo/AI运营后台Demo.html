@@ -133,9 +133,9 @@ const OPTS_HELPER = (arr) => arr.map(x => `<option>${x}</option>`).join('');
 
 const MOCK_DATA = {
     actions: [
-        { id: 'ACT_001', opsId: 'OPS_ACT_001', name: '杠铃卧推', part: '胸部', level: 'L3', mode: '水平推', equip: '横杆', paradigm: '抗阻', func: '增肌', status: '上架' },
-        { id: 'ACT_002', opsId: 'OPS_ACT_002', name: '深蹲', part: '腿部', level: 'L4', mode: '膝主导', equip: '自重', paradigm: '抗阻', func: '力量', status: '上架' },
-        { id: 'ACT_003', opsId: 'OPS_ACT_003', name: '哑铃侧平举', part: '肩部', level: 'L2', mode: '孤立', equip: '手柄', paradigm: '抗阻', func: '塑形', status: '下架' }
+        { id: 'ACT_001', opsId: 'OPS_ACT_001', name: '杠铃卧推', part: '胸部', muscle: '胸大肌', level: 'L3', mode: '水平推', equip: '横杆', paradigm: '抗阻', func: '增肌', status: '上架' },
+        { id: 'ACT_002', opsId: 'OPS_ACT_002', name: '深蹲', part: '腿部', muscle: '股四头肌', level: 'L4', mode: '膝主导', equip: '自重', paradigm: '抗阻', func: '力量', status: '上架' },
+        { id: 'ACT_003', opsId: 'OPS_ACT_003', name: '哑铃侧平举', part: '肩部', muscle: '三角肌', level: 'L2', mode: '孤立', equip: '手柄', paradigm: '抗阻', func: '塑形', status: '下架' }
     ],
     courses: [
         { id: 'CRS_001', opsId: 'OPS_CRS_001', name: '胸部增肌入门', type: '力量', level: 'L1', duration: 30, target: '胸部', paradigm: '抗阻', equip: '横杆', cal: 120, status: '上架' },
@@ -175,7 +175,7 @@ const AI_CONFIG = {
         { target: '心肺', level: 'L3,L4', sets: 4, rest: 20, intensity: 0.65, mode: '循环组', strategy: '计时', diff: '标准' },
         { target: '心肺', level: 'L5', sets: 5, rest: 15, intensity: 0.80, mode: '循环组', strategy: '计时', diff: '挑战' },
         { target: 'HIIT', level: 'All', sets: 6, rest: 30, intensity: 0.75, mode: '循环组', strategy: '计时', diff: '标准' },
-        { target: '有氧', level: 'All', sets: 1, rest: 0, intensity: 0.60, mode: '常规组', strategy: '计时', diff: '标准' },
+        { target: '有氧', level: 'All', sets: 4, rest: 15, intensity: 0.60, mode: '循环组', strategy: '计时', diff: '标准' },
         { target: '瑜伽', level: 'All', sets: 1, rest: 0, intensity: 0.40, mode: '常规组', strategy: '计时', diff: '标准' },
         { target: '普拉提', level: 'All', sets: 3, rest: 30, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准' },
         { target: '拉伸', level: 'All', sets: 1, rest: 0, intensity: 0.20, mode: '常规组', strategy: '计时', diff: '保守' },
@@ -317,7 +317,7 @@ const RENDERERS = {
             {label:'状态', type:'select', opts:['上架','下架']}
         ])}
         <table class="data-table">
-            <thead><tr><th>动作ID</th><th>运营ID</th><th>名称</th><th>部位</th><th>模式</th><th>器械</th><th>范式</th><th>功能</th><th>难度</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>动作ID</th><th>运营ID</th><th>名称</th><th>部位</th><th>主动肌</th><th>模式</th><th>器械</th><th>范式</th><th>功能</th><th>难度</th><th>状态</th><th>操作</th></tr></thead>
             <tbody>
                 ${MOCK_DATA.actions.map(item => `
                 <tr>
@@ -325,6 +325,7 @@ const RENDERERS = {
                     <td>${item.opsId}</td>
                     <td>${item.name}</td>
                     <td>${item.part}</td>
+                    <td>${item.muscle || '-'}</td>
                     <td>${item.mode}</td>
                     <td>${item.equip}</td>
                     <td>${item.paradigm}</td>
