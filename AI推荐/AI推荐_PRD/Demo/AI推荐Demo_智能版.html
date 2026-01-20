@@ -1,0 +1,2664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AEKE AI Coach - Smart Edition</title>
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --bg-card: #141414;
+            --primary: #32C48C;
+            --primary-glow: rgba(50, 196, 140, 0.4);
+            --text-main: #ffffff;
+            --text-sub: #888;
+            --accent: #0a84ff;
+            --danger: #ff453a;
+            --font: "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: var(--font); background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        
+        /* CONTAINER (Vertical Screen Layout) */
+        #app { width: 100%; max-width: 540px; height: 100%; position: relative; overflow: hidden; display: flex; flex-direction: column; background: #000; margin: 0 auto; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        /* --- VIEWS --- */
+        .view { position: absolute; inset: 0; display: flex; flex-direction: column; transition: transform 0.5s var(--ease-out), opacity 0.5s var(--ease-out); opacity: 0; pointer-events: none; transform: scale(0.95); z-index: 0; }
+        .view.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 10; }
+        .view.exit { opacity: 0; transform: scale(1.05); pointer-events: none; }
+
+        /* GLOBAL BACKGROUND LAYER (For Home) */
+        #home-bg-layer { position: absolute; inset: 0; background: radial-gradient(circle at 50% 40%, #1a2a25 0%, #000 70%); z-index: 1; transition: opacity 0.5s; pointer-events: none; }
+        #home-bg-layer.hidden { opacity: 0; }
+
+        /* --- HOME VIEW --- */
+        .home-top { flex: 1.4; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding-bottom: 40px; z-index: 1; overflow: visible; }
+        
+        /* Siri-like Animation */
+        .siri-container { position: absolute; top: 12%; left: 50%; transform: translateX(-50%); z-index: 5; width: 120px; height: 120px; display: flex; justify-content: center; align-items: center; pointer-events: none; transition: all 0.8s var(--ease-out); }
+        /* Chat State for Siri */
+        #app.state-chat .siri-container { top: 6%; transform: translateX(-50%) scale(0.8); }
+
+        .siri-blob { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: var(--primary); filter: blur(20px); opacity: 0.6; animation: pulse 4s infinite ease-in-out; mix-blend-mode: screen; }
+        .siri-blob:nth-child(2) { width: 90%; height: 90%; background: #00ffcc; animation-delay: -1s; filter: blur(25px); animation-duration: 5s; }
+        .siri-blob:nth-child(3) { width: 70%; height: 70%; background: #0a84ff; animation-delay: -2s; filter: blur(15px); opacity: 0.5; animation-duration: 3s; }
+        
+        /* Orbiting Dots Effect */
+        .orbit-ring { position: absolute; top: 50%; left: 50%; border-radius: 50%; border: 1px solid rgba(255,255,255,0.05); pointer-events: none; transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); transform-style: preserve-3d; opacity: 0.3; }
+        .orbit-dot { position: absolute; top: 0; left: 50%; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #fff; transition: all 0.5s; }
+        
+        /* 3D Orbits */
+        .orbit-ring.r1 { width: 100px; height: 100px; animation: orbit-1 20s linear infinite; }
+        .orbit-ring.r1 .orbit-dot { width: 3px; height: 3px; }
+        
+        .orbit-ring.r2 { width: 160px; height: 160px; animation: orbit-2 25s linear infinite; }
+        .orbit-ring.r2 .orbit-dot { width: 5px; height: 5px; }
+        
+        .orbit-ring.r3 { width: 220px; height: 220px; animation: orbit-3 18s linear infinite; }
+        .orbit-ring.r3 .orbit-dot { width: 4px; height: 4px; }
+
+        @keyframes orbit-1 {
+            from { transform: translate(-50%, -50%) rotate3d(1, 1, 1, 0deg); } to { transform: translate(-50%, -50%) rotate3d(1, 1, 1, 360deg); }
+        }
+        @keyframes orbit-2 {
+            from { transform: translate(-50%, -50%) rotate3d(1, -1, 0, 0deg); } to { transform: translate(-50%, -50%) rotate3d(1, -1, 0, 360deg); }
+        }
+        @keyframes orbit-3 {
+            from { transform: translate(-50%, -50%) rotate3d(0, 1, -1, 0deg); } to { transform: translate(-50%, -50%) rotate3d(0, 1, -1, 360deg); }
+        }
+
+        /* Orbit States */
+        /* Listening: Expand & Faster */
+        .siri-container.listening .orbit-ring { 
+            border-color: rgba(50, 196, 140, 0.2); 
+            opacity: 0.8;
+        }
+        .siri-container.listening .orbit-ring.r1 { animation-duration: 8s; width: 140px; height: 140px; }
+        .siri-container.listening .orbit-ring.r2 { animation-duration: 10s; width: 200px; height: 200px; }
+        .siri-container.listening .orbit-ring.r3 { animation-duration: 12s; width: 260px; height: 260px; }
+        .siri-container.listening .orbit-dot { background: var(--primary); box-shadow: 0 0 10px var(--primary); transform: translate(-50%, -50%) scale(1.2); }
+        
+        /* Speaking: Max Expand & Super Fast */
+        .siri-container.speaking .orbit-ring { 
+            border-color: rgba(50, 196, 140, 0.4); 
+            opacity: 1;
+        }
+        .siri-container.speaking .orbit-ring.r1 { animation-duration: 4s; width: 160px; height: 160px; }
+        .siri-container.speaking .orbit-ring.r2 { animation-duration: 5s; width: 220px; height: 220px; }
+        .siri-container.speaking .orbit-ring.r3 { animation-duration: 6s; width: 280px; height: 280px; }
+        .siri-container.speaking .orbit-dot { 
+            background: #fff; 
+            box-shadow: 0 0 15px #fff; 
+            transform: translate(-50%, -50%) scale(1.5); 
+        }
+
+        /* Siri States */
+        .siri-container.listening .siri-blob { animation: pulse-listen 0.8s infinite alternate; background: var(--accent); opacity: 0.8; }
+        .siri-container.speaking .siri-blob { animation: pulse-speak 1.5s infinite ease-in-out; background: var(--primary); opacity: 0.9; transform: scale(1.2); }
+        
+        @keyframes pulse-listen { 0% { transform: scale(0.9); opacity: 0.6; } 100% { transform: scale(1.1); opacity: 0.9; } }
+        @keyframes pulse-speak { 0% { transform: scale(0.8); } 50% { transform: scale(1.3); } 100% { transform: scale(0.8); } }
+        @keyframes pulse { 0%, 100% { transform: scale(0.8) translate(0,0); opacity: 0.5; } 33% { transform: scale(1.1) translate(10px, -10px); opacity: 0.7; } 66% { transform: scale(0.9) translate(-10px, 10px); opacity: 0.6; } }
+
+        /* Reasoning State for Siri */
+        #app.state-reasoning .siri-container { top: 20%; transform: translateX(-50%) scale(1.3); }
+        .siri-container.thinking .siri-blob { animation: pulse-think 1.5s infinite ease-in-out; background: var(--accent); opacity: 0.8; }
+        .siri-container.thinking .orbit-ring { border-color: rgba(41, 121, 255, 0.3); animation-duration: 2s; }
+        @keyframes pulse-think { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.9; } }
+
+        .ai-greeting { font-size: 24px; font-weight: 700; text-align: center; line-height: 1.4; background: linear-gradient(135deg, #fff, #ccc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 40px; }
+        
+        #home-subtitle { font-size: 16px; color: var(--primary); text-align: center; min-height: 24px; margin-bottom: 20px; opacity: 0; transition: opacity 0.3s; font-weight: 500; text-shadow: 0 0 10px rgba(50, 196, 140, 0.3); }
+        
+        .action-buttons { display: flex; gap: 15px; width: 100%; padding: 0 30px; }
+        .big-btn { flex: 1; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .big-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.15); }
+        .big-btn i { font-size: 24px; color: var(--primary); }
+        .big-btn span { font-size: 14px; font-weight: 500; letter-spacing: 0.5px; }
+
+        .home-bottom { flex: 1; background: rgba(20,20,20,0.85); backdrop-filter: blur(40px); border-top: 1px solid rgba(255,255,255,0.1); border-radius: 32px 32px 0 0; padding: 30px; transform: translateY(0); transition: transform 0.4s var(--ease-out); display: flex; flex-direction: column; box-shadow: 0 -20px 60px rgba(0,0,0,0.9); z-index: 10; margin-top: -40px; }
+        .home-bottom.hidden { transform: translateY(100%); }
+        
+        .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .profile-title { font-size: 16px; font-weight: 700; }
+        .edit-btn { color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; }
+        
+        .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; overflow-y: auto; padding-bottom: 20px; }
+        .info-item { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .info-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+        .info-val { font-size: 14px; font-weight: 600; color: #fff; }
+
+        /* --- CHAT VIEW --- */
+        .chat-header { position: absolute; top: 0; left: 0; width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 20; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%); pointer-events: none; }
+        .chat-header > * { pointer-events: auto; }
+        .chat-back { color: #fff; font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer; opacity: 0.8; }
+        /* AI Status Indicator in Chat Header */
+        .ai-status-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); animation: pulse 2s infinite; margin-right: 8px; display: inline-block; }
+        .chat-title { font-size: 14px; font-weight: 600; color: #fff; display: flex; align-items: center; pointer-events: none; opacity: 1; transition: opacity 0.3s; }
+        .view.active .chat-title { opacity: 1; }
+        .chat-back:hover { opacity: 1; }
+        .chat-container { flex: 1; padding: 0 20px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-end; gap: 20px; padding-top: 20vh; padding-bottom: 45vh; scroll-behavior: smooth; mask-image: linear-gradient(to bottom, transparent 0%, transparent 15%, black 30%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 15%, black 30%); }
+        .chat-summary { position: absolute; bottom: 140px; left: 0; width: 100%; padding: 0 20px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; z-index: 25; pointer-events: none; }
+        .summary-tag { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 11px; color: #ccc; backdrop-filter: blur(5px); animation: fadeIn 0.5s; }
+        .chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; animation: slideUp 0.4s var(--ease-out); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        
+        /* PRO ACTION CARD */
+        .action-card-pro { background: #1a1a1a; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid #333; display: flex; flex-direction: column; gap: 0; transition: 0.2s; }
+        .action-card-pro:active { background: #222; }
+        .ac-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; }
+        .ac-thumb { width: 40px; height: 40px; background: #2a2a2a; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #555; overflow: hidden; }
+        .ac-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .ac-title { font-size: 14px; font-weight: 600; color: #fff; }
+        .ac-meta { font-size: 11px; color: #888; display: flex; gap: 8px; }
+        .ac-tag { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; color: #ccc; }
+        
+        .ac-body-exp { display: none; margin-top: 10px; border-top: 1px solid #2a2a2a; padding-top: 10px; animation: fadeIn 0.2s; }
+        .set-list { display: flex; flex-direction: column; gap: 6px; }
+        .set-row { display: flex; align-items: center; gap: 8px; font-size: 12px; background: #111; padding: 6px 10px; border-radius: 6px; }
+        .set-idx { width: 15px; color: #555; font-size: 10px; font-weight: 700; }
+        .set-input { background: transparent; border: none; border-bottom: 1px solid #333; color: #fff; width: 40px; text-align: center; padding: 2px; font-weight: 600; font-family: var(--font); }
+        .set-input:focus { border-color: var(--primary); }
+        .set-del { color: #444; cursor: pointer; margin-left: auto; padding: 4px; font-size: 14px; }
+        .set-del:hover { color: var(--danger); }
+        .add-set-btn { width: 100%; padding: 8px; background: rgba(255,255,255,0.03); border: 1px dashed #333; color: #666; font-size: 11px; cursor: pointer; border-radius: 6px; text-align: center; margin-top: 8px; transition: 0.2s; }
+        .add-set-btn:hover { color: var(--primary); border-color: var(--primary); background: rgba(50, 196, 140, 0.05); }
+        .ac-footer { display: flex; justify-content: space-between; font-size: 10px; color: #555; margin-top: 10px; padding-top: 5px; border-top: 1px solid #222; }
+
+        .chat-ai { background: #1a1a1a; color: #eee; border-bottom-left-radius: 4px; align-self: flex-start; border: 1px solid #333; }
+        .chat-user { background: var(--primary); color: #000; border-bottom-right-radius: 4px; align-self: flex-end; font-weight: 600; }
+        .chat-user.interim { background: rgba(50, 196, 140, 0.2); color: #fff; border: 1px solid var(--primary); }
+        .keyword-highlight { color: #fff; background: rgba(0,0,0,0.2); padding: 0 4px; border-radius: 4px; }
+        
+        /* Typing Indicator */
+        .chat-typing { padding: 15px 20px; background: #1a1a1a; border: 1px solid #333; border-radius: 18px; border-bottom-left-radius: 4px; align-self: flex-start; display: flex; gap: 4px; align-items: center; height: 46px; width: 70px; animation: slideUp 0.3s var(--ease-out); margin-bottom: 10px; margin-top: auto; }
+        .typing-dot { width: 6px; height: 6px; background: #666; border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .input-area { position: absolute; bottom: 0; left: 0; width: 100%; padding: 0 20px 40px 20px; background: linear-gradient(to top, #000 0%, transparent 100%); pointer-events: none; display: flex; justify-content: center; z-index: 30; }
+        .input-area > * { pointer-events: auto; }
+        .options-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .opt-chip { padding: 8px 16px; background: rgba(50, 196, 140, 0.1); border: 1px solid rgba(50, 196, 140, 0.3); border-radius: 20px; font-size: 13px; color: #fff; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 60px; }
+        .opt-chip:hover { background: rgba(50, 196, 140, 0.2); }
+        .opt-chip.active { background: var(--primary); color: #000; font-weight: 600; border-color: var(--primary); }
+        .opt-chip:active { transform: scale(0.95); }
+        .active-voice-click { transform: scale(0.95); box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+        
+        .mic-btn { width: 64px; height: 64px; border-radius: 50%; background: rgba(30,30,30,0.8); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid #444; transition: 0.2s; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 50; }
+        .mic-btn.listening { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 30px var(--primary-glow); animation: pulse-mic 1.5s infinite; }
+        @keyframes pulse-mic { 0% { box-shadow: 0 0 0 0 rgba(50, 196, 140, 0.7); transform: scale(1); } 50% { box-shadow: 0 0 0 15px rgba(50, 196, 140, 0); transform: scale(1.05); } 100% { box-shadow: 0 0 0 0 rgba(50, 196, 140, 0); transform: scale(1); } }
+        .chat-slider-box { background: var(--bg-card); padding: 15px; border-radius: 12px; width: 100%; margin-top: 10px; border: 1px solid #333; animation: slideUp 0.3s; align-self: flex-end; }
+        .chat-sub-text { font-size: 10px; margin-top: 2px; opacity: 0.8; }
+        .chat-history-dim { opacity: 0.4; transition: opacity 0.5s; }
+        /* --- REASONING VIEW --- */
+        .reasoning-center { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 45vh; justify-content: flex-start; }
+        .log-container { width: 280px; display: flex; flex-direction: column; gap: 12px; }
+        .log-item { font-size: 13px; color: #666; display: flex; align-items: center; gap: 12px; opacity: 0; animation: slideInUp 0.4s forwards; }
+        .log-item.active { color: #fff; font-weight: 600; transform: scale(1.02); transition: 0.3s; }
+        .log-item.done { color: var(--primary); opacity: 0.8; }
+        .log-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- RESULT VIEW --- */
+        .result-header { padding: 24px; background: rgba(18,18,18,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 5; flex-shrink: 0; display: flex; justify-content: space-between; align-items: flex-start; }
+        .result-title { font-size: 20px; font-weight: 800; margin-bottom: 5px; }
+        .result-sub { font-size: 12px; color: var(--text-sub); display: flex; gap: 10px; }
+        .result-body { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 40px; }
+        .unit-toggle { font-size: 11px; font-weight: 700; color: var(--text-sub); border: 1px solid #333; padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .unit-toggle:hover { color: #fff; border-color: #666; }
+        
+        .card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
+        .card-row { display: flex; justify-content: space-between; align-items: center; }
+        .card-name { font-size: 14px; font-weight: 600; color: #fff; }
+        .card-tag { background: rgba(255,255,255,0.05); color: #aaa; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; }
+
+        .phase-header-row { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0; }
+        .phase-title { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        .phase-select { background: #1a1a1a; border: 1px solid #333; color: #888; font-size: 10px; padding: 2px 6px; border-radius: 4px; outline: none; }
+        
+        .bottom-bar { padding: 20px; background: #111; border-top: 1px solid #222; display: flex; gap: 15px; flex-shrink: 0; }
+        .btn-full { flex: 1; background: var(--primary); color: #000; font-weight: 700; padding: 14px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer; }
+        .btn-icon { width: 50px; background: #333; color: #fff; border-radius: 12px; border: none; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        .ft-mini-bar { display: flex; gap: 10px; margin-bottom: 10px; justify-content: flex-end; }
+        .ft-mini-sel { background: transparent; border: 1px solid #333; color: #666; font-size: 10px; padding: 2px 5px; border-radius: 4px; outline: none; }
+
+        /* LIBRARY VIEW */
+        .lib-filters { padding: 10px 20px; overflow-x: auto; white-space: nowrap; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .lib-filter-tag { padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 20px; font-size: 12px; color: #888; cursor: pointer; border: 1px solid transparent; }
+        .lib-filter-tag.active { background: var(--primary); color: #000; font-weight: 600; }
+        .lib-body { flex: 1; overflow-y: auto; padding: 20px; }
+        .lib-item { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; cursor: pointer; }
+        .lib-item.selected { border-color: var(--primary); background: rgba(50, 196, 140, 0.1); }
+        .lib-info { flex: 1; }
+        .lib-name { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .lib-meta { font-size: 10px; color: #666; }
+        .lib-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #444; display: flex; align-items: center; justify-content: center; }
+        .lib-item.selected .lib-check { border-color: var(--primary); background: var(--primary); }
+        .lib-item.selected .lib-check::after { content: '✓'; color: #000; font-size: 12px; font-weight: 700; }
+
+        /* FINE TUNING CONTROLS */
+        .ft-controls { background: #161616; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #222; }
+        .ft-row { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+        .ft-row:last-child { margin-bottom: 0; }
+        .ft-label { font-size: 11px; color: #888; width: 60px; }
+        .ft-select { flex: 1; background: #000; border: 1px solid #333; color: #fff; padding: 6px; border-radius: 4px; font-size: 12px; }
+        
+        /* ACTION EDITOR (Accordion) */
+        .action-editor { background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .action-editor.expanded { border-color: #444; background: #1a1a1a; }
+        
+        .ae-header { padding: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .ae-thumb { width: 40px; height: 40px; background: #222; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #444; font-size: 10px; }
+        .ae-info { flex: 1; }
+        .ae-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .ae-meta { display: flex; gap: 6px; }
+        .ae-tag { font-size: 9px; color: #888; background: #000; padding: 1px 4px; border-radius: 2px; border: 1px solid #333; }
+        .ae-summary { font-size: 12px; color: var(--primary); font-weight: 600; }
+        
+        .ae-tools { display: flex; gap: 5px; }
+        .ae-btn { width: 24px; height: 24px; background: #222; border: 1px solid #333; color: #888; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .ae-btn:hover { color: #fff; border-color: #555; }
+        
+        .stats-bar { background: #111; padding: 12px 20px; border-top: 1px solid #222; display: flex; justify-content: space-between; font-size: 10px; color: #666; z-index: 20; flex-shrink: 0; }
+        .stat-val { font-size: 14px; font-weight: 700; color: var(--primary); display: block; }
+        
+        .ae-tools { display: flex; gap: 5px; }
+
+        /* --- PROFILE EDIT MODAL --- */
+        .modal { position: absolute; inset: 0; background: #000; z-index: 100; transform: translateY(100%); transition: transform 0.3s var(--ease-out); display: flex; flex-direction: column; }
+        .modal.active { transform: translateY(0); }
+        .modal-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 8px; }
+        .form-input { width: 100%; background: #111; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 8px; font-size: 14px; }
+        .form-input:focus { border-color: var(--primary); }
+        
+        /* TABS */
+        .tabs { display: flex; border-bottom: 1px solid #222; margin-bottom: 15px; }
+        .tab { flex: 1; text-align: center; padding: 12px; font-size: 13px; color: var(--text-sub); cursor: pointer; position: relative; }
+        .tab.active { color: var(--primary); font-weight: 700; }
+        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 20%; right: 20%; height: 2px; background: var(--primary); }
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        
+        /* PLAN PHASE BLOCK */
+        .plan-phase-block { margin-bottom: 25px; }
+        .plan-phase-header { font-size: 14px; font-weight: 800; color: #fff; margin-bottom: 15px; padding-left: 10px; border-left: 3px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .plan-phase-meta { font-size: 10px; color: var(--text-sub); font-weight: normal; }
+        
+        /* Vertical Plan Layout */
+        .plan-week-list { display: flex; flex-direction: column; gap: 10px; }
+        .plan-day-row { display: flex; align-items: center; background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px 15px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
+        .plan-day-row.training { cursor: pointer; }
+        .plan-day-row.training:hover { border-color: var(--primary); background: rgba(50, 196, 140, 0.05); }
+        .plan-day-row.rest { opacity: 0.5; border-style: dashed; }
+        
+        .pdr-date { width: 50px; font-size: 12px; color: #666; font-weight: 600; display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+        .pdr-date span { font-size: 10px; font-weight: 400; }
+        .pdr-content { flex: 1; padding-left: 15px; border-left: 1px solid #333; }
+        .pdr-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+        .pdr-meta { font-size: 11px; color: #888; display: flex; gap: 8px; align-items: center; }
+        .pdr-action { color: var(--primary); font-size: 18px; opacity: 0.5; }
+        .plan-day-row.training:hover .pdr-action { opacity: 1; transform: translateX(3px); transition: 0.2s; }
+        
+        /* TOAST */
+        #toast { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,69,58,0.9); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 200; }
+        
+        /* START BUTTON FIXED POSITION */
+        #home-start-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; cursor: pointer; z-index: 200; pointer-events: auto; width: 200px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #home-start-btn:active { transform: translate(-50%, -50%) scale(0.95); opacity: 0.8; }
+        #home-start-btn > * { pointer-events: none; }
+
+        /* UTILS */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    
+    <div id="home-bg-layer"></div>
+
+    <!-- GLOBAL AI AVATAR (Seamless Transition) -->
+    <div class="siri-container">
+        <div class="siri-blob"></div>
+        <div class="siri-blob"></div>
+        <div class="siri-blob"></div>
+        <div class="orbit-ring r1">
+            <div class="orbit-dot"></div>
+        </div>
+        <div class="orbit-ring r2">
+            <div class="orbit-dot"></div>
+        </div>
+        <div class="orbit-ring r3">
+            <div class="orbit-dot"></div>
+        </div>
+    </div>
+
+    <!-- MOVED: Start Trigger (Global Layer) -->
+    <div id="home-start-btn" onclick="window.App.startSession()">
+        <i style="font-size:40px; font-style:normal; display:block; margin-bottom:10px; filter:grayscale(1);">🎙️</i>
+        <div style="font-size:16px; font-weight:600; color:var(--primary);">点击开启麦克风权限</div>
+        <div style="font-size:12px; color:#666; margin-top:5px;">激活 AI 智能教练</div>
+    </div>
+
+    <!-- VIEW 1: HOME -->
+    <div id="view-home" class="view active">
+        <div class="home-top" style="justify-content: flex-end; padding-bottom: 120px;">            
+            <!-- Active Content (Hidden Initially) -->
+            <div id="home-active-content" class="hidden" style="width:100%; display:flex; flex-direction:column; align-items:center; animation: slideUp 0.5s; z-index: 10;">
+                <div class="ai-greeting">Hi，我是AEKE 私人教练<br><span style="font-size:16px; font-weight:400; color:#888; margin-top:10px; display:block;">帮你定制专属运动方案</span></div>
+                <div id="home-subtitle"></div>
+                
+                <div class="action-buttons">
+                    <div class="big-btn" onclick="App.startFlow('course')">
+                        <i>⚡️</i>
+                        <span>给我一节课</span>
+                    </div>
+                    <div class="big-btn" onclick="App.startFlow('plan')">
+                        <i>📅</i>
+                        <span>给我一份计划</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="home-bottom hidden" id="profile-card">
+            <div class="profile-header">
+                <div class="profile-title">我的运动档案</div>
+                <div class="edit-btn" onclick="App.openProfile()">修改 ></div>
+            </div>
+            <div class="profile-grid" id="profile-display">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: CHAT WIZARD -->
+    <div id="view-chat" class="view">
+        <div class="chat-header">
+            <div class="chat-back" onclick="App.reset()">✕ 退出</div>
+            <div class="chat-title"><div class="ai-status-dot"></div>AI Coach</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="chat-container" id="chat-history">
+            <!-- Chat bubbles -->
+        </div>
+        <div class="chat-summary" id="chat-summary"></div>
+        <div class="input-area">
+            <div class="mic-btn" id="mic-btn" onclick="App.toggleMicState()">
+                <i style="font-style:normal; font-size:24px;">🎙️</i>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: REASONING -->
+    <div id="view-reasoning" class="view">
+        <div class="reasoning-center">
+            <div class="log-container" id="reasoning-log">
+                <!-- Logs -->
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 4: RESULT (COURSE/PLAN) -->
+    <div id="view-result" class="view">
+        <div class="result-header">
+            <div id="btn-back-plan" style="display:none; margin-right:10px; cursor:pointer; color:var(--primary);" onclick="App.showResult()">←</div>
+            <div>
+                <div class="result-title" id="res-title">--</div>
+                <div class="result-sub" id="res-sub">--</div>
+            </div>
+            <div class="unit-toggle" onclick="App.switchUnit(window.store.unit==='kg'?'lbs':'kg')">UNIT: <span id="unit-disp">KG</span></div>
+        </div>
+        <div class="result-body" id="res-body">
+            <!-- Content -->
+        </div>
+        <div class="stats-bar" id="res-stats">
+            <div>时长 <span class="stat-val" id="st-time">--</span></div>
+            <div>动作 <span class="stat-val" id="st-count">--</span></div>
+            <div>容量 <span class="stat-val" id="st-vol">--</span></div>
+            <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+        </div>
+        <div class="bottom-bar">
+            <button class="btn-icon" onclick="App.reset()">↺</button>
+            <button class="btn-full" id="btn-main-action">开始训练</button>
+        </div>
+    </div>
+
+    <!-- VIEW 5: ACTION LIBRARY -->
+    <div id="view-library" class="view">
+        <div class="result-header">
+            <div class="chat-back" onclick="App.closeLibrary()">✕ 取消</div>
+            <div class="result-title" style="font-size:16px;">动作库</div>
+            <div style="color:var(--primary); font-weight:600; cursor:pointer;" onclick="App.confirmReplace()">确认</div>
+        </div>
+        <div class="lib-filters" id="lib-parts">
+            <!-- Rendered JS -->
+        </div>
+        <div class="lib-body" id="lib-list">
+            <!-- Rendered JS -->
+        </div>
+    </div>
+
+    <!-- VIEW 6: SCHEDULE -->
+    <div id="view-schedule" class="view">
+        <div class="chat-header">
+            <div class="chat-back" onclick="App.switchView('view-home')">✕ 关闭</div>
+            <div class="chat-title">训练日程</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="result-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+            <i style="font-size:64px; margin-bottom:20px; font-style:normal;">📅</i>
+            <div style="font-size:18px; font-weight:700; margin-bottom:10px;">日程已创建</div>
+            <div style="font-size:13px; color:#888;">您的训练计划已加入日程表</div>
+        </div>
+    </div>
+
+    <!-- MODAL: PROFILE EDIT -->
+    <div id="modal-profile" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">修改档案</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.saveProfile()">保存</div>
+        </div>
+        <div class="tabs">
+            <div class="tab active" onclick="App.switchTab('basic')">基础</div>
+            <div class="tab" onclick="App.switchTab('pref')">偏好</div>
+            <div class="tab" onclick="App.switchTab('goal')">目标</div>
+        </div>
+        <div class="modal-body" id="profile-form">
+        </div>
+    </div>
+
+    <!-- MODAL: SCHEDULE CONFIRM -->
+    <div id="modal-schedule" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">确认训练日</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.confirmSchedule()">确认</div>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:15px; font-size:13px; color:#888;">请确认您的每周训练安排：</div>
+            <div class="options-grid" id="schedule-days-list"></div>
+        </div>
+    </div>
+    
+    <div id="toast"></div>
+
+</div>
+
+<script>
+// ==========================================
+// 0. DATA & LOGIC ENGINE (Ported from Demo 11.0)
+// ==========================================
+
+const CONSTANTS = {
+    PARTS: ['全身', '胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心', '全身有氧'],
+    RATIOS: { 
+        '胸部': {'胸大肌中束':0.4, '胸大肌上束':0.4, '胸大肌下束':0.1, '胸大肌内侧':0.1},
+        '背部': {'中背':0.4, '上背':0.4, '下背':0.2},
+        '肩部': {'三角肌中束':0.5, '三角肌前束':0.1, '三角肌后束':0.3, '肩袖':0.1},
+        '手臂': {'肱二头肌':0.4, '肱三头肌':0.6},
+        '腿部': {'股四头肌':0.4, '胭绳肌':0.4, '内收肌':0.1, '腓肠肌':0.1},
+        '核心': {'腹直肌':0.7, '腹斜肌':0.3},
+        '全身': 'AVG'
+    },
+    DIFF_WEIGHTS: {
+        'L1': {'L1':0.6, 'L2':0.3, 'L3':0.1, 'L4':0, 'L5':0},
+        'L3': {'L1':0.2, 'L2':0.3, 'L3':0.3, 'L4':0.1, 'L5':0.1},
+        'L5': {'L1':0.1, 'L2':0.2, 'L3':0.3, 'L4':0.2, 'L5':0.2}
+    },
+    LEVEL_MAP: { 'L1':1, 'L2':2, 'L3':3, 'L4':4, 'L5':5 },
+    PAIRS: { 
+        '胸大肌': '背阔肌', '背阔肌': '胸大肌',
+        '肱二头肌': '肱三头肌', '肱三头肌': '肱二头肌',
+        '股四头肌': '胭绳肌', '胭绳肌': '股四头肌',
+        '腹直肌': '下背'
+    },
+    COURSE_TYPES: {
+        '力量': '抗阻范式', '康复': '抗阻范式', '高尔夫': '抗阻范式',
+        'HIIT': '间歇范式', '有氧': '间歇范式', '搏击': '间歇范式',
+        '瑜伽': '流式范式', '普拉提': '流式范式', '拉伸': '流式范式', '冥想': '流式范式', '气功': '流式范式',
+        '抗阻范式': '抗阻范式'
+    }, 
+    ENUMS: {
+        ONE_RM: { '胸部': 60, '背部': 70, '腿部': 100, '臀部': 90, '肩部': 30, '手臂': 25, '核心': 0 },
+        GENDER: ['男', '女'],
+        LEVEL: ['L1', 'L2', 'L3', 'L4', 'L5'],
+        GOAL: ['增肌', '减重', '健康'],
+        FUNC_GOAL: ['增肌', '力量', '耐力', '爆发', '减脂', '心肺', '恢复', '柔韧', '协调', '体态', '专项', '激活', '平衡'],
+        STYLE: ['传统型', '多变型', '激进型'],
+        BODY_TYPE: ['均衡标准型', '标准肌肉型', '紧致精瘦型', '健美肌肉型'],
+        LOOP_MODE: ['常规组', '循环组', '超级组', '复合组', '巨型组'],
+        LOAD_STRATEGY: ['推荐', '恒定', '递增', '递减', '波浪', '计时', '自定义'],
+        COURSE_TYPES: ['力量', '有氧', 'HIIT', '搏击', '普拉提', '瑜伽', '拉伸', '气功', '康复', '冥想', '高尔夫'],
+        PAIN_AREAS: ['无', '手腕', '肘部', '肩部', '腰部', '髋部', '膝盖', '脚踝'],
+        MISSING_EQUIP: ['健身凳', '瑜伽砖', '泡沫轴', '横杆', '手柄'],
+        MENSTRUAL_CYCLE: ['卵泡期', '排卵期', '黄体期', '月经期']
+    }
+};
+
+const CONFIG = {
+    STRATEGY: {
+        '增肌': { sets: 4, rest: 90, intensity: 0.75, mode: '常规组', strategy: '推荐', diff: '标准', rpe: 8 },
+        '力量': { sets: 5, rest: 180, intensity: 0.85, mode: '常规组', strategy: '恒定', diff: '进阶', rpe: 9 },
+        '减脂': { sets: 4, rest: 30, intensity: 0.65, mode: '循环组', strategy: '计时', diff: '标准', rpe: 7 },
+        '耐力': { sets: 3, rest: 45, intensity: 0.50, mode: '超级组', strategy: '计时', diff: '标准', rpe: 6 },
+        '爆发': { sets: 4, rest: 150, intensity: 0.70, mode: '常规组', strategy: '递增', diff: '进阶', rpe: 9 },
+        '心肺': { sets: 4, rest: 20, intensity: 0.65, mode: '循环组', strategy: '计时', diff: '标准', rpe: 7 },
+        '激活': { sets: 2, rest: 0, intensity: 0.40, mode: '常规组', strategy: '恒定', diff: '标准', rpe: 4 },
+        '柔韧': { sets: 2, rest: 0, intensity: 0.30, mode: '常规组', strategy: '计时', diff: '标准', rpe: 3 },
+        'HIIT': { sets: 6, rest: 30, intensity: 0.75, mode: '循环组', strategy: '计时', diff: '标准', rpe: 8 },
+        '有氧': { sets: 1, rest: 0, intensity: 0.60, mode: '常规组', strategy: '计时', diff: '标准', rpe: 6 },
+        '瑜伽': { sets: 1, rest: 0, intensity: 0.40, mode: '常规组', strategy: '计时', diff: '标准', rpe: 4 },
+        '普拉提': { sets: 3, rest: 30, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准', rpe: 5 },
+        '拉伸': { sets: 1, rest: 0, intensity: 0.20, mode: '常规组', strategy: '计时', diff: '保守', rpe: 2 },
+        '恢复': { sets: 2, rest: 0, intensity: 0.30, mode: '常规组', strategy: '恒定', diff: '保守', rpe: 2 },
+        '协调': { sets: 3, rest: 60, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准', rpe: 6 },
+        '体态': { sets: 3, rest: 45, intensity: 0.50, mode: '常规组', strategy: '计时', diff: '标准', rpe: 5 },
+        '平衡': { sets: 3, rest: 60, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准', rpe: 6 },
+        '专项': { sets: 3, rest: 90, intensity: 0.70, mode: '常规组', strategy: '推荐', diff: '标准', rpe: 8 }
+    },
+    LEVEL_COEFF: { 'L1': 0.5, 'L2': 0.8, 'L3': 1.0, 'L4': 1.2, 'L5': 1.5 },
+    PHASES: {
+        '适应期': { intensity: 0.8, volume: 0.8, name: '适应激活期' },
+        '进阶期': { intensity: 1.0, volume: 1.0, name: '肌肥大增长期' },
+        '突破期': { intensity: 1.1, volume: 0.9, name: '力量突破期' },
+        '减载期': { intensity: 0.6, volume: 0.6, name: '减载恢复期' }
+    },
+    TEMPLATES: [
+        { id: 'TPL_001', name: '一分化 (全身)', goal: '增肌', level: 'All', freq: 1, slots: [{n:'全身综合', t:['全身']}] },
+        { id: 'TPL_002', name: '二分化 (上下肢)', goal: '增肌', level: 'All', freq: 2, slots: [{n:'上肢力量', t:['胸部','背部','肩部','手臂']}, {n:'下肢力量', t:['臀部','腿部','核心']}] },
+        { id: 'TPL_003', name: '三分化 (推拉腿)', goal: '增肌', level: 'All', gender: '男', freq: 3, slots: [{n:'推类力量', t:['胸部','肩部','手臂']}, {n:'拉类力量', t:['背部','核心']}, {n:'腿部驱动', t:['臀部','腿部']}] },
+        { id: 'TPL_004', name: '三分化 (臀腿侧重)', goal: '增肌', level: 'All', gender: '女', freq: 3, slots: [{n:'臀腿塑形', t:['臀部','腿部']}, {n:'上肢塑形', t:['胸部','背部','肩部','手臂']}, {n:'臀腿强化', t:['臀部','腿部']}] },
+        { id: 'TPL_005', name: '四分化 (非线性)', goal: '增肌', level: 'All', freq: 4, slots: [{n:'胸臂雕刻', t:['胸部','手臂']}, {n:'臀腿轰炸', t:['臀部','腿部']}, {n:'背肩强化', t:['背部','肩部']}, {n:'核心全身', t:['核心','全身']}] },
+        { id: 'TPL_006', name: '五分化 (单部位)', goal: '增肌', level: 'All', freq: 5, slots: [{n:'胸部专项', t:['胸部']}, {n:'背部专项', t:['背部']}, {n:'肩部专项', t:['肩部']}, {n:'手臂专项', t:['手臂']}, {n:'臀腿专项', t:['臀部','腿部']}] },
+        { id: 'TPL_FAT', name: '减脂循环', goal: '减脂', level: 'All', freq: 3, slots: [{n:'全身燃脂', t:['全身']}, {n:'核心燃脂', t:['核心','全身']}, {n:'全身燃脂', t:['全身']}] }
+    ],
+    paradigms: [
+        { name: '抗阻范式', types: '力量, 康复, 高尔夫', sets: '3-5', strategy: '推荐' },
+        { name: '间歇范式', types: 'HIIT, 有氧, 搏击', sets: '3-5', strategy: '计时' },
+        { name: '流式范式', types: '瑜伽, 普拉提, 拉伸, 冥想, 气功', sets: '1', strategy: '计时' }
+    ],
+    load: [
+        { name: '恒定', index: 'All', coeff: 1.0, inc: 0 },
+        { name: '递增', index: '1', coeff: 0.85, inc: '+2' },
+        { name: '递增', index: '2', coeff: 0.90, inc: '+1' },
+        { name: '递增', index: '3+', coeff: 1.00, inc: 0 },
+        { name: '递减', index: '1', coeff: 1.0, inc: 0 },
+        { name: '递减', index: '2', coeff: 0.90, inc: '+2' },
+        { name: '递减', index: '3+', coeff: 0.80, inc: '+4' }
+    ],
+    factors: [
+        { key: '新鲜奖励', weight: 60, rule: '未练天数 > 7' },
+        { key: '收藏奖励', weight: 50, rule: '是否收藏 = True' },
+        { key: '厌倦惩罚', weight: -80, rule: '连续出现次数 ≥ 3' },
+        { key: '疲劳惩罚', weight: -50, rule: '辅助肌状态 < 55' }
+    ]
+};
+
+const FALLBACK_DB = [
+    { id: 'FB01', name: '标准俯卧撑', part: '胸部', muscle: '胸大肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [] },
+    { id: 'FB02', name: '自重深蹲', part: '腿部', muscle: '股四头肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [] },
+    { id: 'FB03', name: '开合跳', part: '全身', muscle: '全身', equip: ['自重'], difficulty: 'L1', impact: '高冲击', paradigm: '间歇范式', func: ['心肺','减脂'], pain: [] },
+    { id: 'FB04', name: '平板支撑', part: '核心', muscle: '腹直肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['核心','稳定'], pain: [] },
+    { id: 'FB05', name: '猫牛式', part: '背部', muscle: '竖脊肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '流式范式', func: ['放松','柔韧'], pain: [] },
+    { id: 'FB06', name: '模拟划船', part: '背部', muscle: '背阔肌', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '抗阻范式', func: ['增肌','力量'], pain: [] },
+    { id: 'FB07', name: '婴儿式', part: '全身', muscle: '全身', equip: ['自重'], difficulty: 'L1', impact: '低冲击', paradigm: '流式范式', func: ['放松','恢复'], pain: [] }
+];
+
+let DB = [];
+
+// Async Load Action Library
+(async function initDB() {
+    try {
+        const response = await fetch('动作库.json');
+        const data = await response.json();
+        processData(data);
+        console.log(`[ActionLibrary] Loaded ${DB.length} actions from JSON.`);
+    } catch (error) {
+        console.warn("Failed to load Action Library, using Fallback Data:", error);
+        processData(FALLBACK_DB);
+    }
+
+    function processData(data) {
+        DB = data.map(a => ({
+            ...a,
+            lastTrained: new Date(Date.now() - Math.random() * 1000000000),
+            isFav: Math.random() > 0.8
+        }));
+    }
+})();
+
+window.PhaseEngine = {
+    generateSchedule: (totalWeeks) => {
+        const phases = [];
+        const P = CONFIG.PHASES;
+        
+        if (totalWeeks < 4) {
+            if(totalWeeks === 1) phases.push({...P['进阶期'], weeks:1});
+            else if(totalWeeks === 2) { phases.push({...P['适应期'], weeks:1}); phases.push({...P['进阶期'], weeks:1}); }
+            else { phases.push({...P['适应期'], weeks:1}); phases.push({...P['进阶期'], weeks:1}); phases.push({...P['突破期'], weeks:1}); }
+        } else {
+            const w1 = Math.max(1, Math.round(totalWeeks * 0.25));
+            const w2 = Math.max(1, Math.round(totalWeeks * 0.40));
+            const w4 = Math.max(1, Math.round(totalWeeks * 0.10));
+            const w3 = totalWeeks - w1 - w2 - w4;
+            phases.push({...P['适应期'], weeks:w1});
+            phases.push({...P['进阶期'], weeks:w2});
+            phases.push({...P['突破期'], weeks:w3});
+            phases.push({...P['减载期'], weeks:w4});
+        }
+        
+        let schedule = [];
+        phases.forEach(p => {
+            for(let i=0; i<p.weeks; i++) schedule.push(p);
+        });
+        return schedule.slice(0, totalWeeks);
+    }
+};
+
+window.Logic = {
+    createContext: (input, planContext = null) => {
+        const user = window.store.user;
+        // Calculate bodyStatus from fatigue (1-10) if not present
+        const bodyStatus = Math.max(0, 100 - (user.fatigue * 8));
+        
+        // Normalize targets to Array
+        const rawTargets = input ? input.targets : null;
+        const targets = (Array.isArray(rawTargets) && rawTargets.length > 0) ? rawTargets : (rawTargets ? [rawTargets] : ['全身']);
+
+        return {
+            source: planContext ? 'Plan' : 'Single',
+            planContext: planContext,
+            meta: {
+                type: planContext ? planContext.type : (input.type || '力量'),
+                targets: planContext ? planContext.targets : targets,
+                duration: planContext ? planContext.duration : (input ? (parseInt(input.duration) || 30) : 30), // Default 30
+                level: user.level,
+                goal: user.goal
+            },
+            constraints: { 
+                availableEquip: ['自重', '横杆', '手柄', '健身凳', '泡沫轴'].filter(e => !user.missing.includes(e)),
+                forbiddenParts: [...user.pain],
+                downgrade: bodyStatus < 55
+            },
+            phases: [],
+            status: { fatigue: bodyStatus }
+        };
+    },
+    
+    confirmCourse: (ctx) => {
+        const user = window.store.user;
+        let finalTargets = [...ctx.meta.targets];
+        const conflict = finalTargets.some(t => ctx.constraints.forbiddenParts.includes(t));
+        
+        if (conflict) {
+            if (ctx.source === 'Plan') finalTargets = ['全身']; 
+            else ctx.constraints.downgrade = true;
+        }
+
+        let levelStr = user.level;
+        if (ctx.constraints.downgrade) {
+            const currentLvl = CONSTANTS.LEVEL_MAP[levelStr];
+            const newLvl = Math.max(1, currentLvl - 2);
+            levelStr = `L${newLvl}`;
+        }
+
+        return {
+            ...ctx,
+            meta: {
+                ...ctx.meta,
+                level: levelStr,
+                targets: finalTargets
+            }
+        };
+    },
+
+    planPhases: (ctx) => {
+        const { duration, type } = ctx.meta;
+        const maxWarmup = 5;
+        const wuTime = Math.min(Math.round(duration * 0.15), maxWarmup);
+        const cdTime = Math.min(Math.round(duration * 0.15), maxWarmup);
+        const mainTime = duration - wuTime - cdTime;
+        
+        // Strategy Resolution: Type (Strong) > Goal (Weak)
+        let strategyKey = ctx.meta.goal; // Default to goal (e.g. 增肌)
+        
+        // Type Config Mapping
+        const typeConfig = {
+            'HIIT': { strategy: 'HIIT', filter: '心肺' },
+            '有氧': { strategy: '有氧', filter: '心肺' },
+            '瑜伽': { strategy: '瑜伽', filter: '柔韧' },
+            '普拉提': { strategy: '普拉提', filter: '体态' },
+            '拉伸': { strategy: '拉伸', filter: '恢复' }
+        };
+
+        if (typeConfig[type]) {
+            strategyKey = typeConfig[type].strategy;
+        }
+
+        const mainStrategy = CONFIG.STRATEGY[strategyKey] || CONFIG.STRATEGY['增肌'];
+        const wuStrategy = CONFIG.STRATEGY['激活'];
+        const cdStrategy = CONFIG.STRATEGY['柔韧'];
+        const paradigm = CONSTANTS.COURSE_TYPES[type] || '抗阻范式';
+
+        // Time-Constraint Adaptation
+        let adjustedRest = mainStrategy.rest;
+        if (duration <= 30) {
+            if (['力量', '爆发'].includes(ctx.meta.goal)) adjustedRest = Math.min(adjustedRest, 120);
+            else if (['增肌'].includes(ctx.meta.goal)) adjustedRest = Math.min(adjustedRest, 60);
+            else adjustedRest = Math.min(adjustedRest, 45);
+        }
+        
+        let singleDuration = paradigm === '抗阻范式' ? (45 + adjustedRest) : (60 + adjustedRest);
+        let adjustedSets = mainStrategy.sets;
+        let count = Math.floor((mainTime * 60) / (adjustedSets * singleDuration));
+        
+        if (count < 3 && adjustedSets > 2) {
+            adjustedSets = Math.max(2, Math.min(mainStrategy.sets, Math.floor((mainTime * 60) / 3 / singleDuration)));
+            count = Math.floor((mainTime * 60) / (adjustedSets * singleDuration));
+        }
+
+        const phaseStrategy = { ...mainStrategy, sets: adjustedSets, rest: adjustedRest };
+        const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
+
+        ctx.phases = [
+            { type: '热身', duration: wuTime, paradigm: '流式范式', func: '激活', targetCount: Math.ceil(wuTime/1.5), strategy: wuStrategy },
+            { type: '主训', duration: mainTime, paradigm: paradigm, func: ctx.meta.goal, targetCount: Math.max(1, count), strategy: phaseStrategy, coeffs: phaseCoeffs },
+            { type: '放松', duration: cdTime, paradigm: '流式范式', func: '放松', targetCount: Math.ceil(cdTime/1.5), strategy: cdStrategy }
+        ];
+        return ctx;
+    },
+
+    selectActions: (ctx) => {
+        const { constraints, meta } = ctx;
+        const user = window.store.user;
+        const isHeavy = (user.bmi >= 28 && user.level !== 'L5');
+
+        // Ensure DB is populated
+        if (DB.length === 0) DB = FALLBACK_DB;
+
+        const calculateScore = (a) => {
+            let score = 100 + Math.random() * 15;
+            const daysSince = (new Date() - a.lastTrained) / (1000 * 3600 * 24);
+            if (daysSince > 7) score += 60;
+            if (a.isFav) score += 50;
+            if (a.difficulty === meta.level) score += 30;
+            else if (Math.abs(CONSTANTS.LEVEL_MAP[a.difficulty] - CONSTANTS.LEVEL_MAP[meta.level]) === 1) score += 10;
+            else score -= 20;
+            return { ...a, score };
+        };
+        
+        ctx.phases.forEach(p => {
+            // 1. Safety Filter
+            let pool = DB.filter(a => {
+                if (a.equip.some(e => !constraints.availableEquip.includes(e))) return false;
+                if (a.pain.some(pt => constraints.forbiddenParts.includes(pt))) return false;
+                if (isHeavy && a.impact === '高冲击') return false;
+                if (constraints.downgrade && a.impact === '高冲击') return false;
+                return true;
+            });
+
+            // 2. Paradigm & Function Filter
+            pool = pool.filter(a => a.paradigm === p.paradigm);
+            
+            if (p.type === '主训') {
+                // Main: Match Target Parts
+                pool = pool.filter(a => ctx.meta.targets.includes('全身') || ctx.meta.targets.includes(a.part))
+                           .map(calculateScore).sort((a,b) => b.score - a.score);
+            } else {
+                // Warmup/Cooldown: Match Function (e.g. 激活/放松)
+                pool = pool.filter(a => a.func.includes(p.func))
+                           .map(calculateScore).sort((a,b) => b.score - a.score);
+            }
+            
+            // Select Top N with variety
+            let selected = [];
+            const needed = p.targetCount;
+            if (p.type === '主训') {
+                const parts = meta.targets;
+                let pIdx = 0;
+                while(selected.length < needed && pool.length > 0) {
+                    const currentTarget = parts[pIdx % parts.length];
+                    const validCandidates = pool.filter(a => a.part === currentTarget || currentTarget === '全身');
+                    if (validCandidates.length > 0) {
+                        const pickRange = Math.min(validCandidates.length, 3);
+                        const randomIdx = Math.floor(Math.random() * pickRange);
+                        const selectedAct = validCandidates[randomIdx];
+                        selected.push(selectedAct);
+                        const idxInPool = pool.indexOf(selectedAct);
+                        if (idxInPool > -1) pool.splice(idxInPool, 1);
+                    } else {
+                        if(pool.length) selected.push(pool.shift());
+                    }
+                    pIdx++;
+                }
+            } else {
+                selected = pool.slice(0, needed);
+            }
+            p.actions = selected;
+        });
+        return ctx;
+    },
+
+    instantiate: (ctx) => {
+        const globalStrategy = window.store.courseSettings.loadStrategy;
+        
+        ctx.phases.forEach(phase => {
+            const { strategy, coeffs } = phase;
+            const iCoeff = coeffs ? coeffs.intensity : 1.0;
+            const vCoeff = coeffs ? coeffs.volume : 1.0;
+
+            phase.actions = phase.actions.map(a => {
+                const isLoadPriority = (phase.paradigm === '抗阻范式' && phase.type === '主训');
+                let sets = Math.round(strategy.sets * vCoeff);
+                let intensity = strategy.intensity * iCoeff;
+                
+                let load = 0;
+                let reps = '12';
+                let rpe = strategy.rpe || 8;
+
+                if (isLoadPriority) {
+                    const base1RM = CONSTANTS.ENUMS.ONE_RM[a.part] || 20;
+                    load = Math.round(base1RM * intensity);
+                    
+                    let theoReps = 12;
+                    if (intensity >= 0.9) theoReps = 4;
+                    else if (intensity >= 0.8) theoReps = 8;
+                    else if (intensity >= 0.7) theoReps = 12;
+                    reps = Math.max(1, theoReps - (10 - rpe)).toString();
+                } else {
+                    sets = (phase.type === '热身' || phase.type === '放松') ? 1 : sets;
+                    reps = (phase.paradigm === '间歇范式') ? '45' : '30';
+                    if (phase.type === '热身') reps = '60';
+                }
+
+                // Apply Load Strategy (Pyramid etc)
+                let setDetails = [];
+                let activeStrategy = globalStrategy === '推荐' ? strategy.strategy : globalStrategy;
+                if (activeStrategy === '自定义') activeStrategy = '恒定';
+
+                for(let i=0; i<sets; i++) {
+                    let sLoad = load;
+                    let sReps = parseInt(reps);
+                    
+                    if (isLoadPriority) {
+                        if (activeStrategy === '递增') {
+                            if (i === 0) { sLoad = Math.round(load * 0.85); sReps += 2; }
+                            else if (i === 1) { sLoad = Math.round(load * 0.90); sReps += 1; }
+                        } else if (activeStrategy === '递减') {
+                            if (i === 1) { sLoad = Math.round(load * 0.90); sReps += 2; }
+                            else if (i >= 2) { sLoad = Math.round(load * 0.80); sReps += 4; }
+                        }
+                    }
+                    setDetails.push({ load: sLoad, reps: sReps });
+                }
+
+                return {
+                    ...a,
+                    sets,
+                    reps,
+                    load,
+                    setDetails,
+                    intensity: Math.round(intensity*100)+'%',
+                    rpe
+                };
+            });
+        });
+        return ctx;
+    },
+
+    runPipeline: (input, planContext) => {
+        let ctx = window.Logic.createContext(input, planContext);
+        ctx = window.Logic.confirmCourse(ctx);
+        ctx = window.Logic.planPhases(ctx);
+        ctx = window.Logic.selectActions(ctx);
+        ctx = window.Logic.instantiate(ctx);
+        return ctx;
+    },
+
+    genCourse: (input) => {
+        const ctx = window.Logic.runPipeline(input, null);
+        return ctx;
+    },
+
+    genPlan: (input) => {
+        const weeks = parseInt(input.cycle) || 4;
+        const userDays = input.days || [];
+        const dayMap = {'周一':1, '周二':2, '周三':3, '周四':4, '周五':5, '周六':6, '周日':7};
+        const dayNums = userDays.map(d => dayMap[d]).sort();
+        const freq = Math.min(Math.max(userDays.length, 1), 7); // Ensure freq is within 1-7
+        
+        // 1. Select Template based on Frequency & Goal
+        // Match Goal AND Gender if specified (e.g. TPL_003 vs TPL_004)
+        let template = CONFIG.TEMPLATES.find(t => 
+            t.freq === freq && 
+            t.goal === window.store.user.goal &&
+            (!t.gender || t.gender === window.store.user.gender)
+        );
+        // Fallback to frequency match only if specific goal/gender match fails
+        if (!template) template = CONFIG.TEMPLATES.find(t => t.freq === freq) || CONFIG.TEMPLATES[0]; // Default to first if no freq match (unlikely with 1-5 covered)
+
+        const phaseSchedule = window.PhaseEngine.generateSchedule(weeks);
+        const schedule = [];
+        
+        // Map template slots to days
+        let slotIdx = 0;
+        const dayStrategy = {};
+        dayNums.forEach(d => {
+            const slotObj = template.slots[slotIdx % template.slots.length];
+            // Slot is array of targets e.g. ['全身']
+            dayStrategy[d] = { f: slotObj.t, t: slotObj.n }; 
+            slotIdx++;
+        });
+        
+        for(let w=1; w<=weeks; w++) {
+            const pParams = phaseSchedule[w-1];
+            const weekData = {
+                week: w,
+                phase: pParams.name,
+                intensity: pParams.intensity,
+                days: []
+            };
+            
+            for(let d=1; d<=7; d++) {
+                const s = dayStrategy[d];
+                const dayName = ['周一','周二','周三','周四','周五','周六','周日'][d-1];
+                if(s) {
+                    weekData.days.push({ dayName, isTraining: true, targets: s.f, title: s.t });
+                } else {
+                    weekData.days.push({ dayName, isTraining: false });
+                }
+            }
+            schedule.push(weekData);
+        }
+        return { meta: input, schedule };
+    }
+};
+
+// ==========================================
+// 1. STATE & STORE
+// ==========================================
+window.store = {
+    user: {
+        gender: '男', age: 28, height: 178, weight: 72, targetWeight: 70,
+        goal: '增肌', funcGoal: '增肌', level: 'L3', style: '传统型', days: ['周一','周三','周五'],
+        pain: [], missing: [], bodyType: '均衡标准型', dob: '1995-01-01', fatiguedParts: ['腿部'],
+        rhr: 60, fatigue: 3
+    }, 
+    courseSettings: { loopMode: '常规组', loadStrategy: '推荐' },
+    flow: null, // 'course' | 'plan'
+    step: 0,
+    inputs: {},
+    replaceState: null, // {pIdx, aIdx}
+    libFilter: { part: '全部', tag: '全部' }
+};
+
+// ==========================================
+// 2. APP CONTROLLER
+// ==========================================
+
+// Voice Engine
+const TEXT_VARIANTS = {
+    greeting: [
+        "你好，我是你的 AEKE 智能教练。今天咱们怎么安排？是想单练一节课，还是制定个长期的训练计划？",
+        "准备好开始了吗？我是你的专属教练。告诉我你的目标，剩下的交给我。",
+        "欢迎回来。今天状态看起来不错。咱们是针对性练练部位，还是做个全身的综合训练？",
+        "你好。我是 AEKE AI。无论是增肌塑形还是减脂心肺，我都能帮你规划。今天想做什么？",
+        "随时待命。你是想快速流汗练一节，还是想沉下心来定个周期计划？",
+        "你好，教练就位。今天咱们练点什么？直接告诉我你的想法。",
+        "准备好改变了吗？我是你的智能教练。咱们是开始一节新课，还是规划未来的训练日程？",
+        "Hi，今天想怎么动？是想来点力量挑战，还是做个有氧恢复？",
+        "你好。我是你的运动伙伴。今天有什么训练安排？",
+        "教练已就位。咱们是直接开练，还是先聊聊你的长期目标？"
+    ],
+    askType: [
+        "没问题。今天的主题是什么？是想做力量抗阻，还是来点 HIIT 燃脂？",
+        "收到。请选择今天的训练类型。比如‘力量训练’、‘瑜伽’或者‘有氧’。",
+        "好的。今天想怎么练？是想来点硬核的举铁，还是轻松点的拉伸恢复？",
+        "了解。你是想专注于力量提升，还是想做心肺耐力训练？",
+        "OK。今天想挑战一下激烈的 HIIT，还是做个普拉提控制一下身体？",
+        "明白。请告诉我你今天偏好的训练种类。",
+        "好的。今天想进行哪种类型的运动？力量、康复，还是其他？",
+        "没问题。请从列表中选择一个你感兴趣的训练模式。",
+        "请选择你的训练类型。是想追求泵感，还是想大量出汗？",
+        "今天的主题是力量还是耐力？请明确一下。"
+    ],
+    askTarget: [
+        "了解。今天想重点强化哪个部位？是练胸、练背，还是练全身？",
+        "OK。请明确今天的目标肌群。比如‘腹部核心’或者‘下肢腿部’。",
+        "没问题。今天想练哪里？是想雕刻上肢线条，还是轰炸下肢？",
+        "收到。今天的主攻方向是哪里？请选择，比如‘肩部’或‘手臂’。",
+        "好的。想针对哪里进行特训？是想练出倒三角，还是练出蜜桃臀？",
+        "明白。你是想做分化训练练局部，还是做全身综合训练？",
+        "了解。请选择你今天最想提升的部位。",
+        "好的。今天的训练重点放在哪里？",
+        "今天想刺激哪块肌肉？告诉我你的目标。",
+        "请选择今天的训练部位。是想练大肌群，还是小肌群？"
+    ],
+    askDuration: [
+        "为了保证计划的可执行性，请告诉我你每天平均能抽出多少时间训练？",
+        "你每天大概能练多久？20分钟还是40分钟？请根据实际情况设定。",
+        "OK。每天平均的训练时长是多少？",
+        "了解。请设置你每天的训练时长预算，我会据此安排课程容量。",
+        "没问题。每天打算投入几分钟？请选择一个合适的时长。",
+        "收到。为了不影响你的日常生活，每天预计训练多久比较合适？",
+        "好的。你是喜欢短时高效的训练，还是时间充裕的长课？每天大概多久？",
+        "请告诉我你的时间安排。每天能保证多少分钟的训练时间？",
+        "每天有多少时间可以用来运动？请设定一个平均值。",
+        "为了达到最佳效果，每天建议训练多久？请选择。"
+    ],
+    askCycle: [
+        "这个训练计划你想坚持几周？建议至少4周以看到明显效果。",
+        "我们要制定一个多长的周期？是想做个短期突击，还是长期规划？",
+        "你打算进行几周的特训？4周、8周还是12周？",
+        "OK。计划周期设定为几周？请选择。",
+        "了解。这个计划的跨度是多久？",
+        "没问题。请选择计划的持续周数。",
+        "收到。我们要规划几周的训练？坚持越久，效果越好。",
+        "好的。请告诉我计划的总时长。我会为你安排好每个阶段。",
+        "想制定几周的计划？请根据你的毅力来选择。",
+        "这个周期大概多长？请设定。"
+    ],
+    askFreq: [
+        "每周哪几天方便训练？请具体告诉我，比如‘周一、周三和周五’。",
+        "请选择你的固定训练日。一周练几天？具体是哪几天？",
+        "好的。每周的训练安排是怎样的？请勾选你有空的日子。",
+        "了解。请选择每周的训练日。我会根据你的选择安排休息日。",
+        "没问题。哪几天能保证训练？周一到周日选一下。",
+        "收到。每周的出勤日是哪几天？请确认。",
+        "OK。你希望每周哪几天练？请选择。",
+        "好的。请选择每周的训练天数和具体日期，这很重要。",
+        "明白。一周大概能来几天？具体是周几？请告诉我。",
+        "请设定你的周训练日程。规律的训练是成功的关键。"
+    ],
+    error: [
+        "抱歉，刚才没听清。能麻烦你再说一遍吗？",
+        "我没听懂，请大声一点，或者直接点击屏幕上的选项。",
+        "好像有点干扰，请换个说法试试，或者直接操作。",
+        "不好意思，能再说一遍吗？我正在认真听。",
+        "抱歉，请清晰地说出你的选择，或者直接点击确认。",
+        "请再说一次，刚才信号不太好。",
+        "没听清，请重复一遍你的选择。",
+        "抱歉，请确认你的选择，或者重新告诉我。",
+        "不好意思，请重试一下。",
+        "能再说一次吗？我需要确认一下。"
+    ],
+    fatigueWarn: [
+        "注意，数据显示你的{part}尚未完全恢复。为了安全和训练效果，建议今天改练{rec}。你觉得呢？",
+        "检测到{part}处于疲劳状态。强行训练容易受伤，换成{rec}怎么样？",
+        "你的{part}状态一般，推荐方案已调整为{rec}。是否确认切换？",
+        "为了防止过度训练，建议今天避开{part}，改练{rec}。同意吗？",
+        "你的{part}需要休息。不如今天练{rec}，效果会更好。",
+        "检测到{part}疲劳度较高，练{rec}更合适。是否切换？",
+        "建议让{part}休息一下，今天专注练{rec}吧。怎么样？",
+        "注意，{part}状态不佳。为了安全起见，建议换成{rec}。接受建议吗？",
+        "检测到{part}疲劳。换成{rec}训练如何？",
+        "你的{part}还没恢复，建议练{rec}。"
+    ]
+};
+
+const Voice = {
+    synth: window.speechSynthesis,
+    rec: null,
+    isListening: false,
+    selfSpeaking: false,
+    voice: null,
+    init: () => {
+        if (Voice.rec) return; // Prevent multiple inits
+        if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+            try { Voice.rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); } catch(e) { console.error("Voice Init Failed:", e); return; }
+            Voice.rec.lang = 'zh-CN';
+            Voice.rec.continuous = true; // Continuous Mode for better sensitivity
+            Voice.rec.interimResults = true; // Real-time
+            
+            Voice.rec.onresult = (event) => {
+                if (Voice.selfSpeaking) return; // Ignore self
+                let interim = '';
+                let final = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                    else interim += event.results[i][0].transcript;
+                }
+                if (final) App.handleVoiceInput(final, true);
+                else if (interim) App.handleVoiceInput(interim, false);
+            };
+            
+            Voice.rec.onerror = (event) => {
+                console.log('Voice Error:', event.error);
+                if (event.error === 'no-speech' || event.error === 'aborted') {
+                    // Silent ignore, onend will handle restart
+                } else {
+                    App.showToast("语音识别异常: " + event.error);
+                    App.setListeningUI(false);
+                }
+            };
+
+            // Sound detection for immediate feedback
+            Voice.rec.onsoundstart = () => {
+                document.querySelector('.siri-container').classList.add('listening');
+            };
+            
+            Voice.rec.onend = () => { 
+                if (Voice.isListening && !Voice.selfSpeaking) {
+                    try { Voice.rec.start(); } catch(e){} // Auto-restart
+                } else if (!Voice.selfSpeaking) {
+                    App.setListeningUI(false);
+                }
+            };
+            
+            // Load voices
+            window.speechSynthesis.onvoiceschanged = () => {
+                const voices = window.speechSynthesis.getVoices();
+                // Try to find a natural sounding voice
+                Voice.voice = voices.find(v => v.lang === 'zh-CN' && (v.name.includes('Google') || v.name.includes('Microsoft') || v.name.includes('Apple'))) || voices.find(v => v.lang === 'zh-CN');
+            };
+        }
+    },
+    
+    speak: (text) => {
+        if (!window.SpeechSynthesisUtterance || !Voice.synth) return;
+        Voice.selfSpeaking = true;
+        if (Voice.rec) try { Voice.rec.abort(); } catch(e) {} // Use abort to discard current buffer
+        App.setListeningUI(false);
+        
+        if (Voice.synth && Voice.synth.speaking) Voice.synth.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        document.querySelector('.siri-container').classList.add('speaking');
+        utter.lang = 'zh-CN';
+        utter.rate = 1.1;
+        if (Voice.voice) utter.voice = Voice.voice;
+        
+        utter.onend = () => {
+            // Add safety delay to prevent self-hearing echo
+            setTimeout(() => {
+                document.querySelector('.siri-container').classList.remove('speaking');
+                Voice.selfSpeaking = false;
+                Voice.startListening(); // Always listen (Home or Chat)
+            }, 1500); // Increased safety delay for anti-self-hearing
+        };
+        if (Voice.synth) Voice.synth.speak(utter);
+    },
+    
+    startListening: () => {
+        if (!Voice.rec || Voice.selfSpeaking) return;
+        try {
+            Voice.isListening = true; 
+            Voice.rec.start();
+            App.setListeningUI(true);
+            document.querySelector('.siri-container').classList.add('listening');
+        } catch(e) { console.error("Start Listening Failed:", e); }
+    },
+    
+    stopListening: () => {
+        if (!Voice.rec) return;
+        Voice.isListening = false;
+        Voice.rec.stop();
+        App.setListeningUI(false);
+        document.querySelector('.siri-container').classList.remove('listening');
+    }
+};
+
+const App = {
+    init: () => {
+        App.renderProfile();
+        App.renderProfileForm();
+        // Force bind click event to ensure it works
+        const btn = document.getElementById('home-start-btn');
+        if(btn) btn.onclick = App.startSession;
+    },
+    
+    startSession: () => {
+        // 1. UI Update MUST happen immediately
+        const btn = document.getElementById('home-start-btn');
+        if(btn) btn.style.display = 'none'; // Hide immediately
+        
+        const content = document.getElementById('home-active-content');
+        if(content) content.classList.remove('hidden');
+        
+        const profile = document.getElementById('profile-card');
+        if(profile) profile.classList.remove('hidden');
+
+        // 2. Synchronous Voice Activation (Critical for iOS/Android Permissions)
+        try {
+            Voice.init();
+            Voice.startListening(); // Must be direct response to user gesture
+            
+            // Speak greeting after a tiny delay to allow mic to activate first
+            setTimeout(() => {
+                const greeting = TEXT_VARIANTS.greeting[Math.floor(Math.random() * TEXT_VARIANTS.greeting.length)];
+                Voice.speak(greeting);
+            }, 500);
+        } catch (e) {
+            console.error("Voice Error:", e);
+            // Even if voice fails, we allow entry
+            alert("语音服务启动异常，已切换至触控模式");
+        }
+    },
+
+    // --- NAVIGATION ---
+    switchView: (viewId) => {
+        document.querySelectorAll('.view').forEach(v => {
+            v.classList.remove('active');
+            if(v.id === viewId) v.classList.add('active');
+        });
+
+        // Auto-start listening if returning to interactive views
+        if (viewId === 'view-home' || viewId === 'view-chat') {
+            if (!Voice.selfSpeaking) Voice.startListening();
+        } else {
+            Voice.stopListening();
+        }
+        
+        // Handle Home Background
+        const bg = document.getElementById('home-bg-layer');
+        if (viewId === 'view-home') bg.classList.remove('hidden');
+        else bg.classList.add('hidden');
+    },
+
+    // --- HOME ---
+    openProfile: () => {
+        document.getElementById('modal-profile').classList.add('active');
+    },
+    saveProfile: () => {
+        // Collect form data (Simplified)
+        const u = window.store.user;
+        // Basic
+        u.gender = document.getElementById('in-gender').value;
+        u.dob = document.getElementById('in-dob').value;
+        u.height = document.getElementById('in-height').value;
+        u.weight = document.getElementById('in-weight').value;
+        u.rhr = parseInt(document.getElementById('in-rhr').value);
+        u.fatigue = parseInt(document.getElementById('in-fatigue').value);
+        // Pref
+        u.level = document.getElementById('in-level').value;
+        u.days = Array.from(document.querySelectorAll('#pref-days .opt-chip.active')).map(e => e.innerText);
+        u.pain = Array.from(document.querySelectorAll('#pref-pain .opt-chip.active')).map(e => e.innerText).filter(t => t !== '无');
+        u.missing = Array.from(document.querySelectorAll('#pref-missing .opt-chip.active')).map(e => e.innerText);
+        // Goal
+        u.goal = document.getElementById('in-goal').value;
+        u.funcGoal = document.getElementById('in-func-goal').value;
+        u.bodyType = document.getElementById('in-body-type').value;
+        u.targetWeight = document.getElementById('in-target-weight').value;
+        App.renderProfile();
+        App.renderProfileForm(); // Refresh form values
+        document.getElementById('modal-profile').classList.remove('active');
+    },
+    renderProfile: () => {
+        const u = window.store.user;
+        const fInfo = App.getFatigueInfo(u.fatigue);
+        const html = `
+            <div class="info-item"><div class="info-label">主要目标</div><div class="info-val" style="color:var(--primary)">${u.goal}</div></div>
+            <div class="info-item"><div class="info-label">运动等级</div><div class="info-val">${u.level}</div></div>
+            <div class="info-item"><div class="info-label">当前体重</div><div class="info-val">${u.weight} kg</div></div>
+            <div class="info-item"><div class="info-label">主观疲劳度</div><div class="info-val" style="color:${fInfo.color}">${u.fatigue} - ${fInfo.label}</div></div>
+        `;
+        document.getElementById('profile-display').innerHTML = html;
+    },
+    
+    getFatigueInfo: (val) => {
+        if (val <= 2) return { label: '超量恢复', desc: '神经系统与肌糖原完全填充，适合冲击 PR (1RM) 或高强度爆发力训练。', color: '#32C48C' };
+        if (val <= 4) return { label: '完全恢复', desc: '身体机能处于基准水平，适合进行常规容量的抗阻或代谢训练。', color: '#32C48C' };
+        if (val <= 6) return { label: '功能性疲劳', desc: '存在轻微 DOMS 或神经疲劳，建议维持中等强度，避免力竭组。', color: '#FFC107' };
+        if (val <= 8) return { label: '非功能性疲劳', desc: '显著的肌肉酸痛或心率变异性 (HRV) 下降，建议执行减载周 (Deload) 或主动恢复。', color: '#FF9800' };
+        return { label: '过度训练', desc: '极度疲劳、免疫力下降或有伤痛风险，必须完全休息。', color: '#FF5252' };
+    },
+    
+    updateFatigueDisplay: (val) => {
+        const info = App.getFatigueInfo(val);
+        const valEl = document.getElementById('fatigue-val');
+        const descEl = document.getElementById('fatigue-desc');
+        if(valEl) {
+            valEl.innerText = `${val} - ${info.label}`;
+            valEl.style.color = info.color;
+        }
+        if(descEl) descEl.innerText = info.desc;
+    },
+
+    renderProfileForm: () => {
+        const u = window.store.user; 
+        const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
+        const fInfo = App.getFatigueInfo(u.fatigue);
+        
+        // Calc metrics
+        const age = new Date().getFullYear() - new Date(u.dob).getFullYear();
+        const bmi = (u.weight / ((u.height/100)**2)).toFixed(1);
+        const mhr = Math.round(208 - 0.7 * age);
+        
+        const basicHtml = `
+            <div class="tab-content active" id="tab-basic">
+                <div class="form-group"><label class="form-label">性别</label><select id="in-gender" class="form-input" onchange="window.store.user.gender=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.GENDER, u.gender)}</select></div>
+                <div class="form-group"><label class="form-label">生日</label><input type="date" id="in-dob" class="form-input" value="${u.dob}" onchange="window.store.user.dob=this.value; App.renderProfileForm()"></div>
+                <div class="form-group"><label class="form-label">身高 (cm)</label><input type="number" id="in-height" class="form-input" value="${u.height}" onchange="window.store.user.height=this.value; App.renderProfileForm()"></div>
+                <div class="form-group"><label class="form-label">体重 (kg)</label><input type="number" id="in-weight" class="form-input" value="${u.weight}" onchange="window.store.user.weight=this.value; App.renderProfileForm()"></div>
+                
+                <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
+                    <div><label class="form-label" style="font-size:10px;">BMI</label><div style="font-weight:700; color:${bmi>24?'var(--danger)':'#fff'}">${bmi}</div></div>
+                    <div><label class="form-label" style="font-size:10px;">静息心率</label><input type="number" id="in-rhr" value="${u.rhr||60}" style="width:100%;background:transparent;border:none;border-bottom:1px solid #444;color:#fff;font-weight:700;padding:0;"></div>
+                    <div><label class="form-label" style="font-size:10px;">最大心率</label><div style="font-weight:700;">${mhr}</div></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display:flex;justify-content:space-between;">
+                        <span>主观疲劳 (1-10)</span>
+                        <span id="fatigue-val" style="color:${fInfo.color}">${u.fatigue} - ${fInfo.label}</span>
+                    </label>
+                    <input type="range" id="in-fatigue" min="1" max="10" class="form-input" value="${u.fatigue}" oninput="App.updateFatigueDisplay(this.value)">
+                    <div id="fatigue-desc" style="font-size:11px; color:#888; margin-top:8px; padding:8px; background:rgba(255,255,255,0.05); border-radius:4px;">${fInfo.desc}</div>
+                </div>
+            </div>
+        `;
+        
+        const prefHtml = `
+            <div class="tab-content" id="tab-pref">
+                <div class="form-group"><label class="form-label">运动等级</label><select id="in-level" class="form-input">${opts(CONSTANTS.ENUMS.LEVEL, u.level)}</select></div>
+                <div class="form-group"><label class="form-label">每日运动时长 (min)</label><input type="number" class="form-input" value="30"></div>
+                <div class="form-group">
+                    <label class="form-label">疼痛部位</label>
+                    <div class="options-grid" id="pref-pain" style="gap:8px;">
+                        ${CONSTANTS.ENUMS.PAIN_AREAS.map(p => `<div class="opt-chip ${u.pain.includes(p)?'active':''}" onclick="this.classList.toggle('active')" style="padding:8px;min-width:40px;">${p}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">没有的器械</label>
+                    <div class="options-grid" id="pref-missing" style="gap:8px;">
+                        ${CONSTANTS.ENUMS.MISSING_EQUIP.map(m => `<div class="opt-chip ${u.missing.includes(m)?'active':''}" onclick="this.classList.toggle('active')" style="padding:8px;min-width:40px;">${m}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">每周训练日</label>
+                    <div class="options-grid" id="pref-days" style="gap:8px;">
+                        ${['周一','周二','周三','周四','周五','周六','周日'].map(d => `<div class="opt-chip ${u.days.includes(d)?'active':''}" onclick="this.classList.toggle('active')" style="padding:8px;min-width:40px;">${d}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="form-group"><label class="form-label">喜欢的训练风格</label><select class="form-input">${opts(CONSTANTS.ENUMS.STYLE, u.style)}</select></div>
+            </div>
+        `;
+        
+        const goalHtml = `
+            <div class="tab-content" id="tab-goal">
+                <div class="form-group"><label class="form-label">主要目标</label><select id="in-goal" class="form-input">${opts(CONSTANTS.ENUMS.GOAL, u.goal)}</select></div>
+                <div class="form-group"><label class="form-label">功能目标</label><select id="in-func-goal" class="form-input">${opts(CONSTANTS.ENUMS.FUNC_GOAL, u.funcGoal)}</select></div>
+                <div class="form-group"><label class="form-label">目标体型</label><select id="in-body-type" class="form-input">${opts(CONSTANTS.ENUMS.BODY_TYPE, u.bodyType)}</select></div>
+                <div class="form-group"><label class="form-label">目标体重 (kg)</label><input type="number" id="in-target-weight" class="form-input" value="${u.targetWeight}"></div>
+            </div>
+        `;
+
+        document.getElementById('profile-form').innerHTML = basicHtml + prefHtml + goalHtml;
+    },
+    
+    switchTab: (tabId) => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+    },
+
+    // --- FLOW START ---
+    startFlow: (type) => {
+        // Check profile completeness (Mock check)
+        if (!window.store.user.goal) return alert('请先完善运动档案');
+        
+        window.store.flow = type;
+        window.store.step = 0;
+        window.store.inputs = {};
+        
+        // Hide profile card first
+        document.getElementById('profile-card').classList.add('hidden');
+        
+        setTimeout(() => {
+            App.switchView('view-chat');
+            document.getElementById('app').classList.add('state-chat');
+            App.nextStep();
+        }, 400);
+    },
+
+    prevStep: () => {
+        if (window.store.step > 0) {
+            window.store.step--;
+            // Remove last input key logic is complex with map, simplified:
+            // Just remove visual elements and re-ask previous question
+            const history = document.getElementById('chat-history');
+            // Remove: Current AI Question (if any), Previous User Answer, Previous AI Question
+            // Actually, nextStep adds AI question. recordInput adds User answer.
+            // We need to remove the last User Answer and the last AI Question (current one)
+            // And then nextStep will re-add the AI Question for the previous step.
+            
+            // Remove options container (if any) - Check for generic div or specific content
+            if(history.lastElementChild && !history.lastElementChild.classList.contains('chat-bubble')) history.removeChild(history.lastElementChild);
+            
+            // Remove current AI question
+            if(history.lastElementChild && history.lastElementChild.classList.contains('chat-ai')) history.removeChild(history.lastElementChild);
+            
+            // Remove user answer (previous step)
+            if(history.lastElementChild && history.lastElementChild.classList.contains('chat-user')) history.removeChild(history.lastElementChild);
+            // Remove previous AI question (to be re-added)
+            if(history.lastElementChild && history.lastElementChild.classList.contains('chat-ai')) history.removeChild(history.lastElementChild);
+            
+            App.updateSummary();
+            App.nextStep();
+        } else {
+            App.reset();
+        }
+    },
+
+    // --- CHAT LOGIC ---
+    nextStep: () => {
+        const flow = window.store.flow;
+        const step = window.store.step;
+        const chatHistory = document.getElementById('chat-history');
+
+        // Dim previous messages
+        const bubbles = chatHistory.querySelectorAll('.chat-bubble');
+        bubbles.forEach(b => b.classList.add('chat-history-dim'));
+        
+        // Define Flows
+        const flows = {
+            'course': [
+                { q: "想练点什么？", key: 'type', opts: CONSTANTS.ENUMS.COURSE_TYPES },
+                { q: "重点想练哪个部位？", key: 'targets', opts: CONSTANTS.PARTS, multi: true },
+                { q: "今天有多少时间？", key: 'duration', type: 'slider', min: 20, max: 90, step: 5, unit: '分钟' }
+            ],
+            'plan': [
+                { q: "这个计划想持续多久？", key: 'cycle', type: 'slider', min: 1, max: 24, step: 1, unit: '周', default: 8 },
+                { q: "请选择每周的训练日。", key: 'days', opts: ['周一','周二','周三','周四','周五','周六','周日'], multi: true },
+                { q: "每天平均训练多长时间？", key: 'duration', type: 'slider', min: 20, max: 60, step: 5, unit: '分钟', default: 30 }
+            ]
+        };
+
+        const currentFlow = flows[flow];
+        
+        if (step >= currentFlow.length) {
+            App.startReasoning();
+            return;
+        }
+
+        const config = currentFlow[step];
+        // Pick random text variant if available
+        let variants = [config.q];
+        if (config.key === 'type') variants = TEXT_VARIANTS.askType;
+        else if (config.key === 'targets') variants = TEXT_VARIANTS.askTarget;
+        else if (config.key === 'duration') variants = TEXT_VARIANTS.askDuration;
+        else if (config.key === 'cycle') variants = TEXT_VARIANTS.askCycle;
+        else if (config.key === 'days') variants = TEXT_VARIANTS.askFreq;
+        
+        const qText = variants[Math.floor(Math.random() * variants.length)];
+        
+        // Show typing indicator first
+        App.showTyping();
+
+        // Add AI Message
+        setTimeout(() => {
+            App.hideTyping();
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble chat-ai';
+            chatHistory.appendChild(bubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Render Options
+            let optionsHtml = '';
+            if (config.type === 'slider') {
+                optionsHtml = `
+                    <div class="chat-slider-box">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:10px;color:#fff;font-weight:700;">
+                            <span>时长</span><span id="slider-val">${config.default || config.min} ${config.unit}</span>
+                        </div>
+                        <input type="range" min="${config.min}" max="${config.max}" step="${config.step}" value="${config.default || config.min}" style="width:100%" oninput="document.getElementById('slider-val').innerText = this.value + ' ${config.unit}'">
+                        <div class="opt-chip active" style="margin-top:15px;text-align:center;" onclick="App.handleInput('${config.key}', document.querySelector('input[type=range]').value, false)">确认</div>
+                    </div>`;
+            } else {
+                optionsHtml = `<div class="options-grid">` + config.opts.map(o => {
+                    const isActive = (config.key === 'days' && window.store.user.days && window.store.user.days.includes(o)) ? 'active' : '';
+                    let subText = '';
+                    if (config.key === 'days') {
+                        subText = `<span class="chat-sub-text">${isActive ? '训练' : '休息'}</span>`; 
+                    }
+                    return `<div class="opt-chip ${isActive}" onclick="App.handleInput('${config.key}', '${o}', ${config.multi}, this); App.toggleDayText(this)"><span>${o}</span>${subText}</div>`;
+                }).join('') + `</div>`;
+            }
+
+            if(config.multi) {
+                optionsHtml += `<div class="options-grid" style="margin-top:10px"><div class="opt-chip" style="background:var(--accent); border-color:var(--accent);" onclick="App.confirmMulti('${config.key}', this)">确认选择</div></div>`;
+            }
+            
+            // Add Back Button (Small)
+            if (step > 0) {
+                optionsHtml += `<div style="margin-top:15px; text-align:center;"><span onclick="App.prevStep()" style="font-size:12px; color:#666; cursor:pointer; padding:5px 10px;">↩ 上一步</span></div>`;
+            }
+            
+            // Append options to history instead of fixed area
+            const optContainer = document.createElement('div');
+            optContainer.innerHTML = optionsHtml;
+            chatHistory.appendChild(optContainer);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Use the newly implemented typeWriter
+            App.typeWriter(bubble, qText, 30); 
+            Voice.speak(qText); // Speak output
+
+            // Scroll to center the new interaction
+            // Simple approach: scroll to bottom, then adjust if needed
+            // Or use scrollIntoView on the new bubble
+        }, 500);
+    },
+    
+    toggleDayText: (el) => {
+        const sub = el.querySelector('.chat-sub-text');
+        if(sub) {
+            sub.innerText = el.classList.contains('active') ? '训练' : '休息';
+        }
+    },
+
+    // --- ENHANCED VOICE LOGIC FOR DAYS ---
+    handleDaysVoiceInput: (text, container) => {
+
+        const dayMap = {
+            '一': '周一', '二': '周二', '三': '周三', '四': '周四', '五': '周五', '六': '周六', '日': '周日', '天': '周日', '七': '周日',
+            '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日'
+        };
+        
+        // Split text into segments to handle mixed intents (e.g. "周一训练，周二休息")
+        const segments = text.split(/[，。,.;；\s]+/);
+        // Filter out confirm button from chips to avoid errors
+        const chips = Array.from(container.querySelectorAll('.opt-chip')).filter(c => !c.getAttribute('onclick').includes('confirmMulti'));
+        let hasAction = false;
+        
+        segments.forEach(seg => {
+            if (!seg.trim()) return;
+            
+            let targets = [];
+            // Robust Regex: Match any day character (supports "一三五", "周一", "135")
+            const regex = /[一二三四五六日天七1-7]/g;
+            let match;
+            while ((match = regex.exec(seg)) !== null) {
+                if (dayMap[match[0]]) targets.push(dayMap[match[0]]);
+            }
+            
+            if (seg.includes('周末')) targets.push('周六', '周日');
+            if (seg.includes('工作日')) targets.push('周一', '周二', '周三', '周四', '周五');
+            if (seg.includes('每天') || seg.includes('天天') || seg.includes('全选') || seg.includes('所有')) {
+                targets = ['周一','周二','周三','周四','周五','周六','周日'];
+            }
+            
+            targets = [...new Set(targets)];
+            if (targets.length === 0) return; // No days in this segment
+
+            const negKeywords = ['不练', '取消', '休息', '去掉', '删除', '不用', '排除', '关掉'];
+            const modKeywords = ['改成', '换成', '修改为', '只有', '只要', '重选', '变更为', '全部取消', '只练'];
+            
+            const isNeg = negKeywords.some(k => seg.includes(k));
+            const isMod = modKeywords.some(k => seg.includes(k));
+            
+            // Determine Action: Add (Train) or Remove (Rest)
+            // Default to Add if no negative keyword is present
+            
+            if (isMod) {
+                // Replace Mode: Clear all first (Global effect, but triggered by segment)
+                chips.forEach(c => {
+                    if(c.classList.contains('active')) {
+                        c.classList.remove('active');
+                        App.toggleDayText(c);
+                    }
+                });
+                // Select targets
+                targets.forEach(t => {
+                    const chip = chips.find(c => c.innerText.includes(t));
+                    if(chip) {
+                        chip.classList.add('active');
+                        App.toggleDayText(chip);
+                        hasAction = true;
+                    }
+                });
+            } else if (isNeg) {
+                // Negative Mode: Deselect targets
+                targets.forEach(t => {
+                    const chip = chips.find(c => c.innerText.includes(t));
+                    if(chip && chip.classList.contains('active')) {
+                        chip.classList.remove('active');
+                        App.toggleDayText(chip);
+                        hasAction = true;
+                    }
+                });
+            } else {
+                // Add Mode: Select targets
+                targets.forEach(t => {
+                    const chip = chips.find(c => c.innerText.includes(t));
+                    if(chip && !chip.classList.contains('active')) {
+                        chip.classList.add('active');
+                        App.toggleDayText(chip);
+                        hasAction = true;
+                    }
+                });
+            }
+        });
+        
+        // Global Clear Command
+        if (text.includes('全部取消') || text.includes('全不选') || text.includes('清空')) {
+            chips.forEach(c => {
+                c.classList.remove('active');
+                App.toggleDayText(c);
+            });
+            hasAction = true;
+        }
+        
+        // Confirmation
+        if (['确认', '好了', '完成', '下一步', '是的', 'OK', '没问题'].some(k => text.toLowerCase().includes(k.toLowerCase()))) {
+            if (container.id === 'schedule-days-list') {
+                App.confirmSchedule();
+            } else {
+                App.confirmMulti('days', null);
+            }
+        }
+    },
+
+    // --- MISSING FUNCTIONS IMPLEMENTATION ---
+    
+    showTyping: () => {
+        const history = document.getElementById('chat-history');
+        // Prevent duplicate typing indicators
+        if (document.getElementById('typing-indicator')) return;
+        
+        const typing = document.createElement('div');
+        typing.id = 'typing-indicator';
+        typing.className = 'chat-typing';
+        typing.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+        history.appendChild(typing);
+        history.scrollTop = history.scrollHeight;
+    },
+
+    hideTyping: () => {
+        const typing = document.getElementById('typing-indicator');
+        if (typing) typing.remove();
+    },
+
+    typeWriter: (element, text, speed = 30) => {
+        element.innerHTML = ''; // Clear first
+        let i = 0;
+        function type() {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(type, speed);
+            }
+        }
+        type();
+    },
+
+    cnToInt: (text) => {
+        const map = { '一':1, '二':2, '两':2, '三':3, '四':4, '五':5, '六':6, '七':7, '八':8, '九':9, '十':10, '0':0, '1':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9 };
+        let numStr = text.match(/[0-9]+|[一二两三四五六七八九十]+/);
+        if (!numStr) return null;
+        let str = numStr[0];
+        if (/\d/.test(str)) return parseInt(str);
+        
+        if (str.length === 1) return map[str];
+        if (str.length === 2) {
+            if (str[0] === '十') return 10 + map[str[1]];
+            if (str[1] === '十') return map[str[0]] * 10;
+        }
+        if (str.length === 3) {
+            if (str[1] === '十') return map[str[0]] * 10 + map[str[2]];
+        }
+        return null;
+    },
+
+    animateSlider: (slider, targetVal, callback) => {
+        let current = parseInt(slider.value);
+        const step = (targetVal - current) / 10;
+        let count = 0;
+        const interval = setInterval(() => {
+            current += step;
+            slider.value = current;
+            const display = document.getElementById('slider-val');
+            if(display) {
+                 const unit = display.innerText.replace(/[0-9\.]+/g, '').trim();
+                 display.innerText = Math.round(current) + ' ' + unit;
+            }
+            count++;
+            if (count >= 10) {
+                clearInterval(interval);
+                slider.value = targetVal;
+                if(callback) callback();
+            }
+        }, 30);
+    },
+
+    toggleMicState: () => {
+        if (Voice.isListening) {
+            Voice.stopListening();
+        } else {
+            Voice.startListening();
+        }
+    },
+
+    setListeningUI: (state) => {
+        const btn = document.getElementById('mic-btn');
+        if(state) btn.classList.add('listening');
+        else btn.classList.remove('listening');
+    },
+
+    handleVoiceInput: (text, isFinal) => {
+        const flow = window.store.flow;
+        
+        // --- 0. MODAL INTERCEPTION ---
+        if (document.getElementById('modal-schedule').classList.contains('active')) {
+            App.handleDaysVoiceInput(text, document.getElementById('schedule-days-list'));
+            return;
+        }
+
+        // --- HOME PAGE LOGIC ---
+        if (!flow) {
+            // 1. Real-time subtitle
+            const subtitle = document.getElementById('home-subtitle');
+            if (subtitle) {
+                subtitle.innerText = text;
+                subtitle.style.opacity = 1;
+            }
+
+            // 2. Keyword Matching (Interim or Final)
+            const keywords = {
+                'course': ['一节课', '课程', '单课', '练一练', '客程', '刻成', '一杰克'],
+                'plan': ['计划', '周期', '长线', '激化', '急化', '极化', '集画', '济化', '规划']
+            };
+            
+            let matchedType = null;
+            for (const [type, words] of Object.entries(keywords)) {
+                if (words.some(w => text.includes(w))) {
+                    matchedType = type;
+                    break;
+                }
+            }
+
+            if (matchedType) {
+                if (subtitle) subtitle.innerText = ''; // Clear subtitle
+                // Create a user bubble in chat history to show what was spoken
+                const chatHistory = document.getElementById('chat-history');
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble chat-user';
+                bubble.innerText = text;
+                chatHistory.appendChild(bubble);
+                
+                App.startFlow(matchedType);
+                return; 
+            }
+            return;
+        }
+
+        // Update UI
+        let userBubble = document.getElementById('temp-user-bubble');
+        // Only show bubble in chat view
+        if (!userBubble && document.getElementById('view-chat').classList.contains('active')) {
+            userBubble = document.createElement('div');
+            userBubble.id = 'temp-user-bubble';
+            userBubble.className = 'chat-bubble chat-user interim';
+            document.getElementById('chat-history').appendChild(userBubble);
+        }
+        
+        // Global Commands
+        if (isFinal) {
+            if (['退出', '结束', '返回首页', '取消'].some(k => text.includes(k))) {
+                Voice.speak("好的，已退出。");
+                App.reset();
+                return;
+            }
+            if (['上一步', '返回', '重选', '不对', '修改'].some(k => text.includes(k))) {
+                if (document.getElementById('view-chat').classList.contains('active')) {
+                    Voice.speak("好的，重新选择。");
+                    if (userBubble) userBubble.remove();
+                    App.prevStep();
+                    return;
+                }
+            }
+        }
+
+        // Highlight keywords
+        const step = window.store.step;
+        
+        // Define Flows Context (Moved up for config access)
+        const flows = {
+            'course': [{key:'type', opts:CONSTANTS.ENUMS.COURSE_TYPES}, {key:'targets', opts:CONSTANTS.PARTS}, {key:'duration', type:'slider', min:20, max:90}],
+            'plan': [{key:'cycle', type:'slider', min:1, max:12}, {key:'days', opts:['周一','周二','周三','周四','周五','周六','周日'], multi:true}, {key:'duration', opts:['30','45','60']}]
+        };
+
+        // Determine context options
+        let currentOpts = [];
+        if (!flow) {
+            // Home Context
+            currentOpts = ['一节课', '课程', '计划', '周期'];
+        } else {
+            if (flows[flow] && flows[flow][step]) {
+                currentOpts = flows[flow][step].opts || [];
+            }
+            // Handle Fatigue State Context
+            if (window.store.pendingFatigue) {
+                const p = window.store.pendingFatigue;
+                currentOpts = ['切换', '不切换', '确认', '取消', '是', '否'];
+                if (p.recommended && p.recommended.length) currentOpts.push(p.recommended[0]);
+                if (p.hit) currentOpts.push(p.hit);
+            }
+        }
+        
+        let html = text;
+        let matched = null;
+        
+        // Try to match number first ONLY if it's a number-related step
+        let allowNumber = false;
+        if (flow && flows[flow] && flows[flow][step]) {
+            const cfg = flows[flow][step];
+            if (cfg.type === 'slider' || ['duration', 'cycle', 'freq'].includes(cfg.key)) allowNumber = true;
+        }
+        
+        const numVal = allowNumber ? App.cnToInt(text) : null;
+        
+        if (numVal !== null) {
+            matched = numVal.toString();
+            const matchStr = text.match(/[0-9]+|[一二两三四五六七八九十]+/);
+            if(matchStr) html = html.replace(matchStr[0], `<span class="keyword-highlight">${matched}</span>`);
+        } else {
+            if (currentOpts.length) {
+                // Multi-select Voice Logic
+                if (flow && flows[flow][step].multi) {
+                    const matches = [];
+                    currentOpts.forEach(opt => {
+                        if (text.includes(opt)) matches.push(opt);
+                    });
+                    if (matches.length > 0) {
+                        // Highlight all matches
+                        matches.forEach(m => {
+                            html = html.replace(m, `<span class="keyword-highlight">${m}</span>`);
+                        });
+                    }
+                }
+                
+                currentOpts.forEach(opt => {
+                    // Fuzzy match: Include single char match for body parts (e.g. "腿" -> "腿部")
+                    if (text.includes(opt) || (opt.length > 1 && text.includes(opt[0]))) {
+                        html = html.replace(opt, `<span class="keyword-highlight">${opt}</span>`);
+                        matched = opt;
+                    }
+                });
+            }
+        }
+        
+        if (userBubble) {
+            userBubble.innerHTML = html;
+            document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+        }
+
+        if (isFinal) {
+            if (userBubble) {
+                userBubble.removeAttribute('id');
+                userBubble.classList.remove('interim');
+            }
+            
+            if (matched) {
+                if (flow) {
+                    // Chat Logic
+                    const config = flows[flow][step];
+                    if(config) {
+                        // Multi-select Handling
+                        if (config.multi) {
+                            // Special handling for Days
+                            if (config.key === 'days') {
+                                // Fix: Find the correct container (last one with options-grid)
+                                const history = document.getElementById('chat-history');
+                                let optContainer = null;
+                                for (let i = history.children.length - 1; i >= 0; i--) {
+                                    if (history.children[i].querySelector('.options-grid')) {
+                                        optContainer = history.children[i];
+                                        break;
+                                    }
+                                }
+                                if (optContainer) {
+                                    App.handleDaysVoiceInput(text, optContainer);
+                                }
+                                return;
+                            }
+
+                            // Fuzzy match for targets (single char) but strict for others
+                            const matches = currentOpts.filter(opt => {
+                                if (text.includes(opt)) return true;
+                                if (config.key === 'targets' && opt.length > 1 && text.includes(opt[0])) return true;
+                                return false;
+                            });
+                            
+                            // Modification detection
+                            const modKeywords = ['改成', '换成', '修改为', '只有', '只要', '重选', '变更为', '全部取消'];
+                            const isMod = modKeywords.some(k => text.includes(k));
+
+                            if (matches.length > 0) {
+                                if (isMod) {
+                                    // Clear existing selections for current options
+                                    const allChips = Array.from(document.querySelectorAll('.opt-chip'));
+                                    allChips.forEach(chip => {
+                                        const chipText = chip.querySelector('span') ? chip.querySelector('span').innerText : chip.innerText;
+                                        if (currentOpts.includes(chipText) && chip.classList.contains('active')) {
+                                            chip.classList.remove('active');
+                                            App.toggleDayText(chip);
+                                        }
+                                    });
+                                }
+
+                                matches.forEach(m => {
+                                    // Find chip and ensure active
+                                    const chips = Array.from(document.querySelectorAll('.opt-chip'));
+                                    const target = chips.find(c => (c.querySelector('span') ? c.querySelector('span').innerText : c.innerText) === m);
+                                    if (target && !target.classList.contains('active')) {
+                                        target.classList.add('active');
+                                        App.toggleDayText(target);
+                                    }
+                                });
+                            }
+                            // Check for confirmation keywords
+                            if (['确认', '好了', '完成', '下一步', '是的', 'OK'].some(k => text.toLowerCase().includes(k.toLowerCase()))) {
+                                App.confirmMulti(config.key, null);
+                            }
+                            return;
+                        }
+
+                        // Handle number parsing for sliders
+                        if (window.store.pendingFatigue) {
+                            // Fatigue Dialogue Logic
+                            const p = window.store.pendingFatigue;
+                            // Match "Switch" keywords OR the Recommended Part Name (e.g. "背")
+                            if (['切换', '确认', '是'].some(k => matched.includes(k)) || text.includes(p.recommended[0]) || text.includes(p.recommended[0][0])) App.handleInput('fatigue_resolution', 'switch', false);
+                            else if (['不切换', '取消', '否'].some(k => matched.includes(k)) || text.includes(p.hit) || text.includes(p.hit[0])) App.handleInput('fatigue_resolution', 'keep', false);
+                            return;
+                        }
+
+                        if (config.type === 'slider') {
+                            let targetVal = parseInt(matched);
+                            // Find slider
+                            const slider = document.querySelector('.chat-slider-box input[type=range]');
+                            if (slider && !isNaN(targetVal)) {
+                                // Animate
+                                App.animateSlider(slider, targetVal, () => {
+                                     App.handleInput(config.key, targetVal, false);
+                                });
+                                return; // Skip immediate handleInput
+                            }
+                        } else if (config.key === 'duration' || config.key === 'cycle' || config.key === 'freq') {
+                            matched = parseInt(matched);
+                        }
+                        App.handleInput(config.key, matched, false);
+                    }
+                }
+            } else {
+                // No match feedback
+                if (flow) {
+                    const errText = TEXT_VARIANTS.error[Math.floor(Math.random() * TEXT_VARIANTS.error.length)];
+                    Voice.speak(errText);
+                    if (userBubble) userBubble.style.opacity = '0.5'; // Dim invalid input
+                }
+
+                // Global Button Click Logic (Fuzzy Match)
+                const clickables = Array.from(document.querySelectorAll('.opt-chip, .btn-full, .chat-back, .big-btn, .edit-btn, .ae-btn, .mic-btn, .unit-toggle, .result-header div[onclick]'));
+                const visibleClickables = clickables.filter(el => el.offsetParent !== null);
+                
+                const matchedBtn = visibleClickables.find(el => {
+                    let btnText = el.innerText.replace(/\s/g, '').replace(/[><←✕↺⚙]/g, '');
+                    const voiceText = text.replace(/\s/g, '');
+                    if (!btnText) return false;
+                    // Fuzzy match: voice includes button text OR button text includes voice (if long enough)
+                    return (voiceText.includes(btnText) && btnText.length >= 2) || (btnText.includes(voiceText) && voiceText.length >= 2);
+                });
+
+                if (matchedBtn) {
+                    matchedBtn.click();
+                    matchedBtn.classList.add('active-voice-click');
+                    setTimeout(() => matchedBtn.classList.remove('active-voice-click'), 300);
+                    return;
+                }
+            }
+        }
+    },
+
+    handleInput: (key, val, isMulti, el) => {
+        if (isMulti) {
+            // Toggle visual state
+            if (el) {
+                el.classList.toggle('active');
+            } else {
+                // Voice input fallback
+                const chips = Array.from(document.querySelectorAll('.opt-chip'));
+                const target = chips.find(c => c.innerText.includes(val));
+                if(target) { target.classList.toggle('active'); App.toggleDayText(target); }
+            }
+            return;
+        }
+        
+        // Fatigue Logic Interception
+        if (key === 'targets' && !window.store.pendingFatigue) {
+            // Ensure val is array for multi-select
+            if (isMulti && !Array.isArray(val)) {
+                 // handled by confirmMulti usually, but if voice input single target
+            }
+            // Check fatigue
+            const fatigued = window.store.user.fatiguedParts; // e.g. ['腿部']
+            const selected = Array.isArray(val) ? val : [val];
+            const hit = selected.find(p => fatigued.includes(p));
+            
+            if (hit) {
+                // Trigger Fatigue Dialogue
+                const rec = '背部'; // Mock recommendation logic
+                window.store.pendingFatigue = { original: val, recommended: [rec], hit: hit };
+                
+                // AI Speak & Show
+                const template = TEXT_VARIANTS.fatigueWarn[Math.floor(Math.random() * TEXT_VARIANTS.fatigueWarn.length)];
+                const text = template.replace('{part}', hit).replace('{rec}', rec);
+                
+                App.showTyping();
+                
+                // Dim previous
+                const bubbles = document.getElementById('chat-history').querySelectorAll('.chat-bubble');
+                bubbles.forEach(b => b.classList.add('chat-history-dim'));
+
+                // Append AI Bubble manually
+                setTimeout(() => {
+                    App.hideTyping();
+                    const chatHistory = document.getElementById('chat-history');
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-bubble chat-ai';
+                    chatHistory.appendChild(bubble);
+                    App.typeWriter(bubble, text, 30);
+                // Render Options manually
+                const optContainer = document.createElement('div');
+                optContainer.innerHTML = `<div class="options-grid">
+                    <div class="opt-chip" onclick="App.handleInput('fatigue_resolution', 'switch', false)">切换为${rec}</div>
+                    <div class="opt-chip" onclick="App.handleInput('fatigue_resolution', 'keep', false)">坚持练${hit}</div>
+                </div>`;
+                chatHistory.appendChild(optContainer);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                
+                Voice.speak(text);
+                }, 600);
+                return; // Stop flow, wait for fatigue input
+            }
+        }
+        
+        // Handle Fatigue Decision
+        if (key === 'fatigue_resolution') {
+            const pending = window.store.pendingFatigue;
+            window.store.pendingFatigue = null;
+            if (val === 'switch') {
+                App.recordInput('targets', pending.recommended);
+            } else {
+                App.recordInput('targets', pending.original);
+            }
+            return;
+        }
+
+        App.recordInput(key, val);
+    },
+
+    confirmMulti: (key, el) => {
+        let optContainer;
+        if (el) {
+            // el is the button. Parent is .options-grid. Parent of that is the wrapper.
+            optContainer = el.closest('.options-grid').parentElement;
+        } else {
+            // Fallback (e.g. voice command)
+            const history = document.getElementById('chat-history');
+            for (let i = history.children.length - 1; i >= 0; i--) {
+                if (history.children[i].querySelector('.options-grid')) {
+                    optContainer = history.children[i];
+                    break;
+                }
+            }
+        }
+        if (!optContainer) return;
+        
+        // Query chips inside this container, excluding the confirm button itself
+        const activeChips = Array.from(optContainer.querySelectorAll('.opt-chip.active')).filter(c => !c.getAttribute('onclick').includes('confirmMulti'));
+        
+        let active = activeChips.map(e => e.querySelector('span') ? e.querySelector('span').innerText : e.innerText);
+        if(!active.length) return App.showToast("请至少选择一项");
+        
+        App.handleInput(key, active, false); // Route through handleInput for fatigue check
+    },
+
+    recordInput: (key, val) => {
+        // Save input
+        window.store.inputs[key] = val;
+        
+        // Add User Message
+        const chatHistory = document.getElementById('chat-history');
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble chat-user';
+        bubble.innerText = Array.isArray(val) ? val.join('、') : val;
+        chatHistory.appendChild(bubble);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+        
+        App.updateSummary();
+        
+        // Next
+        window.store.step++;
+        App.nextStep();
+    },
+    
+    updateSummary: () => {
+        const inputs = window.store.inputs;
+        const summary = document.getElementById('chat-summary');
+        summary.innerHTML = '';
+        Object.values(inputs).forEach(val => {
+            const txt = Array.isArray(val) ? val.join('+') : val;
+            summary.innerHTML += `<div class="summary-tag">${txt}</div>`;
+        });
+    },
+
+    // --- REASONING ---
+    startReasoning: () => {
+        App.switchView('view-reasoning');
+        document.getElementById('app').classList.add('state-reasoning');
+        document.querySelector('.siri-container').classList.add('thinking');
+        
+        const user = window.store.user;
+        const inputs = window.store.inputs;
+        const flow = window.store.flow;
+        
+        // Dynamic Logs
+        const logs = [];
+        logs.push(`读取档案: ${user.gender} / ${user.level} / ${user.goal}`);
+        
+        if (flow === 'course') {
+            const targets = Array.isArray(inputs.targets) ? inputs.targets.join(',') : inputs.targets;
+            logs.push(`解析需求: ${inputs.type} / ${targets}`);
+        } else {
+            const daysCount = (inputs.days || []).length;
+            logs.push(`解析计划: ${inputs.cycle}周 / ${daysCount}天频次`);
+        }
+        
+        if (user.pain && user.pain.length) logs.push(`风控过滤: 避开${user.pain.join('、')}`);
+        else logs.push(`风控扫描: 无禁忌部位`);
+        
+        logs.push(`匹配策略: ${CONFIG.STRATEGY[user.goal]?.strategy || '智能推荐'}模型`);
+        logs.push(`构建课程: 动作库 Top-K 筛选`);
+        logs.push(`生成方案: 计算容量与负荷...`);
+
+        const logContainer = document.getElementById('reasoning-log');
+        logContainer.innerHTML = '';
+        
+        let i = 0; 
+        
+        function nextLog() {
+            if (i >= logs.length) {
+                setTimeout(() => {
+                    document.getElementById('app').classList.remove('state-reasoning');
+                    document.querySelector('.siri-container').classList.remove('thinking');
+                    App.showResult();
+                }, 800);
+                return;
+            }
+            
+            // Create Item
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = `<div class="log-icon"><div class="typing-dot" style="width:4px;height:4px;background:#fff;animation:none;opacity:0.5;"></div></div><span>${logs[i]}</span>`;
+            logContainer.appendChild(div);
+            
+            // Mark previous as done
+            if (i > 0) {
+                const prev = logContainer.children[i-1];
+                prev.classList.remove('active');
+                prev.classList.add('done');
+                prev.querySelector('.log-icon').innerHTML = '✓';
+            }
+            
+            div.classList.add('active');
+            
+            i++;
+            setTimeout(nextLog, 800); // Delay between steps
+        }
+        
+        nextLog();
+    },
+
+    // --- RESULT ---
+    showResult: () => {
+        const flow = window.store.flow;
+        const inputs = window.store.inputs;
+        const resBody = document.getElementById('res-body');
+        const btnMain = document.getElementById('btn-main-action');
+        
+        document.getElementById('btn-back-plan').style.display = 'none'; // Hide back button initially
+        App.switchView('view-result');
+        
+        if (flow === 'course') {
+            btnMain.innerText = '开始训练';
+            btnMain.onclick = () => alert('开始训练！');
+            const ctx = window.Logic.genCourse(inputs);
+            document.getElementById('res-title').innerText = `${inputs.type}训练`;
+            document.getElementById('res-sub').innerText = `${inputs.duration} | ${inputs.targets} | ${window.store.user.level}`;
+            window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' }; // Reset settings
+            window.currentCtx = ctx; // Save context for fine-tuning
+            
+            App.renderFineTuning(ctx);
+            
+        } else {
+            btnMain.innerText = '加入日程';
+            btnMain.onclick = () => App.openScheduleModal();
+            const plan = window.Logic.genPlan(inputs);
+            document.getElementById('res-title').innerText = `${inputs.cycle}周期计划`;
+            document.getElementById('res-sub').innerText = `目标: ${window.store.user.goal} | 频率: ${inputs.days.length}天/周`;
+            
+            // Group by Phase
+            const phases = {};
+            plan.schedule.forEach(w => {
+                if(!phases[w.phase]) phases[w.phase] = [];
+                phases[w.phase].push(w);
+            });
+
+            let html = '';
+            Object.keys(phases).forEach(pName => {
+                const weeks = phases[pName];
+                html += `
+                <div class="plan-phase-block">
+                    <div class="plan-phase-header">
+                        <span>${pName}</span>
+                        <span class="plan-phase-meta">${weeks.length}周 · 强度系数 ${weeks[0].intensity}</span>
+                    </div>
+                    ${weeks.map(w => App.renderPlanWeek(w)).join('')}
+                </div>`;
+            });
+            resBody.innerHTML = html;
+            document.getElementById('res-stats').style.display = 'none'; // Hide stats for plan
+        }
+    },
+
+    renderPlanWeek: (w) => {
+        let daysHtml = '';
+        
+        w.days.forEach((day, idx) => {
+            const d = idx + 1;
+            const cls = day.isTraining ? 'training' : 'rest';
+            // Pass targets as string to function
+            const targetsStr = day.targets ? day.targets.join(',') : '';
+            const click = day.isTraining ? `onclick="App.enterPlanDay(${w.week}, ${d}, '${day.dayName}', '${targetsStr}')"` : '';
+            
+            const title = day.isTraining ? (day.title || (day.targets.length > 2 ? (day.targets.includes('全身')?'全身综合训练':'综合分化训练') : day.targets.join('+') + '训练')) : '休息日';
+            
+            const content = day.isTraining 
+                ? `<div class="pdr-content"><div class="pdr-title">${title}</div><div class="pdr-meta"><span>${window.store.inputs.duration}</span><span>•</span><span>${day.targets.join(' ')}</span></div></div><div class="pdr-action">→</div>`
+                : `<div class="pdr-content"><div class="pdr-title" style="color:#666">休息日</div><div class="pdr-meta">恢复身体</div></div>`;
+
+            daysHtml += `
+            <div class="plan-day-row ${cls}" ${click}>
+                <div class="pdr-date">Day<span>${d}</span></div>
+                ${content}
+            </div>`;
+        });
+        return `<div style="margin-bottom:10px;"><div style="font-size:11px;color:#666;margin-bottom:4px;">第 ${w.week} 周</div><div class="plan-week-list">${daysHtml}</div></div>`;
+    },
+
+    enterPlanDay: (week, day, dayName, targetsStr) => {
+        // Generate specific course for this plan day
+        const inputs = window.store.inputs;
+        const targets = targetsStr.split(',');
+        
+        // Construct Plan Context for Logic
+        const planContext = {
+            type: '力量',
+            targets: targets,
+            duration: parseInt(inputs.duration),
+            title: `${dayName}训练`,
+            phase: { intensity: 1.0, volume: 1.0 }, // Simplified for demo
+            goal: window.store.user.goal
+        };
+        
+        const ctx = window.Logic.runPipeline(null, planContext);
+        
+        document.getElementById('res-title').innerText = `W${week} | ${dayName}`;
+        document.getElementById('res-sub').innerText = "计划课程";
+        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' }; // Reset settings
+        window.currentCtx = ctx;
+        
+        App.renderFineTuning(ctx);
+        document.getElementById('res-stats').style.display = 'flex';
+        
+        // Show back button
+        document.getElementById('btn-back-plan').style.display = 'block';
+    },
+
+    recalculateLoadStrategy: () => {
+        if(!window.currentCtx) return;
+        window.currentCtx = window.Logic.instantiate(window.currentCtx);
+    },
+
+    renderFineTuning: (ctx) => {
+        const resBody = document.getElementById('res-body');
+        const settings = window.store.courseSettings;
+        const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
+        const unit = window.store.unit || 'kg';
+
+        // Top mini bar for Load Strategy (Global)
+        let html = `
+            <div class="ft-mini-bar">
+                <select class="ft-mini-sel" onchange="App.updateGlobalSetting('loadStrategy', this.value)">
+                    ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, settings.loadStrategy)}
+                </select>
+            </div>
+        `;
+
+        ctx.phases.forEach((p, pIdx) => {
+            // Phase Header with Loop Mode for Main
+            let extra = '';
+            if (p.type === '主训') {
+                const rest = p.strategy?.rest || 60;
+                const roundRest = 120; // Mock round rest
+                extra = `
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <span style="font-size:10px; color:#888;">组间 ${rest}s</span>
+                        ${settings.loopMode.includes('循环') ? `<span style="font-size:10px; color:#888;">轮间 ${roundRest}s</span>` : ''}
+                        <select class="phase-select" onchange="App.updateGlobalSetting('loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, settings.loopMode)}</select>
+                    </div>`;
+            }
+            
+            html += `<div class="phase-header-row">
+                <div class="phase-title">● ${p.type} (${p.duration}min)</div>
+                ${extra}
+            </div>`;
+            
+            p.actions.forEach((a, aIdx) => {
+                // Ensure setDetails exists (Safe check)
+                if (!a.setDetails || a.setDetails.length !== a.sets) {
+                    a.setDetails = [];
+                    for(let i=0; i<a.sets; i++) {
+                        a.setDetails.push({ load: a.load, reps: a.reps });
+                    }
+                }
+
+                const isResistance = a.paradigm === '抗阻范式';
+                const isWarmup = p.type === '热身' || p.type === '放松';
+                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || settings.loadStrategy === '计时';
+                const repUnit = isTimeBased ? 's' : '';
+
+                const expanded = a.expanded ? 'block' : 'none';
+                const arrow = a.expanded ? '▲' : '▼';
+                
+                // Thumbnail
+                const thumb = `<div class="ac-thumb"><i style="font-style:normal; font-size:16px;">📷</i></div>`;
+                
+                // Summary
+                let summary = '';
+                if (isResistance && !isWarmup && !isTimeBased) {
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组 x ${a.reps}</span> <span class="ac-tag">${a.load}${unit}</span>`;
+                } else {
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${a.reps}${repUnit}</span>`;
+                }
+
+                // Expanded Body (Sets)
+                let setsHtml = '';
+                a.setDetails.forEach((s, sIdx) => {
+                    let inputs = '';
+                    if (isResistance && !isWarmup && !isTimeBased) {
+                        // Weight & Reps
+                        inputs = `
+                            <input class="set-input" type="number" value="${s.load}" onchange="App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, 'load', this.value)"> <span style="color:#666;font-size:10px;">${unit}</span>
+                            <span style="color:#444; margin:0 5px;">x</span>
+                            <input class="set-input" type="text" value="${s.reps}" onchange="App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, 'reps', this.value)">
+                        `;
+                    } else {
+                        // Duration/Reps only
+                        inputs = `
+                            <input class="set-input" style="width:80px" type="text" value="${s.reps}" onchange="App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, 'reps', this.value)"> <span style="color:#666;font-size:10px;">${repUnit}</span>
+                        `;
+                    }
+                    
+                    setsHtml += `
+                        <div class="set-row">
+                            <div class="set-idx">${sIdx+1}</div>
+                            ${inputs}
+                            <div class="set-del" onclick="App.removeSet(${pIdx}, ${aIdx}, ${sIdx})">×</div>
+                        </div>
+                    `;
+                });
+
+                // Add Set Button
+                setsHtml += `<div class="add-set-btn" onclick="App.addSet(${pIdx}, ${aIdx})">+ 加一组</div>`;
+                
+                // Professional Action Card Layout
+                html += `
+                <div class="action-card-pro">
+                    <div class="ac-header" onclick="App.toggleAction(${pIdx}, ${aIdx})">
+                        ${thumb}
+                        <div class="ac-info">
+                            <div class="ac-title">${a.name}</div>
+                            <div class="ac-meta">
+                                <span class="ac-tag">${a.part}</span>
+                                ${summary}
+                            </div>
+                        </div>
+                        <div class="ae-tools" onclick="event.stopPropagation()">
+                            <div class="ae-btn" onclick="App.openLibrary(${pIdx}, ${aIdx})">↻</div>
+                            <div class="ae-btn" onclick="App.moveAction(${pIdx}, ${aIdx}, -1)">↑</div>
+                            <div class="ae-btn" onclick="App.moveAction(${pIdx}, ${aIdx}, 1)">↓</div>
+                            <div class="ae-btn" style="border:none; background:transparent;">${arrow}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="ac-body-exp" style="display:${expanded};">
+                        <div class="set-list">
+                            ${setsHtml}
+                        </div>
+                        <div class="ac-footer">
+                            <span>强度: ${(a.load > 0 && CONSTANTS.ENUMS.ONE_RM[a.part]) ? Math.round(a.load / CONSTANTS.ENUMS.ONE_RM[a.part] * 100) : '-'}%</span>
+                            <span>RPE: ${a.rpe || 8}</span>
+                            <span>休息: ${p.strategy?.rest || 60}s</span>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        });
+        resBody.innerHTML = html;
+        App.updateStats();
+    },
+    
+    updateSetData: (pIdx, aIdx, sIdx, field, val) => {
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        if (action.setDetails && action.setDetails[sIdx]) {
+            action.setDetails[sIdx][field] = val;
+            if (sIdx === 0) action[field] = val; // Sync summary with first set
+        }
+        App.renderFineTuning(window.currentCtx);
+    },
+
+    toggleAction: (pIdx, aIdx) => {
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        action.expanded = !action.expanded;
+        App.renderFineTuning(window.currentCtx);
+    },
+
+    switchUnit: (unit) => {
+        window.store.unit = unit;
+        document.getElementById('unit-disp').innerText = unit.toUpperCase();
+        App.renderFineTuning(window.currentCtx);
+    },
+    
+    showToast: (msg) => {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 3000);
+    },
+
+    updateGlobalSetting: (key, val) => {
+        window.store.courseSettings[key] = val;
+        if (key === 'loadStrategy') App.recalculateLoadStrategy();
+        App.renderFineTuning(window.currentCtx);
+    },
+
+    addSet: (pIdx, aIdx) => {
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        action.sets++;
+        // Copy last set config
+        const lastSet = action.setDetails[action.setDetails.length-1] || { load: action.load, reps: action.reps };
+        action.setDetails.push({ ...lastSet });
+        App.renderFineTuning(window.currentCtx);
+    },
+
+    removeSet: (pIdx, aIdx, sIdx) => {
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        if (action.sets > 1) {
+            action.sets--;
+            action.setDetails.splice(sIdx, 1);
+            App.renderFineTuning(window.currentCtx);
+        }
+    },
+
+    moveAction: (pIdx, aIdx, dir) => {
+        const actions = window.currentCtx.phases[pIdx].actions;
+        if (aIdx + dir >= 0 && aIdx + dir < actions.length) {
+            const temp = actions[aIdx];
+            actions[aIdx] = actions[aIdx + dir];
+            actions[aIdx + dir] = temp;
+            App.renderFineTuning(window.currentCtx);
+        }
+    },
+
+    // --- ACTION LIBRARY & REPLACE ---
+    openLibrary: (pIdx, aIdx) => {
+        window.store.replaceState = { pIdx, aIdx };
+        const currentAction = window.currentCtx.phases[pIdx].actions[aIdx];
+        
+        // Init Filters
+        window.store.libFilter = { part: currentAction.part, tag: '全部' };
+        App.renderLibraryFilters();
+        App.renderLibraryList();
+        
+        App.switchView('view-library');
+    },
+
+    closeLibrary: () => {
+        App.switchView('view-result');
+        window.store.replaceState = null;
+    },
+
+    renderLibraryFilters: () => {
+        const parts = ['全部', ...CONSTANTS.PARTS];
+        const html = parts.map(p => 
+            `<div class="lib-filter-tag ${p === window.store.libFilter.part ? 'active' : ''}" onclick="App.setLibFilter('part', '${p}')">${p}</div>`
+        ).join('');
+        document.getElementById('lib-parts').innerHTML = html;
+    },
+
+    setLibFilter: (key, val) => {
+        window.store.libFilter[key] = val;
+        App.renderLibraryFilters();
+        App.renderLibraryList();
+    },
+
+    renderLibraryList: () => {
+        const { part } = window.store.libFilter;
+        let list = DB;
+        
+        if (part !== '全部') {
+            list = list.filter(a => a.part === part);
+        }
+        
+        // Simple scoring/sorting could go here
+        
+        const html = list.map(a => {
+            const isSelected = window.store.replaceState.selectedId === a.id;
+            return `
+            <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.selectLibAction('${a.id}')">
+                <div class="lib-info">
+                    <div class="lib-name">${a.name}</div>
+                    <div class="lib-meta">${a.part} · ${a.equip[0]} · ${a.difficulty}</div>
+                </div>
+                <div class="lib-check"></div>
+            </div>`;
+        }).join('');
+        document.getElementById('lib-list').innerHTML = html;
+    },
+
+    selectLibAction: (id) => {
+        window.store.replaceState.selectedId = id;
+        App.renderLibraryList();
+    },
+
+    confirmReplace: () => {
+        const { pIdx, aIdx, selectedId } = window.store.replaceState;
+        if (!selectedId) return App.closeLibrary();
+        
+        const newAction = DB.find(a => a.id === selectedId);
+        if (newAction) {
+            // Replace action in context
+            // We copy the raw action data
+            window.currentCtx.phases[pIdx].actions[aIdx] = JSON.parse(JSON.stringify(newAction));
+            
+            // Re-calculate load strategy for the whole context to apply correct weights/reps
+            App.recalculateLoadStrategy();
+            
+            App.renderFineTuning(window.currentCtx);
+        }
+        App.closeLibrary();
+    },
+
+    openScheduleModal: () => {
+        const days = ['周一','周二','周三','周四','周五','周六','周日'];
+        // Default to profile days if inputs.days is empty (though it should be set from chat)
+        const selected = window.store.inputs.days || window.store.user.days || [];
+        
+        const html = days.map(d => {
+            const isActive = selected.includes(d);
+            const subText = isActive ? '训练' : '休息';
+            return `<div class="opt-chip ${isActive?'active':''}" onclick="this.classList.toggle('active'); App.toggleDayText(this)"><span>${d}</span><span class="chat-sub-text">${subText}</span></div>`;
+        }).join('');
+        
+        document.getElementById('schedule-days-list').innerHTML = html;
+        document.getElementById('modal-schedule').classList.add('active');
+    },
+
+    confirmSchedule: () => {
+        const activeChips = document.querySelectorAll('#schedule-days-list .opt-chip.active');
+        const days = Array.from(activeChips).map(c => c.innerText);
+        if (days.length === 0) return App.showToast("请至少选择一天");
+        window.store.inputs.days = days;
+        document.getElementById('modal-schedule').classList.remove('active');
+        App.switchView('view-schedule');
+    },
+
+    updateStats: () => {
+        const ctx = window.currentCtx;
+        let totalSets = 0, totalActions = 0;
+        ctx.phases.forEach(p => {
+            totalActions += p.actions.length;
+            p.actions.forEach(a => totalSets += a.sets);
+        });
+        
+        document.getElementById('st-time').innerText = ctx.meta.duration + 'min';
+        document.getElementById('st-count').innerText = totalActions + '个';
+        document.getElementById('st-vol').innerText = totalSets + '组';
+        document.getElementById('st-cal').innerText = Math.floor(4.5 * window.store.user.weight * (ctx.meta.duration/60)) + 'kcal';
+    },
+
+    reset: () => {
+        // Reset State to ensure Home logic works
+        window.store.flow = null;
+        window.store.step = 0;
+        window.store.inputs = {};
+        window.store.pendingFatigue = null;
+
+        App.switchView('view-home');
+        document.getElementById('profile-card').classList.remove('hidden');
+        document.getElementById('chat-history').innerHTML = '';
+        document.getElementById('app').classList.remove('state-chat');
+        document.getElementById('home-bg-layer').classList.remove('hidden');
+    }
+};
+
+// Init
+window.App = App;
+App.init();
+
+</script>
