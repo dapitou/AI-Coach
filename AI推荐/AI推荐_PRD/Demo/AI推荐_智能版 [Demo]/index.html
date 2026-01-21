@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AEKE AI Coach - Smart Edition</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+    
+    <div id="home-bg-layer"></div>
+
+    <!-- GLOBAL AI AVATAR -->
+    <div class="siri-container">
+        <div class="siri-blob"></div>
+        <div class="siri-blob"></div>
+        <div class="siri-blob"></div>
+        <div class="orbit-ring r1"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring r2"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring r3"><div class="orbit-dot"></div></div>
+    </div>
+
+    <!-- START TRIGGER -->
+    <div id="home-start-btn" onclick="window.App.startSession()">
+        <i style="font-size:40px; font-style:normal; display:block; margin-bottom:10px; filter:grayscale(1);">🎙️</i>
+        <div style="font-size:16px; font-weight:600; color:var(--primary);">点击开启麦克风权限</div>
+        <div style="font-size:12px; color:#666; margin-top:5px;">激活 AI 智能教练</div>
+    </div>
+
+    <!-- VIEW 1: HOME -->
+    <div id="view-home" class="view active">
+        <div class="home-top" style="justify-content: flex-end; padding-bottom: 120px;">            
+            <div id="home-active-content" class="hidden" style="width:100%; display:flex; flex-direction:column; align-items:center; animation: slideUp 0.5s; z-index: 10;">
+                <div class="ai-greeting">Hi，我是AEKE 私人教练<br><span style="font-size:16px; font-weight:400; color:#888; margin-top:10px; display:block;">帮你定制专属运动方案</span></div>
+                <div id="home-subtitle"></div>
+                
+                <div class="action-buttons">
+                    <div class="big-btn" onclick="App.startFlow('course')">
+                        <i>⚡️</i><span>给我一节课</span>
+                    </div>
+                    <div class="big-btn" onclick="App.startFlow('plan')">
+                        <i>📅</i><span>给我一份计划</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="home-bottom hidden" id="profile-card">
+            <div class="profile-header">
+                <div class="profile-title">我的运动档案</div>
+                <div class="edit-btn" onclick="App.openProfile()">修改 ></div>
+            </div>
+            <div class="profile-grid" id="profile-display"></div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: CHAT WIZARD -->
+    <div id="view-chat" class="view">
+        <div class="chat-header">
+            <div class="chat-back" onclick="App.reset()">✕ 退出</div>
+            <div class="chat-title"><div class="ai-status-dot"></div>AI Coach</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="chat-container" id="chat-history"></div>
+        <div class="chat-summary" id="chat-summary"></div>
+        <div class="input-area">
+            <div class="mic-btn" id="mic-btn" onclick="App.toggleMicState()">
+                <i style="font-style:normal; font-size:24px;">🎙️</i>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: REASONING -->
+    <div id="view-reasoning" class="view">
+        <div class="reasoning-center">
+            <div class="log-container" id="reasoning-log"></div>
+        </div>
+    </div>
+
+    <!-- VIEW 4: RESULT (COURSE/PLAN) -->
+    <div id="view-result" class="view">
+        <div class="result-header">
+            <div id="btn-back-plan" style="display:none; cursor:pointer; color:var(--primary);" onclick="App.showResult()">←</div>
+            <div id="btn-close-result" style="cursor:pointer; color:#fff;" onclick="App.reset()">&lt;</div>
+            <div class="result-title-box">
+                <div class="result-title" id="res-title">--</div>
+                <div class="result-sub" id="res-sub">--</div>
+            </div>
+            <div class="unit-switch" id="unit-switch" onclick="App.toggleUnit()">
+                <div class="unit-knob">KG</div>
+            </div>
+        </div>
+        <div class="result-body" id="res-body">
+            <!-- Plan List Container -->
+            <div id="res-plan-list" style="display:none;"></div>
+            
+            <!-- Course Content Container -->
+            <div id="res-course-content">
+                <div id="res-intro" class="course-intro"></div>
+                <div class="stats-bar" id="res-stats">
+                    <div>时长 <span class="stat-val" id="st-time">--</span></div>
+                    <div>动作 <span class="stat-val" id="st-count">--</span></div>
+                    <div>容量 <span class="stat-val" id="st-vol">--</span></div>
+                    <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+                </div>
+                <div class="tabs" id="res-phase-tabs" style="position:sticky; top:0; z-index:10; background:#000; margin-bottom:0; border-bottom:1px solid #222;"></div>
+                <div id="res-phase-content" style="padding:20px;"></div>
+            </div>
+        </div>
+        <div class="bottom-bar">
+            <button class="btn-icon" onclick="App.reset()">↺</button>
+            <button class="btn-full" id="btn-main-action">开始训练</button>
+        </div>
+    </div>
+
+    <!-- VIEW 5: ACTION LIBRARY -->
+    <div id="view-library" class="view">
+        <div class="result-header">
+            <div class="chat-back" onclick="App.closeLibrary()">✕ 取消</div>
+            <div class="result-title" style="font-size:16px;">动作库</div>
+            <div style="color:var(--primary); font-weight:600; cursor:pointer;" onclick="App.confirmReplace()">确认</div>
+        </div>
+        <div class="lib-filters" id="lib-parts"></div>
+        <div class="lib-body" id="lib-list"></div>
+    </div>
+
+    <!-- VIEW 6: SCHEDULE -->
+    <div id="view-schedule" class="view">
+        <div class="chat-header">
+            <div class="chat-back" onclick="App.switchView('view-home')">✕ 关闭</div>
+            <div class="chat-title">训练日程</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="result-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+            <i style="font-size:64px; margin-bottom:20px; font-style:normal;">📅</i>
+            <div style="font-size:18px; font-weight:700; margin-bottom:10px;">日程已创建</div>
+            <div style="font-size:13px; color:#888;">您的训练计划已加入日程表</div>
+        </div>
+    </div>
+
+    <!-- MODALS & DIALOGS -->
+    <div id="modal-profile" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">修改档案</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.saveProfile()">保存</div>
+        </div>
+        <div class="tabs">
+            <div class="tab active" onclick="App.switchTab('basic')">基础</div>
+            <div class="tab" onclick="App.switchTab('pref')">偏好</div>
+            <div class="tab" onclick="App.switchTab('goal')">目标</div>
+        </div>
+        <div class="modal-body" id="profile-form"></div>
+    </div>
+
+    <div id="modal-schedule" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">确认训练日</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.confirmSchedule()">确认</div>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:15px; font-size:13px; color:#888;">请确认您的每周训练安排：</div>
+            <div class="options-grid" id="schedule-days-list"></div>
+        </div>
+    </div>
+    
+    <div id="modal-action-detail" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">动作详情</div>
+            <div style="color:#888; cursor:pointer;" onclick="App.closeActionDetail()">✕</div>
+        </div>
+        <div class="tabs" id="detail-tabs"></div>
+        <div class="modal-body" id="action-detail-body"></div>
+        <div class="bottom-bar" id="action-detail-footer" style="display:none; padding:15px 20px;"></div>
+    </div>
+
+    <div id="dialog-confirm" class="dialog-overlay">
+        <div class="dialog-box">
+            <div class="dialog-title">提示</div>
+            <div class="dialog-msg" id="dialog-msg">--</div>
+            <div class="dialog-btns">
+                <button class="dialog-btn cancel" onclick="App.closeConfirmModal()">取消</button>
+                <button class="dialog-btn confirm" id="dialog-confirm-btn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="js/data/constants.js"></script>
+<script src="js/data/config.js"></script>
+<script src="js/data/text-variants.js"></script>
+<script src="js/data/database.js"></script>
+<script src="js/core/store.js"></script>
+<script src="js/core/user-ability.js"></script>
+<script src="js/core/phase-engine.js"></script>
+<script src="js/core/logic.js"></script>
+<script src="js/modules/voice.js"></script>
+<script src="js/modules/ui-utils.js"></script>
+<script src="js/modules/view-home.js"></script>
+<script src="js/modules/view-chat.js"></script>
+<script src="js/modules/view-reasoning.js"></script>
+<script src="js/modules/view-result.js"></script>
+<script src="js/modules/view-library.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

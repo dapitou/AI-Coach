@@ -169,7 +169,15 @@
         .set-del:hover { color: var(--danger); }
         .add-set-btn { width: 100%; padding: 8px; background: rgba(255,255,255,0.03); border: 1px dashed #333; color: #666; font-size: 11px; cursor: pointer; border-radius: 6px; text-align: center; margin-top: 8px; transition: 0.2s; }
         .add-set-btn:hover { color: var(--primary); border-color: var(--primary); background: rgba(50, 196, 140, 0.05); }
+        .ac-detail-link { font-size: 11px; color: var(--primary); text-align: center; margin-top: 12px; cursor: pointer; padding: 4px; opacity: 0.8; }
         .ac-footer { display: flex; justify-content: space-between; font-size: 10px; color: #555; margin-top: 10px; padding-top: 5px; border-top: 1px solid #222; }
+
+        /* STEPPER CONTROL */
+        .stepper { display: flex; align-items: center; background: #111; border: 1px solid #333; border-radius: 4px; height: 24px; }
+        .step-btn { width: 24px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #888; font-size: 14px; user-select: none; transition: 0.2s; }
+        .step-btn:hover { color: #fff; background: #222; }
+        .step-input { width: 40px; background: transparent; border: none; color: #fff; text-align: center; font-size: 12px; font-weight: 600; padding: 0; -moz-appearance: textfield; appearance: textfield; height: 100%; }
+        .step-input::-webkit-outer-spin-button, .step-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         .chat-ai { background: #1a1a1a; color: #eee; border-bottom-left-radius: 4px; align-self: flex-start; border: 1px solid #333; }
         .chat-user { background: var(--primary); color: #000; border-bottom-right-radius: 4px; align-self: flex-end; font-weight: 600; }
@@ -211,18 +219,56 @@
         .result-header { padding: 24px; background: rgba(18,18,18,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 5; flex-shrink: 0; display: flex; justify-content: space-between; align-items: flex-start; }
         .result-title { font-size: 20px; font-weight: 800; margin-bottom: 5px; }
         .result-sub { font-size: 12px; color: var(--text-sub); display: flex; gap: 10px; }
-        .result-body { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 40px; }
-        .unit-toggle { font-size: 11px; font-weight: 700; color: var(--text-sub); border: 1px solid #333; padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-        .unit-toggle:hover { color: #fff; border-color: #666; }
+        .result-body { flex: 1; overflow-y: auto; padding-bottom: 40px; }
+        
+        .course-intro { padding: 0 24px 15px 24px; font-size: 12px; color: #888; line-height: 1.5; background: rgba(18,18,18,0.95); backdrop-filter: blur(20px); }
+        .phase-intro { font-size: 12px; color: #666; margin-bottom: 15px; line-height: 1.5; background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px; }
+        .phase-data-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .p-data-item { background: #1a1a1a; padding: 8px 12px; border-radius: 6px; border: 1px solid #333; flex: 1; text-align: center; }
+        .p-data-label { font-size: 10px; color: #666; margin-bottom: 2px; }
+        .p-data-val { font-size: 13px; font-weight: 700; color: #fff; }
+
+        /* UNIT TOGGLE */
+        .unit-switch { width: 44px; height: 22px; background: #222; border-radius: 11px; position: relative; cursor: pointer; border: 1px solid #333; transition: 0.2s; }
+        .unit-switch.lbs { background: var(--primary); border-color: var(--primary); }
+        .unit-knob { width: 18px; height: 18px; background: #fff; border-radius: 50%; position: absolute; top: 1px; left: 1px; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: #000; }
+        .unit-switch.lbs .unit-knob { left: 23px; }
+
+        /* ACTION DETAIL STYLES */
+        .ad-video { width: 100%; height: 200px; background: #1a1a1a; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #444; margin-bottom: 20px; position: relative; overflow: hidden; border: 1px solid #333; }
+        .ad-video::after { content: '▶'; font-size: 40px; color: rgba(255,255,255,0.1); }
+        .ad-header { margin-bottom: 24px; }
+        .ad-title { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 10px; line-height: 1.2; letter-spacing: 0.5px; }
+        .ad-add-btn { background: var(--primary); color: #000; font-weight: 700; font-size: 12px; padding: 6px 12px; border-radius: 16px; border: none; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+        .ad-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ad-tag { font-size: 10px; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,0.05); color: #ccc; border: 1px solid rgba(255,255,255,0.1); }
+        .ad-section { margin-bottom: 30px; }
+        .ad-sec-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .ad-sec-title::before { content: ''; width: 3px; height: 12px; background: var(--primary); border-radius: 2px; }
+        .muscle-map { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .muscle-card { background: rgba(255,255,255,0.03); padding: 12px 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .mc-label { font-size: 10px; color: #666; margin-bottom: 4px; text-transform: uppercase; font-weight: 700; }
+        .mc-val { font-size: 13px; color: #fff; font-weight: 600; }
+        .mc-val.highlight { color: var(--primary); }
+        .desc-box { font-size: 13px; line-height: 1.7; color: #bbb; background: rgba(255,255,255,0.02); padding: 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03); }
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .info-card { background: #161616; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #222; }
+        .ic-label { font-size: 10px; color: #666; margin-bottom: 4px; }
+        .ic-val { font-size: 12px; color: #eee; font-weight: 600; }
         
         .card { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
         .card-row { display: flex; justify-content: space-between; align-items: center; }
         .card-name { font-size: 14px; font-weight: 600; color: #fff; }
         .card-tag { background: rgba(255,255,255,0.05); color: #aaa; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; }
 
-        .phase-header-row { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0; }
+        .phase-meta-simple { font-size: 12px; color: #888; display: flex; align-items: center; }
+        .phase-controls-row { display: flex; gap: 15px; margin-bottom: 15px; background: #1a1a1a; padding: 10px 12px; border-radius: 8px; border: 1px solid #333; overflow-x: auto; align-items: center; }
+        .control-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .cg-label { font-size: 10px; color: #666; }
+        .phase-select-static { font-size: 11px; color: #ccc; padding: 4px 8px; background: #222; border-radius: 4px; border: 1px solid #333; }
+        .phase-header-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 15px 0; }
         .phase-title { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
-        .phase-select { background: #1a1a1a; border: 1px solid #333; color: #888; font-size: 10px; padding: 2px 6px; border-radius: 4px; outline: none; }
+        .phase-select { background: #222; border: 1px solid #333; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 4px; outline: none; }
         
         .bottom-bar { padding: 20px; background: #111; border-top: 1px solid #222; display: flex; gap: 15px; flex-shrink: 0; }
         .btn-full { flex: 1; background: var(--primary); color: #000; font-weight: 700; padding: 14px; border-radius: 12px; border: none; font-size: 16px; cursor: pointer; }
@@ -232,8 +278,10 @@
         .ft-mini-sel { background: transparent; border: 1px solid #333; color: #666; font-size: 10px; padding: 2px 5px; border-radius: 4px; outline: none; }
 
         /* LIBRARY VIEW */
-        .lib-filters { padding: 10px 20px; overflow-x: auto; white-space: nowrap; display: flex; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .lib-filter-tag { padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 20px; font-size: 12px; color: #888; cursor: pointer; border: 1px solid transparent; }
+        .lib-filters { padding: 10px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .lib-tags-container { flex: 1; overflow-x: auto; white-space: nowrap; display: flex; gap: 10px; -webkit-overflow-scrolling: touch; }
+        .lib-tags-container::-webkit-scrollbar { display: none; }
+        .lib-filter-tag { padding: 6px 12px; background: rgba(255,255,255,0.05); border-radius: 20px; font-size: 12px; color: #888; cursor: pointer; border: 1px solid transparent; flex-shrink: 0; }
         .lib-filter-tag.active { background: var(--primary); color: #000; font-weight: 600; }
         .lib-body { flex: 1; overflow-y: auto; padding: 20px; }
         .lib-item { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; cursor: pointer; }
@@ -242,8 +290,24 @@
         .lib-name { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 4px; }
         .lib-meta { font-size: 10px; color: #666; }
         .lib-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #444; display: flex; align-items: center; justify-content: center; }
+        .lib-check-area { padding: 10px; margin: -10px; display: flex; align-items: center; justify-content: center; }
         .lib-item.selected .lib-check { border-color: var(--primary); background: var(--primary); }
         .lib-item.selected .lib-check::after { content: '✓'; color: #000; font-size: 12px; font-weight: 700; }
+
+        /* Library Grouping & Filters */
+        .lib-group-title { font-size: 12px; font-weight: 700; color: var(--text-sub); margin: 15px 0 8px 0; padding-left: 10px; border-left: 3px solid var(--primary); }
+        .lib-filter-panel { background: #1a1a1a; border-bottom: 1px solid #333; padding: 15px; display: none; animation: slideDown 0.2s; }
+        .lib-filter-panel.active { display: block; }
+        .filter-sec { margin-bottom: 15px; }
+        .filter-label { font-size: 11px; color: #888; margin-bottom: 8px; }
+        .filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .f-chip { padding: 4px 10px; background: #2a2a2a; border: 1px solid #333; border-radius: 4px; font-size: 11px; color: #ccc; cursor: pointer; }
+        .f-chip.active { background: var(--primary); color: #000; border-color: var(--primary); }
+        .filter-btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+        .lib-filter-toggle { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #222; border-radius: 4px; border: 1px solid #333; cursor: pointer; flex-shrink: 0; }
+        .lib-filter-toggle.active { background: var(--primary); color: #000; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
 
         /* FINE TUNING CONTROLS */
         .ft-controls { background: #161616; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #222; }
@@ -268,10 +332,10 @@
         .ae-btn { width: 24px; height: 24px; background: #222; border: 1px solid #333; color: #888; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .ae-btn:hover { color: #fff; border-color: #555; }
         
-        .add-action-btn { width: 100%; padding: 12px; border: 1px dashed #333; border-radius: 8px; color: #666; font-size: 12px; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 8px; }
+        .add-action-btn { width: 100%; padding: 12px; border: 1px dashed #333; border-radius: 8px; color: #666; font-size: 12px; text-align: center; cursor: pointer; transition: 0.2s; margin-top: 8px; display: none; /* Hidden by default, moved to header */ }
         .add-action-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(50, 196, 140, 0.05); }
 
-        .stats-bar { background: #111; padding: 12px 20px; border-top: 1px solid #222; display: flex; justify-content: space-between; font-size: 10px; color: #666; z-index: 20; flex-shrink: 0; }
+        .stats-bar { background: #111; padding: 12px 24px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; font-size: 10px; color: #666; flex-shrink: 0; }
         .stat-val { font-size: 14px; font-weight: 700; color: var(--primary); display: block; }
         
         .ae-tools { display: flex; gap: 5px; }
@@ -440,16 +504,20 @@
                 <div class="result-title" id="res-title">--</div>
                 <div class="result-sub" id="res-sub">--</div>
             </div>
-            <div class="unit-toggle" onclick="App.switchUnit(window.store.unit==='kg'?'lbs':'kg')">UNIT: <span id="unit-disp">KG</span></div>
+            <div class="unit-switch" id="unit-switch" onclick="App.toggleUnit()">
+                <div class="unit-knob">KG</div>
+            </div>
         </div>
         <div class="result-body" id="res-body">
-            <!-- Content -->
-        </div>
-        <div class="stats-bar" id="res-stats">
-            <div>时长 <span class="stat-val" id="st-time">--</span></div>
-            <div>动作 <span class="stat-val" id="st-count">--</span></div>
-            <div>容量 <span class="stat-val" id="st-vol">--</span></div>
-            <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+            <div id="res-intro" class="course-intro"></div>
+            <div class="stats-bar" id="res-stats">
+                <div>时长 <span class="stat-val" id="st-time">--</span></div>
+                <div>动作 <span class="stat-val" id="st-count">--</span></div>
+                <div>容量 <span class="stat-val" id="st-vol">--</span></div>
+                <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+            </div>
+            <div class="tabs" id="res-phase-tabs" style="position:sticky; top:0; z-index:10; background:#000; margin-bottom:0; border-bottom:1px solid #222;"></div>
+            <div id="res-phase-content" style="padding:20px;"></div>
         </div>
         <div class="bottom-bar">
             <button class="btn-icon" onclick="App.reset()">↺</button>
@@ -513,6 +581,17 @@
         </div>
     </div>
     
+    <!-- MODAL: ACTION DETAIL -->
+    <div id="modal-action-detail" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">动作详情</div>
+            <div style="color:#888; cursor:pointer;" onclick="App.closeActionDetail()">✕</div>
+        </div>
+        <div class="tabs" id="detail-tabs"></div>
+        <div class="modal-body" id="action-detail-body"></div>
+        <div class="bottom-bar" id="action-detail-footer" style="display:none; padding:15px 20px;"></div>
+    </div>
+
     <!-- DIALOG: CONFIRM -->
     <div id="dialog-confirm" class="dialog-overlay">
         <div class="dialog-box">
@@ -564,15 +643,15 @@ const CONSTANTS = {
         '抗阻范式': '抗阻范式'
     }, 
     ENUMS: {
-        ONE_RM: { '胸部': 60, '背部': 70, '腿部': 100, '臀部': 90, '肩部': 30, '手臂': 25, '核心': 0 },
+        ONE_RM: { '胸部': 60, '背部': 70, '腿部': 100, '臀部': 90, '肩部': 30, '手臂': 25, '核心': 40, '全身': 50 },
         GENDER: ['男', '女'],
         LEVEL: ['L1', 'L2', 'L3', 'L4', 'L5'],
         GOAL: ['增肌', '减重', '健康'],
         FUNC_GOAL: ['增肌', '力量', '耐力', '爆发', '减脂', '心肺', '恢复', '柔韧', '协调', '体态', '专项', '激活', '平衡'],
         STYLE: ['传统型', '多变型', '激进型'],
         BODY_TYPE: ['均衡标准型', '标准肌肉型', '紧致精瘦型', '健美肌肉型'],
-        LOOP_MODE: ['常规组', '循环组', '超级组', '复合组', '巨型组'],
-        LOAD_STRATEGY: ['推荐', '恒定', '递增', '递减', '波浪', '计时', '自定义'],
+        LOOP_MODE: ['常规组', '循环组'],
+        LOAD_STRATEGY: ['恒定', '递增', '递减'],
         COURSE_TYPES: ['力量', '有氧', 'HIIT', '搏击', '普拉提', '瑜伽', '拉伸', '气功', '康复', '冥想', '高尔夫'],
         PAIN_AREAS: ['无', '手腕', '肘部', '肩部', '腰部', '髋部', '膝盖', '脚踝'],
         MISSING_EQUIP: ['健身凳', '瑜伽砖', '泡沫轴', '横杆', '手柄'],
@@ -674,7 +753,8 @@ let DB = [];
         DB = data.map(a => ({
             ...a,
             lastTrained: new Date(Date.now() - Math.random() * 1000000000),
-            isFav: Math.random() > 0.8
+            isFav: Math.random() > 0.8,
+            demoUser1RM: (a.demoUser1RM !== undefined) ? a.demoUser1RM : (a.defaultWeight ? Math.round(a.defaultWeight * 1.5) : (CONSTANTS.ENUMS.ONE_RM[a.part] || 20))
         }));
     }
 })();
@@ -716,6 +796,8 @@ window.UserAbility = {
         for(let k in CONSTANTS.ENUMS.ONE_RM) {
             window.UserAbility.oneRM[k] = Math.round(CONSTANTS.ENUMS.ONE_RM[k] * coeff);
         }
+        // Ensure '全身' exists for fallback
+        window.UserAbility.oneRM['全身'] = Math.round(50 * coeff);
     },
     update: (part, load, reps) => {
         // Epley Formula: 1RM = Weight * (1 + Reps/30)
@@ -1003,8 +1085,16 @@ window.Logic = {
                 const isLoadPriority = !isCapacityPriority;
 
                 // 2. 基准参数计算
-                // 组数：优先使用 selectActions 中 Gap Filling 调整后的组数，否则使用策略基准
-                let sets = a.sets || Math.round(strategy.sets * vCoeff);
+                // 组数：优先使用 selectActions 中 Gap Filling 调整后的组数
+                let algoSets = Math.round(strategy.sets * vCoeff);
+                if (a.extraSets) algoSets += a.extraSets;
+
+                // FIX: Enforce Smart Rec (Reset to algo sets if smart mode is ON)
+                let sets = algoSets;
+                if (!window.store.courseSettings.smartRec && a.sets) {
+                    sets = a.sets;
+                }
+
                 if (phase.type === '热身' || phase.type === '放松') sets = 1;
                 
                 let intensity = strategy.intensity * iCoeff;
@@ -1014,7 +1104,7 @@ window.Logic = {
 
                 if (isLoadPriority) {
                     // 模式 A：负荷优先 (定重量 -> 定次数)
-                    const base1RM = window.UserAbility.oneRM[a.part] || 20; // Use dynamic 1RM
+                    const base1RM = a.demoUser1RM || window.UserAbility.oneRM[a.part] || window.UserAbility.oneRM['全身'] || 20; // Use dynamic 1RM
                     load = Math.round(base1RM * intensity);
                     
                     // 基于强度反推次数 (简单查表模拟)
@@ -1033,8 +1123,13 @@ window.Logic = {
 
                 // Apply Load Strategy (Pyramid etc)
                 let setDetails = [];
-                let activeStrategy = globalStrategy === '推荐' ? strategy.strategy : globalStrategy;
-                if (activeStrategy === '自定义') activeStrategy = '恒定';
+                let activeStrategy;
+                if (window.store.courseSettings.smartRec) {
+                    activeStrategy = strategy.strategy; // Use recommended strategy
+                } else {
+                    activeStrategy = globalStrategy; // Use manual strategy
+                }
+                if (activeStrategy === '推荐') activeStrategy = '递增'; // Fallback mapping if recommendation is generic
 
                 for(let i=0; i<sets; i++) {
                     let sLoad = load;
@@ -1154,6 +1249,22 @@ window.Logic = {
         });
 
         return { prCount };
+    },
+
+    // Helper: Calculate Reps from Load based on 1RM
+    calcRepsFromLoad: (load, oneRM) => {
+        if (!oneRM || oneRM <= 0) return 12;
+        const intensity = load / oneRM;
+        // Simple table lookup for Demo
+        if (intensity >= 1.0) return 1;
+        if (intensity >= 0.95) return 2;
+        if (intensity >= 0.90) return 4;
+        if (intensity >= 0.85) return 6;
+        if (intensity >= 0.80) return 8;
+        if (intensity >= 0.75) return 10;
+        if (intensity >= 0.70) return 12;
+        if (intensity >= 0.60) return 15;
+        return 20;
     }
 };
 
@@ -1168,7 +1279,7 @@ window.store = {
         rhr: 60, fatigue: 3
     },
     activeTab: 'basic',
-    courseSettings: { loopMode: '常规组', loadStrategy: '推荐' },
+    courseSettings: { loopMode: '常规组', loadStrategy: '恒定', smartRec: true },
     flow: null, // 'course' | 'plan'
     step: 0,
     inputs: {},
@@ -2427,9 +2538,13 @@ const App = {
             const ctx = window.Logic.genCourse(inputs);
             document.getElementById('res-title').innerText = `${inputs.type}训练`;
             document.getElementById('res-sub').innerText = `${inputs.duration} | ${inputs.targets} | ${window.store.user.level}`;
-            window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' }; // Reset settings
+            window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: true }; // Reset settings
             window.currentCtx = ctx; // Save context for fine-tuning
             
+            // Set default active phase to '主训'
+            const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
+            window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
+
             App.renderFineTuning(ctx);
             
         } else {
@@ -2505,9 +2620,13 @@ const App = {
         
         const ctx = window.Logic.runPipeline(null, planContext);
         
+        // Set default active phase to '主训'
+        const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
+        window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
+
         document.getElementById('res-title').innerText = `W${week} | ${dayName}`;
         document.getElementById('res-sub').innerText = "计划课程";
-        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' }; // Reset settings
+        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: true }; // Reset settings
         window.currentCtx = ctx;
         
         App.renderFineTuning(ctx);
@@ -2517,44 +2636,111 @@ const App = {
         document.getElementById('btn-back-plan').style.display = 'block';
     },
 
+    toggleSmartRec: () => {
+        window.store.courseSettings.smartRec = !window.store.courseSettings.smartRec;
+        App.recalculateLoadStrategy();
+        App.renderFineTuning(window.currentCtx);
+    },
+
     recalculateLoadStrategy: () => {
         if(!window.currentCtx) return;
         window.currentCtx = window.Logic.instantiate(window.currentCtx);
     },
 
     renderFineTuning: (ctx) => {
-        const resBody = document.getElementById('res-body');
+        const resContent = document.getElementById('res-phase-content');
         const settings = window.store.courseSettings;
         const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
         const unit = window.store.unit || 'kg';
+        const isSmart = settings.smartRec;
 
-        // Top mini bar for Load Strategy (Global)
-        let html = `
-            <div class="ft-mini-bar">
-                <select class="ft-mini-sel" onchange="App.updateGlobalSetting('loadStrategy', this.value)">
-                    ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, settings.loadStrategy)}
-                </select>
-            </div>
-        `;
+        // 1. Render Course Intro
+        const intro = `本课程针对${ctx.meta.targets.join('、')}设计，旨在通过${ctx.meta.type}训练提升${ctx.meta.goal}能力。包含${ctx.phases.map(p=>p.type).join('、')}等完整环节。`;
+        document.getElementById('res-intro').innerText = intro;
 
-        ctx.phases.forEach((p, pIdx) => {
-            // Phase Header with Loop Mode for Main
-            let extra = '';
+        // 2. Render Tabs
+        const tabsHtml = ctx.phases.map((p, idx) => 
+            `<div class="tab ${idx === window.store.activePhaseIdx ? 'active' : ''}" onclick="App.switchPhase(${idx})">${p.type}</div>`
+        ).join('');
+        document.getElementById('res-phase-tabs').innerHTML = tabsHtml;
+
+        // 3. Render Active Phase Content
+        let html = ``;
+
+        const pIdx = window.store.activePhaseIdx;
+        const p = ctx.phases[pIdx];
+        if (p) {
+            let controlsHtml = '';
+            
+            const smartRecHtml = `
+                <div class="control-group" style="margin-right:10px;">
+                    <span class="cg-label">智能推荐</span>
+                    <div class="unit-switch ${isSmart?'lbs':''}" onclick="App.toggleSmartRec()" style="width:36px; height:20px;">
+                        <div class="unit-knob" style="width:16px; height:16px; font-size:0; top:1px; ${isSmart?'left:17px':'left:1px'}"></div>
+                    </div>
+                </div>`;
+
             if (p.type === '主训') {
                 const rest = p.strategy?.rest || 60;
-                const roundRest = 120; // Mock round rest
-                extra = `
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <span style="font-size:10px; color:#888;">组间 ${rest}s</span>
-                        ${settings.loopMode.includes('循环') ? `<span style="font-size:10px; color:#888;">轮间 ${roundRest}s</span>` : ''}
-                        <select class="phase-select" onchange="App.updateGlobalSetting('loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, settings.loopMode)}</select>
-                    </div>`;
+                const disabledAttr = isSmart ? 'disabled style="opacity:0.5; pointer-events:none;"' : '';
+                
+                controlsHtml = `
+                <div class="phase-controls-row">
+                    ${smartRecHtml}
+                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                        <span class="cg-label">负荷</span>
+                        <select class="phase-select" ${disabledAttr} onchange="App.updateGlobalSetting('loadStrategy', this.value)">
+                            ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, settings.loadStrategy)}
+                        </select>
+                    </div>
+                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                        <span class="cg-label">模式</span>
+                        <select class="phase-select" ${disabledAttr} onchange="App.updateGlobalSetting('loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, settings.loopMode)}</select>
+                    </div>
+                    <div class="control-group">
+                        <span class="cg-label">休息</span>
+                        <div class="phase-select-static">${rest}s</div>
+                    </div>
+                </div>`;
+            } else {
+                controlsHtml = `
+                <div class="phase-controls-row">
+                    ${smartRecHtml}
+                </div>`;
             }
+
+            // Phase Intro Text
+            let phaseIntro = '';
+            if (p.type === '热身') phaseIntro = '通过低强度动态动作激活目标肌群，提升核心体温，为正式训练做好准备。';
+            else if (p.type === '主训') phaseIntro = '本课程的核心训练环节，请保持专注，控制动作节奏，感受肌肉发力。';
+            else if (p.type === '放松') phaseIntro = '通过静态拉伸缓解肌肉紧张，促进代谢废物排出，加速身体恢复。';
+
+            // Phase Data
+            let totalSets = 0;
+            p.actions.forEach(a => totalSets += a.sets);
             
-            html += `<div class="phase-header-row">
-                <div class="phase-title">● ${p.type} (${p.duration}min)</div>
-                ${extra}
-            </div>`;
+            const phaseDataSimple = `
+                <div class="phase-meta-simple">
+                    <span style="color:#fff; font-weight:700;">${p.duration} min</span>
+                    <span style="margin:0 8px; color:#333;">|</span>
+                    <span>${p.actions.length} 动作</span>
+                    <span style="margin:0 8px; color:#333;">|</span>
+                    <span>${totalSets} 组</span>
+                </div>
+            `;
+            
+            html += `
+            <div class="phase-header-row" style="align-items:flex-start; margin-bottom:15px;">
+                <div style="flex:1">
+                    ${phaseDataSimple}
+                    <div style="font-size:11px; color:#666; margin-top:6px; line-height:1.4;">${phaseIntro}</div>
+                </div>
+                <button class="ad-add-btn" onclick="App.addAction(${pIdx})" style="margin-top:0; width:auto; padding:6px 12px;">＋ 添加动作</button>
+            </div>
+            
+            ${controlsHtml}
+            
+            <div class="action-list">`;
             
             p.actions.forEach((a, aIdx) => {
                 // Ensure setDetails exists (Safe check)
@@ -2567,7 +2753,7 @@ const App = {
 
                 const isResistance = a.paradigm === '抗阻范式';
                 const isWarmup = p.type === '热身' || p.type === '放松';
-                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || settings.loadStrategy === '计时';
+                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式';
                 const repUnit = isTimeBased ? 's' : '';
 
                 const expanded = a.expanded ? 'block' : 'none';
@@ -2577,28 +2763,69 @@ const App = {
                 const thumb = `<div class="ac-thumb"><i style="font-style:normal; font-size:16px;">📷</i></div>`;
                 
                 // Summary
+                let setDetailsStr = '';
+                if (a.setDetails && a.setDetails.length > 0) {
+                    let vals = [];
+                    let suffix = '';
+                    if (isResistance && !isWarmup && !isTimeBased) {
+                        vals = a.setDetails.map(s => s.load);
+                        suffix = unit;
+                    } else {
+                        vals = a.setDetails.map(s => s.reps);
+                        suffix = repUnit;
+                    }
+                    const showCount = 3;
+                    setDetailsStr = vals.slice(0, showCount).join('/');
+                    if (suffix) setDetailsStr += suffix;
+                    if (vals.length > showCount) setDetailsStr += '...';
+                }
+
                 let summary = '';
                 if (isResistance && !isWarmup && !isTimeBased) {
-                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组 x ${a.reps}</span> <span class="ac-tag">${a.load}${unit}</span>`;
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组 x ${a.reps}</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 } else {
-                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${a.reps}${repUnit}</span>`;
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 }
 
                 // Expanded Body (Sets)
                 let setsHtml = '';
                 a.setDetails.forEach((s, sIdx) => {
+                    // Determine if editable based on Smart Rec and Strategy
+                    let isDisabled = isSmart;
+                    if (!isSmart && !isWarmup && isResistance) {
+                        const strat = settings.loadStrategy;
+                        if (strat === '递增' || strat === '递减') {
+                            // Only first and last sets are editable
+                            if (sIdx > 0 && sIdx < a.setDetails.length - 1) isDisabled = true;
+                        }
+                    }
+                    const disabledStyle = isDisabled ? 'opacity:0.5; pointer-events:none;' : '';
+
+                    const stepperContent = (val, field) => `
+                        <div class="stepper" style="${disabledStyle}">
+                            <div class="step-btn" onclick="window.App.adjustSetData(${pIdx}, ${aIdx}, ${sIdx}, '${field}', -1)">-</div>
+                            <input class="step-input" type="number" value="${val}" onchange="window.App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, '${field}', this.value)">
+                            <div class="step-btn" onclick="window.App.adjustSetData(${pIdx}, ${aIdx}, ${sIdx}, '${field}', 1)">+</div>
+                        </div>
+                    `;
+                    
+                    const stepper = (val, field) => {
+                        // 1. 修复按钮失效：确保 onclick 调用的是 window.App
+                        return (isDisabled && isSmart) ? `<div onclick="window.App.showToast('请关闭智能推荐自定义编辑')">${stepperContent(val, field)}</div>` : stepperContent(val, field);
+                    };
+
                     let inputs = '';
                     if (isResistance && !isWarmup && !isTimeBased) {
                         // Weight & Reps
                         inputs = `
-                            <input class="set-input" type="number" value="${s.load}" onchange="App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, 'load', this.value)"> <span style="color:#666;font-size:10px;">${unit}</span>
+                            ${stepper(s.load, 'load')} <span style="color:#666;font-size:10px;">${unit}</span>
                             <span style="color:#444; margin:0 5px;">x</span>
-                            <input class="set-input" type="text" value="${s.reps}" onchange="App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, 'reps', this.value)">
+                            ${stepper(s.reps, 'reps')} <span style="color:#666;font-size:10px;">次</span>
                         `;
                     } else {
                         // Duration/Reps only
                         inputs = `
-                            <input class="set-input" style="width:80px" type="text" value="${s.reps}" onchange="App.updateSetData(${pIdx}, ${aIdx}, ${sIdx}, 'reps', this.value)"> <span style="color:#666;font-size:10px;">${repUnit}</span>
+                            ${stepper(s.reps, 'reps')} <span style="color:#666;font-size:10px;">${repUnit}</span>
                         `;
                     }
                     
@@ -2606,7 +2833,7 @@ const App = {
                         <div class="set-row">
                             <div class="set-idx">${sIdx+1}</div>
                             ${inputs}
-                            <div class="set-del" onclick="App.removeSet(${pIdx}, ${aIdx}, ${sIdx})">×</div>
+                            <div class="set-del" style="${isSmart?'opacity:0.3;pointer-events:none':''}" onclick="App.removeSet(${pIdx}, ${aIdx}, ${sIdx})">×</div>
                         </div>
                     `;
                 });
@@ -2632,11 +2859,11 @@ const App = {
                             <div class="ae-btn" onclick="App.moveAction(${pIdx}, ${aIdx}, -1)">↑</div>
                             <div class="ae-btn" onclick="App.moveAction(${pIdx}, ${aIdx}, 1)">↓</div>
                             <div class="ae-btn" onclick="App.openLibrary(${pIdx}, ${aIdx})">↻</div>
-                            <div class="ae-btn" style="border:none; background:transparent;">${arrow}</div>
+                            <div class="ae-btn" style="border:none; background:transparent;" id="ac-arrow-${pIdx}-${aIdx}">${arrow}</div>
                         </div>
                     </div>
                     
-                    <div class="ac-body-exp" style="display:${expanded};">
+                    <div class="ac-body-exp" id="ac-body-${pIdx}-${aIdx}" style="display:${expanded};">
                         <div class="set-list">
                             ${setsHtml}
                         </div>
@@ -2645,33 +2872,171 @@ const App = {
                             <span>RPE: ${a.rpe || 8}</span>
                             <span>休息: ${p.strategy?.rest || 60}s</span>
                         </div>
+                        <div class="ac-detail-link" onclick="App.openActionDetail('${a.id}', 'result')">
+                            查看动作详情 >
+                        </div>
                     </div>
                 </div>`;
             });
-            html += `<div class="add-action-btn" onclick="App.addAction(${pIdx})">+ 添加动作</div>`;
-        });
-        resBody.innerHTML = html;
+            html += `</div>`; // End action-list
+        }
+
+        resContent.innerHTML = html;
         App.updateStats();
     },
-    
-    updateSetData: (pIdx, aIdx, sIdx, field, val) => {
-        const action = window.currentCtx.phases[pIdx].actions[aIdx];
-        if (action.setDetails && action.setDetails[sIdx]) {
-            action.setDetails[sIdx][field] = val;
-            if (sIdx === 0) action[field] = val; // Sync summary with first set
-        }
+
+    switchPhase: (idx) => {
+        window.store.activePhaseIdx = idx;
         App.renderFineTuning(window.currentCtx);
+    },
+    
+    adjustSetData: (pIdx, aIdx, sIdx, field, dir) => {
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        const set = action.setDetails[sIdx];
+        const unit = window.store.unit || 'kg';
+        
+        let step = 1;
+        if (field === 'load') step = unit === 'kg' ? 0.5 : 1;
+        else if (field === 'reps') {
+            const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式';
+            step = isTimeBased ? 5 : 1;
+        }
+        
+        let val = parseFloat(set[field]) || 0;
+        val = Math.max(0, val + dir * step);
+        
+        // Rounding
+        if (field === 'load' && unit === 'kg') val = Math.round(val * 2) / 2;
+        else val = Math.round(val);
+        
+        App.updateSetData(pIdx, aIdx, sIdx, field, val);
+    },
+
+    updateSetData: (pIdx, aIdx, sIdx, field, val) => {
+        const phase = window.currentCtx.phases[pIdx];
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        // FIX: Parse Float to prevent string concatenation errors
+        let numVal = parseFloat(val);
+        if (isNaN(numVal)) numVal = 0;
+
+        if (action.setDetails && action.setDetails[sIdx]) {
+            let strat = window.store.courseSettings.loadStrategy;
+            const isSmart = window.store.courseSettings.smartRec;
+            
+            action.setDetails[sIdx][field] = numVal;
+            
+            // Manual Strategy Logic
+            if (!isSmart && field === 'load') {
+                // 4. 自动切换策略逻辑 (Auto-switch Strategy)
+                if (strat === '递增' || strat === '递减') {
+                    const sets = action.setDetails.length;
+                    if (sets >= 2) {
+                        const firstVal = parseFloat(action.setDetails[0].load);
+                        const lastVal = parseFloat(action.setDetails[sets - 1].load);
+                        
+                        let newStrat = strat;
+                        if (firstVal === lastVal) newStrat = '恒定';
+                        else if (firstVal < lastVal) newStrat = '递增';
+                        else if (firstVal > lastVal) newStrat = '递减';
+                        
+                        if (newStrat !== strat) {
+                            window.store.courseSettings.loadStrategy = newStrat;
+                            strat = newStrat;
+                            window.App.showToast(`策略已自动切换为: ${newStrat}`);
+                        }
+                    }
+                }
+
+                if (strat === '恒定') {
+                    // Sync all sets
+                    action.setDetails.forEach(s => s[field] = numVal);
+                } else if (strat === '递增' || strat === '递减') {
+                    // Interpolate if first or last set changed
+                    const sets = action.setDetails.length;
+                    // 3. 实时生效：只要是递增/递减模式，任何时候修改头尾都触发插值
+                    if (sets > 2) {
+                        const startVal = parseFloat(action.setDetails[0][field]);
+                        const endVal = parseFloat(action.setDetails[sets - 1][field]);
+                        
+                        for (let i = 1; i < sets - 1; i++) {
+                            // Linear interpolation
+                            let interpolated = startVal + (endVal - startVal) * (i / (sets - 1));
+                            // Rounding
+                            if (field === 'load') interpolated = Math.round(interpolated * 2) / 2;
+                            else interpolated = Math.round(interpolated);
+                            
+                            action.setDetails[i][field] = interpolated;
+                        }
+                    }
+                }
+                
+                // Real-time Reps Calculation (Requirement 1 & 2)
+                // 1. Update reps when load changes
+                // 2. Do NOT update load when reps change (Implicit by field === 'load' check)
+                const isLoadPriority = (action.paradigm === '抗阻范式' && phase.type === '主训');
+                if (isLoadPriority) {
+                    // FIX: Safe 1RM access with fallback
+                    const base1RM = action.demoUser1RM || window.UserAbility.oneRM[action.part] || window.UserAbility.oneRM['全身'] || 20;
+                    action.setDetails.forEach((s, idx) => {
+                        if (s.load > 0) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                        if (idx === 0) action.reps = s.reps; // Sync summary
+                    });
+                }
+            }
+            
+            if (sIdx === 0) action[field] = numVal; // Sync summary
+        }
+        window.App.renderFineTuning(window.currentCtx);
     },
 
     toggleAction: (pIdx, aIdx) => {
         const action = window.currentCtx.phases[pIdx].actions[aIdx];
         action.expanded = !action.expanded;
-        App.renderFineTuning(window.currentCtx);
+        
+        // DOM Update instead of full re-render to prevent text jumping
+        const body = document.getElementById(`ac-body-${pIdx}-${aIdx}`);
+        const arrow = document.getElementById(`ac-arrow-${pIdx}-${aIdx}`);
+        if (body) body.style.display = action.expanded ? 'block' : 'none';
+        if (arrow) arrow.innerText = action.expanded ? '▲' : '▼';
     },
 
-    switchUnit: (unit) => {
-        window.store.unit = unit;
-        document.getElementById('unit-disp').innerText = unit.toUpperCase();
+    toggleUnit: () => {
+        const current = window.store.unit || 'kg';
+        const next = current === 'kg' ? 'lbs' : 'kg';
+        window.store.unit = next;
+        const sw = document.getElementById('unit-switch');
+        sw.classList.toggle('lbs', next === 'lbs');
+        sw.querySelector('.unit-knob').innerText = next.toUpperCase();
+        
+        // Convert Data
+        if (window.currentCtx && window.currentCtx.phases) {
+            window.currentCtx.phases.forEach(p => {
+                if (p.actions) {
+                    p.actions.forEach(a => {
+                        const convert = (val) => {
+                            if (typeof val !== 'number' || isNaN(val) || val === 0) return val;
+                            return next === 'lbs' ? Math.round(val * 2.20462) : Math.round(val / 2.20462);
+                        };
+                        const convertKg = (val) => Math.round((val / 2.20462) * 2) / 2; // Precision 0.5 for KG
+                        const convertLbs = (val) => Math.round(val * 2.20462); // Precision 1 for LBS
+                        
+                        const doConvert = (v) => {
+                            if (typeof v !== 'number' || isNaN(v)) return v;
+                            return next === 'lbs' ? convertLbs(v) : convertKg(v);
+                        };
+                        
+                        if (typeof a.load === 'number') a.load = doConvert(a.load);
+                        
+                        if (a.setDetails) {
+                            a.setDetails.forEach(s => {
+                                if (typeof s.load === 'number') s.load = doConvert(s.load);
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
         App.renderFineTuning(window.currentCtx);
     },
     
@@ -2716,6 +3081,169 @@ const App = {
         }
     },
 
+    // --- ACTION DETAIL ---
+    openActionDetail: (id, source) => {
+        window.store.detailActionId = id;
+        window.store.detailSource = source;
+        window.store.detailTab = 'intro';
+        
+        const modal = document.getElementById('modal-action-detail');
+        modal.classList.add('active');
+        App.renderActionDetail();
+    },
+
+    closeActionDetail: () => {
+        document.getElementById('modal-action-detail').classList.remove('active');
+    },
+
+    switchDetailTab: (tab) => {
+        window.store.detailTab = tab;
+        App.renderActionDetail();
+    },
+
+    renderActionDetail: () => {
+        const id = window.store.detailActionId;
+        const source = window.store.detailSource;
+        const tab = window.store.detailTab;
+        const action = DB.find(a => a.id === id) || FALLBACK_DB.find(a => a.id === id);
+        if (!action) return;
+
+        // Render Tabs
+        const tabs = ['intro', 'teach', 'history'];
+        const tabNames = {'intro':'简介', 'teach':'教学', 'history':'历史'};
+        document.getElementById('detail-tabs').innerHTML = tabs.map(t => 
+            `<div class="tab ${t===tab?'active':''}" onclick="App.switchDetailTab('${t}')">${tabNames[t]}</div>`
+        ).join('');
+
+        // Render Body
+        let html = '';
+        if (tab === 'intro') {
+            const antagonist = action.antagonist || '无';
+            const synergist = (action.subPart && action.subPart.length) ? action.subPart.join('、') : '无';
+            const stabilizer = '核心肌群';
+
+            let addBtn = '';
+            if (source === 'library') {
+                addBtn = `<button class="ad-add-btn" onclick="App.confirmDetailAdd('${id}')">＋ 添加动作</button>`;
+            }
+
+            html = `
+                <div class="ad-video">
+                    <div style="font-size:12px;">动作演示视频</div>
+                </div>
+                
+                <div class="ad-header">
+                    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
+                        <div class="ad-title" style="margin-bottom:0;">${action.name}</div>
+                        ${addBtn}
+                    </div>
+                    <div class="ad-tags">
+                        <div class="ad-tag">${action.part}</div>
+                        <div class="ad-tag">${action.construct || '复合动作'}</div>
+                        <div class="ad-tag">${action.difficulty}</div>
+                    </div>
+                </div>
+
+                <div class="ad-section">
+                    <div class="ad-sec-title">基本信息</div>
+                    <div class="info-grid">
+                        <div class="info-card"><div class="ic-label">器械</div><div class="ic-val">${action.equip[0]}</div></div>
+                        <div class="info-card"><div class="ic-label">冲击</div><div class="ic-val">${action.impact}</div></div>
+                        <div class="info-card"><div class="ic-label">范式</div><div class="ic-val">${action.paradigm.replace('范式','')}</div></div>
+                    </div>
+                </div>
+
+                <div class="ad-section">
+                    <div class="ad-sec-title">肌群参与</div>
+                    <div class="muscle-map">
+                        <div class="muscle-card"><div class="mc-label">主动肌 (Agonist)</div><div class="mc-val highlight">${action.muscle}</div></div>
+                        <div class="muscle-card"><div class="mc-label">拮抗肌 (Antagonist)</div><div class="mc-val">${antagonist}</div></div>
+                        <div class="muscle-card"><div class="mc-label">辅助肌 (Synergist)</div><div class="mc-val">${synergist}</div></div>
+                        <div class="muscle-card"><div class="mc-label">稳定肌 (Stabilizer)</div><div class="mc-val">${stabilizer}</div></div>
+                    </div>
+                </div>
+
+                <div class="ad-section">
+                    <div class="ad-sec-title">动作说明</div>
+                    <div class="desc-box">
+                        ${action.name}是一个经典的${action.part}训练动作，主要针对${action.muscle}进行强化。通过${action.construct || '复合'}运动模式，能够有效提升${action.func.join('与')}能力。适合${action.difficulty}及以上水平训练者。
+                    </div>
+                </div>
+            `;
+        } else if (tab === 'teach') {
+            html = `
+                <div class="ad-video">
+                    <div style="font-size:12px;">教学讲解视频</div>
+                </div>
+                <div class="ad-section">
+                    <div class="ad-sec-title">动作要点</div>
+                    <ul style="font-size:13px; color:#ccc; padding-left:20px; margin-bottom:20px; line-height:1.8;">
+                        <li>保持核心收紧，背部挺直，避免脊柱过度伸展。</li>
+                        <li>动作过程中控制速度，离心阶段（下放）控制在2-3秒。</li>
+                        <li>呼吸配合：发力时呼气，还原时吸气。</li>
+                        <li>注意力集中在${action.muscle}的收缩感上。</li>
+                    </ul>
+                </div>
+                <div class="ad-section">
+                    <div class="ad-sec-title" style="color:var(--danger);">常见错误</div>
+                    <ul style="font-size:13px; color:#ccc; padding-left:20px; line-height:1.8;">
+                        <li>耸肩或含胸，导致斜方肌代偿。</li>
+                        <li>关节锁死，增加关节压力。</li>
+                        <li>重量过大导致动作变形，借力明显。</li>
+                    </ul>
+                </div>
+            `;
+        } else if (tab === 'history') {
+            // Mock History Data
+            const historyData = [
+                { date: '10-01', vol: 1200 }, { date: '10-05', vol: 1350 }, { date: '10-10', vol: 1400 },
+                { date: '10-15', vol: 1300 }, { date: '10-20', vol: 1500 }, { date: '10-25', vol: 1600 }
+            ];
+            const rmTrend = [20, 22, 22, 25, 25, 28];
+            
+            html = `
+                <div class="ad-section">
+                    <div class="ad-sec-title">预估 1RM 趋势</div>
+                    <div style="background:#1a1a1a; height:150px; border-radius:8px; display:flex; align-items:flex-end; justify-content:space-around; padding:10px; border:1px solid #333;">
+                        ${rmTrend.map(h => `<div style="width:10%; background:var(--primary); height:${h*3}px; border-radius:2px 2px 0 0; opacity:0.8;"></div>`).join('')}
+                    </div>
+                </div>
+                <div class="ad-section">
+                    <div class="ad-sec-title">近期变化</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                        <div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">近1周</div><div style="color:var(--primary); font-weight:700;">+2%</div></div>
+                        <div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">近1月</div><div style="color:var(--primary); font-weight:700;">+5%</div></div>
+                        <div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">近3月</div><div style="color:var(--primary); font-weight:700;">+12%</div></div>
+                    </div>
+                </div>
+                <div class="ad-section">
+                    <div class="ad-sec-title">训练记录</div>
+                    ${historyData.map(h => `<div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #222; font-size:13px;"><span style="color:#888;">${h.date}</span><span style="font-weight:600;">${h.vol} kg</span></div>`).join('')}
+                </div>
+            `;
+        }
+        document.getElementById('action-detail-body').innerHTML = html;
+
+        // Footer Button
+        document.getElementById('action-detail-footer').style.display = 'none';
+    },
+
+    confirmDetailAdd: (id) => {
+        const state = window.store.replaceState;
+        if (!state.selectedIds) state.selectedIds = [];
+        
+        // If in single replace mode, confirm immediately
+        if (state.mode === 'replace') {
+             state.selectedIds = [id];
+             App.confirmReplace();
+        } else {
+             // In add mode, just refresh list to show checkmark
+             if (!state.selectedIds.includes(id)) state.selectedIds.push(id);
+             App.renderLibraryList(); 
+        }
+        App.closeActionDetail();
+    },
+
     // --- ACTION LIBRARY & REPLACE ---
     addAction: (pIdx) => {
         window.store.replaceState = { pIdx, mode: 'add' };
@@ -2724,7 +3252,7 @@ const App = {
         if (window.currentCtx && window.currentCtx.meta && window.currentCtx.meta.targets && window.currentCtx.meta.targets.length > 0) {
             defaultPart = window.currentCtx.meta.targets[0];
         }
-        window.store.libFilter = { part: defaultPart, tag: '全部' };
+        window.store.libFilter = { part: defaultPart, equip:[], difficulty:[], impact:[], showPanel: false };
         App.renderLibraryFilters();
         App.renderLibraryList();
         App.switchView('view-library');
@@ -2735,7 +3263,7 @@ const App = {
         const currentAction = window.currentCtx.phases[pIdx].actions[aIdx];
         
         // Init Filters
-        window.store.libFilter = { part: currentAction.part, tag: '全部' };
+        window.store.libFilter = { part: currentAction.part, equip:[], difficulty:[], impact:[], showPanel: false };
         App.renderLibraryFilters();
         App.renderLibraryList();
         
@@ -2749,10 +3277,35 @@ const App = {
 
     renderLibraryFilters: () => {
         const parts = ['全部', ...CONSTANTS.PARTS];
-        const html = parts.map(p => 
-            `<div class="lib-filter-tag ${p === window.store.libFilter.part ? 'active' : ''}" onclick="App.setLibFilter('part', '${p}')">${p}</div>`
+        const { part, showPanel } = window.store.libFilter;
+        
+        const tabsHtml = parts.map(p => 
+            `<div class="lib-filter-tag ${p === part ? 'active' : ''}" onclick="App.setLibFilter('part', '${p}')">${p}</div>`
         ).join('');
-        document.getElementById('lib-parts').innerHTML = html;
+        
+        const toggleHtml = `
+            <div class="lib-filter-toggle ${showPanel ? 'active' : ''}" onclick="App.toggleLibFilterPanel()">
+                <i style="font-style:normal; font-size:14px;">≡</i>
+            </div>
+        `;
+        
+        document.getElementById('lib-parts').innerHTML = `<div class="lib-tags-container">${tabsHtml}</div>${toggleHtml}`;
+
+        // Render Panel
+        let panel = document.getElementById('lib-filter-panel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'lib-filter-panel';
+            panel.className = 'lib-filter-panel';
+            document.getElementById('lib-parts').after(panel);
+        }
+        
+        if (showPanel) {
+            panel.classList.add('active');
+            App.renderFilterPanelContent(panel);
+        } else {
+            panel.classList.remove('active');
+        }
     },
 
     setLibFilter: (key, val) => {
@@ -2761,31 +3314,99 @@ const App = {
         App.renderLibraryList();
     },
 
+    toggleLibFilterPanel: () => {
+        window.store.libFilter.showPanel = !window.store.libFilter.showPanel;
+        App.renderLibraryFilters();
+    },
+
+    renderFilterPanelContent: (container) => {
+        const f = window.store.libFilter;
+        const renderSec = (label, key, opts) => `
+            <div class="filter-sec">
+                <div class="filter-label">${label}</div>
+                <div class="filter-chips">
+                    ${opts.map(o => `
+                        <div class="f-chip ${(f[key]||[]).includes(o) ? 'active' : ''}" onclick="App.toggleLibFilterOpt('${key}', '${o}')">${o}</div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        
+        const equips = ['自重', '横杆', '手柄', '健身凳', '泡沫轴', '哑铃'];
+        const diffs = ['L1', 'L2', 'L3', 'L4', 'L5'];
+        const impacts = ['无冲击', '低冲击', '高冲击'];
+        
+        container.innerHTML = 
+            renderSec('器械', 'equip', equips) +
+            renderSec('难度', 'difficulty', diffs) +
+            renderSec('冲击', 'impact', impacts) +
+            `<div class="filter-btn-row">
+                <div class="f-chip" onclick="App.resetLibFilters()">重置</div>
+                <div class="f-chip active" onclick="App.toggleLibFilterPanel()">收起</div>
+            </div>`;
+    },
+
+    toggleLibFilterOpt: (key, val) => {
+        const arr = window.store.libFilter[key] || [];
+        const idx = arr.indexOf(val);
+        if (idx > -1) arr.splice(idx, 1);
+        else arr.push(val);
+        window.store.libFilter[key] = arr;
+        App.renderLibraryFilters();
+        App.renderLibraryList();
+    },
+    
+    resetLibFilters: () => {
+        window.store.libFilter.equip = [];
+        window.store.libFilter.difficulty = [];
+        window.store.libFilter.impact = [];
+        App.renderLibraryFilters();
+        App.renderLibraryList();
+    },
+
     renderLibraryList: () => {
-        const { part } = window.store.libFilter;
+        const { part, equip, difficulty, impact } = window.store.libFilter;
         let list = DB;
         
-        if (part !== '全部') {
-            list = list.filter(a => a.part === part);
+        if (part !== '全部') list = list.filter(a => a.part === part);
+        if (equip && equip.length) list = list.filter(a => a.equip.some(e => equip.includes(e)));
+        if (difficulty && difficulty.length) list = list.filter(a => difficulty.includes(a.difficulty));
+        if (impact && impact.length) list = list.filter(a => impact.includes(a.impact));
+        
+        // Grouping by Function (Secondary Category)
+        const groups = {};
+        list.forEach(a => {
+            const func = (a.func && a.func.length) ? a.func[0] : '其他';
+            if (!groups[func]) groups[func] = [];
+            groups[func].push(a);
+        });
+        
+        let html = '';
+        if (list.length === 0) {
+            html = `<div style="text-align:center; color:#666; padding:20px;">无匹配动作</div>`;
+        } else {
+            Object.keys(groups).sort().forEach(gName => {
+                html += `<div class="lib-group-title">${gName}</div>`;
+                html += groups[gName].map(a => {
+                    const isSelected = (window.store.replaceState.selectedIds || []).includes(a.id);
+                    return `
+                    <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.openActionDetail('${a.id}', 'library')">
+                        <div class="lib-info">
+                            <div class="lib-name">${a.name}</div>
+                            <div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div>
+                        </div>
+                        <div class="lib-check-area" onclick="event.stopPropagation(); App.selectLibAction('${a.id}')">
+                            <div class="lib-check"></div>
+                        </div>
+                    </div>`;
+                }).join('');
+            });
         }
-        
-        // Simple scoring/sorting could go here
-        
-        const html = list.map(a => {
-            const isSelected = (window.store.replaceState.selectedIds || []).includes(a.id);
-            return `
-            <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.selectLibAction('${a.id}')">
-                <div class="lib-info">
-                    <div class="lib-name">${a.name}</div>
-                    <div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div>
-                </div>
-                <div class="lib-check"></div>
-            </div>`;
-        }).join('');
         document.getElementById('lib-list').innerHTML = html;
     },
 
     selectLibAction: (id) => {
+        // Used internally by confirmDetailAdd now
         const state = window.store.replaceState;
         if (!state.selectedIds) state.selectedIds = [];
         
