@@ -1,0 +1,54 @@
+/* CHAT */
+.chat-header { position: absolute; top: 0; left: 0; width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 20; background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%); pointer-events: none; }
+.chat-header > * { pointer-events: auto; }
+.chat-back { color: #fff; font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer; opacity: 0.8; }
+.ai-status-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 10px var(--primary); animation: pulse 2s infinite; margin-right: 8px; display: inline-block; }
+.chat-title { font-size: 14px; font-weight: 600; color: #fff; display: flex; align-items: center; pointer-events: none; opacity: 1; transition: opacity 0.3s; }
+
+.chat-container { position: relative; flex: 1; padding: 0 20px; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; gap: 20px; padding-top: 100px; padding-bottom: 40vh; margin-top: 24vh; height: auto; mask-image: linear-gradient(to bottom, transparent 0px, black 80px); -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 80px); }
+.chat-container::-webkit-scrollbar { width: 4px; }
+.chat-container::-webkit-scrollbar-track { background: transparent; }
+.chat-container::-webkit-scrollbar-thumb { background: transparent; border-radius: 2px; transition: background-color 0.3s; }
+.chat-container.scrolling::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); }
+
+.chat-summary { position: absolute; bottom: 140px; left: 0; width: 100%; padding: 0 20px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; z-index: 25; pointer-events: none; }
+.summary-tag { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 11px; color: #ccc; backdrop-filter: blur(5px); animation: fadeIn 0.5s; }
+.chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; animation: slideUp 0.4s var(--ease-out); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.chat-ai { background: #1a1a1a; color: #eee; border-bottom-left-radius: 4px; align-self: flex-start; border: 1px solid #333; }
+.chat-user { background: var(--primary); color: #000; border-bottom-right-radius: 4px; align-self: flex-end; font-weight: 600; }
+.chat-user.interim { background: rgba(50, 196, 140, 0.2); color: #fff; border: 1px solid var(--primary); }
+.keyword-highlight { color: #fff; background: rgba(0,0,0,0.2); padding: 0 4px; border-radius: 4px; }
+
+.chat-typing { padding: 15px 20px; background: #1a1a1a; border: 1px solid #333; border-radius: 18px; border-bottom-left-radius: 4px; align-self: flex-start; display: flex; gap: 4px; align-items: center; height: 46px; width: 70px; animation: slideUp 0.3s var(--ease-out); margin-bottom: 10px; margin-top: auto; }
+.typing-dot { width: 6px; height: 6px; background: #666; border-radius: 50%; animation: typingBounce 1.4s infinite ease-in-out both; }
+.typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typingBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+.input-area { position: absolute; bottom: 0; left: 0; width: 100%; padding: 0 20px 40px 20px; background: linear-gradient(to top, #000 0%, transparent 100%); pointer-events: none; display: flex; justify-content: center; z-index: 30; }
+.input-area > * { pointer-events: auto; }
+.options-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.opt-chip { padding: 8px 16px; background: rgba(50, 196, 140, 0.1); border: 1px solid rgba(50, 196, 140, 0.3); border-radius: 20px; font-size: 13px; color: #fff; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 60px; }
+.opt-chip:hover { background: rgba(50, 196, 140, 0.2); }
+.opt-chip.active { background: var(--primary); color: #000; font-weight: 600; border-color: var(--primary); }
+.opt-chip:active { transform: scale(0.95); }
+.opt-chip.confirm { background: var(--primary); color: #000; font-weight: 700; border-color: var(--primary); width: auto; min-width: 120px; justify-content: center; }
+.opt-chip.recommend { background: var(--primary); color: #000; font-weight: 700; border-color: var(--primary); }
+.opt-chip.secondary { background: rgba(255,255,255,0.1); color: #ccc; border-color: #444; }
+.active-voice-click { transform: scale(0.95); box-shadow: 0 0 15px var(--primary); border-color: var(--primary); }
+
+.mic-btn { width: 64px; height: 64px; border-radius: 50%; background: rgba(30,30,30,0.8); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; cursor: pointer; border: 1px solid #444; transition: 0.2s; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); z-index: 50; }
+.mic-btn.listening { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 30px var(--primary-glow); animation: pulse-mic 1.5s infinite; }
+@keyframes pulse-mic { 0% { box-shadow: 0 0 0 0 rgba(50, 196, 140, 0.7); transform: scale(1); } 50% { box-shadow: 0 0 0 15px rgba(50, 196, 140, 0); transform: scale(1.05); } 100% { box-shadow: 0 0 0 0 rgba(50, 196, 140, 0); transform: scale(1); } }
+.chat-slider-box { background: var(--bg-card); padding: 15px; border-radius: 12px; width: 100%; margin-top: 10px; border: 1px solid #333; animation: slideUp 0.3s; align-self: flex-end; }
+.chat-sub-text { font-size: 10px; margin-top: 2px; opacity: 0.8; }
+.chat-history-dim { opacity: 0.4; transition: opacity 0.5s; }
+.options-grid.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; gap: 8px; }
+.options-grid.cols-4 .opt-chip { padding: 8px 4px; min-width: auto; }
+
+/* REASONING */
+.reasoning-center { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 45vh; justify-content: flex-start; }
+.log-container { width: 280px; display: flex; flex-direction: column; gap: 12px; }
+.log-item { font-size: 13px; color: #666; display: flex; align-items: center; gap: 12px; opacity: 0; animation: slideInUp 0.4s forwards; }
+.log-item.active { color: #fff; font-weight: 600; transform: scale(1.02); transition: 0.3s; }
+.log-item.done { color: var(--primary); opacity: 0.8; }
+.log-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }

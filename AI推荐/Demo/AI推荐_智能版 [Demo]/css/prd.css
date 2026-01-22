@@ -1,0 +1,96 @@
+/* PRD Dynamic Annotation Layer */
+#prd-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+    font-family: "PingFang SC", sans-serif;
+}
+
+.prd-note {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    line-height: 1.5;
+    width: 260px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(50, 196, 140, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    pointer-events: auto; /* Allow interaction if needed */
+}
+
+.prd-note h4 {
+    color: var(--primary);
+    margin: 0 0 6px 0;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.prd-note h4::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--primary);
+}
+
+.prd-svg-container {
+    width: 100%;
+    height: 100%;
+}
+
+.prd-line {
+    stroke: var(--primary);
+    stroke-width: 1;
+    stroke-opacity: 0.5;
+    fill: none;
+    /* Solid line for technical look, or keep dash if preferred. User said "折线" (polyline), usually implies solid or simple dash. */
+    stroke-dasharray: 3 3;
+}
+
+.prd-dot {
+    fill: var(--primary);
+    filter: drop-shadow(0 0 4px var(--primary));
+}
+
+/* Hide on small screens where there is no whitespace */
+@media (max-width: 900px) {
+    #prd-layer {
+        display: none;
+    }
+}
+
+/* PRD Toggle Button */
+#prd-toggle-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    background: #333;
+    color: #888;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #444;
+    transition: 0.2s;
+}
+#prd-toggle-btn.active {
+    background: var(--primary);
+    color: #000;
+    border-color: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 0 15px rgba(50, 196, 140, 0.4);
+}

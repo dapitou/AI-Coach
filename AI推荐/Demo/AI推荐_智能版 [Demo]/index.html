@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AEKE AI Coach - Smart Edition V27.0</title>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/prd.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/modules/home.css">
+    <link rel="stylesheet" href="css/modules/chat.css">
+    <link rel="stylesheet" href="css/modules/result.css">
+    <link rel="stylesheet" href="css/modules/library.css">
+    <link rel="stylesheet" href="css/modules/workout.css">
+</head>
+<body>
+
+<!-- PRD TOGGLE (Fixed Top Right) -->
+<div id="prd-toggle-btn" onclick="window.PRD.toggle()">PRD 引注: OFF</div>
+
+<div id="app">
+    
+    <div id="home-bg-layer"></div>
+
+    <!-- GLOBAL AI AVATAR -->
+    <div class="siri-container">
+        <div class="siri-blob"></div>
+        <div class="siri-blob"></div>
+        <div class="siri-blob"></div>
+        <div class="orbit-ring r1"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring r2"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring r3"><div class="orbit-dot"></div></div>
+    </div>
+
+    <!-- START TRIGGER -->
+    <div id="home-start-btn" onclick="window.App.startSession()">
+        <i style="font-size:40px; font-style:normal; display:block; margin-bottom:10px; filter:grayscale(1);">🎙️</i>
+        <div style="font-size:16px; font-weight:600; color:var(--primary);">点击开启麦克风权限</div>
+        <div style="font-size:12px; color:#666; margin-top:5px;">激活 AI 智能教练</div>
+        <div style="font-size:10px; color:#444; margin-top:10px; font-family:monospace;">V27.0</div>
+    </div>
+
+    <!-- VIEW 1: HOME -->
+    <div id="view-home" class="view active">
+        <div class="home-top" style="justify-content: flex-end; padding-bottom: 120px;">            
+            <div id="home-active-content" class="hidden" style="width:100%; display:flex; flex-direction:column; align-items:center; animation: slideUp 0.5s; z-index: 10;">
+                <div class="ai-greeting">Hi，我是AEKE 私人教练<br><span style="font-size:16px; font-weight:400; color:#888; margin-top:10px; display:block;">帮你定制专属运动方案</span></div>
+                <div id="home-subtitle"></div>
+                
+                <div class="action-buttons">
+                    <div class="big-btn" onclick="App.startFlow('course')">
+                        <i>⚡️</i><span>给我一节课</span>
+                    </div>
+                    <div class="big-btn" onclick="App.startFlow('plan')">
+                        <i>📅</i><span>给我一份计划</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="home-bottom hidden" id="profile-card">
+            <div class="profile-header">
+                <div class="profile-title">我的运动档案</div>
+                <div class="edit-btn" onclick="App.openProfile()">修改 ></div>
+            </div>
+            <div class="profile-grid" id="profile-display"></div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: CHAT WIZARD -->
+    <div id="view-chat" class="view">
+        <div class="chat-header">
+            <div class="chat-back" onclick="App.reset()">✕ 退出</div>
+            <div class="chat-title"><div class="ai-status-dot"></div>AI Coach</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="chat-container" id="chat-history"></div>
+        <div class="chat-summary" id="chat-summary"></div>
+        <div class="input-area">
+            <div class="mic-btn" id="mic-btn" onclick="App.toggleMicState()">
+                <i style="font-style:normal; font-size:24px;">🎙️</i>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: REASONING -->
+    <div id="view-reasoning" class="view">
+        <div class="reasoning-center">
+            <div class="log-container" id="reasoning-log"></div>
+        </div>
+    </div>
+
+    <!-- VIEW 4: RESULT (COURSE/PLAN) -->
+    <div id="view-result" class="view">
+        <div class="result-header" style="height: 40px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div id="btn-back-plan" style="display:none; cursor:pointer; color:var(--primary); font-size: 18px;" onclick="App.showResult()">←</div>
+                <div id="btn-close-result" style="cursor:pointer; color:#fff; font-size: 18px;" onclick="App.reset()">✕</div>
+                <div class="result-title-box" style="text-align: left; margin-left: 2px;">
+                    <div class="result-title" id="res-title" style="font-size: 15px; line-height: 1.1;">--</div>
+                    <div class="result-sub" id="res-sub" style="font-size: 10px; opacity: 0.7;">--</div>
+                </div>
+            </div>
+            <div class="unit-switch" id="unit-switch" onclick="App.toggleUnit()" style="transform: scale(0.9);">
+                <div class="unit-knob">KG</div>
+            </div>
+        </div>
+        <div class="result-body" id="res-body" style="padding-top: 0;">
+            <!-- Plan List Container -->
+            <div id="res-plan-list" style="display:none;"></div>
+            
+            <!-- Course Content Container -->
+            <div id="res-course-content">
+                <div id="res-intro" class="course-intro" style="margin: 5px 15px; font-size: 12px; line-height: 1.4;"></div>
+                <div class="stats-bar" id="res-stats" style="margin: 5px 15px; padding: 8px 12px; min-height: auto;">
+                    <div>时长 <span class="stat-val" id="st-time">--</span></div>
+                    <div>动作 <span class="stat-val" id="st-count">--</span></div>
+                    <div>容量 <span class="stat-val" id="st-vol">--</span></div>
+                    <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+                </div>
+                <div class="tabs" id="res-phase-tabs" style="position:sticky; top:0; z-index:10; background:#000; margin-bottom:0; border-bottom:1px solid #222;"></div>
+                <div id="res-phase-content" style="padding: 10px 0;"></div>
+            </div>
+        </div>
+        <div class="bottom-bar">
+            <button class="btn-icon" onclick="App.reset()">↺</button>
+            <button class="btn-full" id="btn-main-action">开始训练</button>
+        </div>
+    </div>
+
+    <!-- VIEW 5: ACTION LIBRARY -->
+    <div id="view-library" class="view">
+        <div class="result-header" style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; position: relative;">
+            <div class="chat-back" onclick="App.closeLibrary()" style="font-size: 15px; color: #fff; cursor: pointer; z-index: 2;">取消</div>
+            <div class="result-title" style="font-size:16px; font-weight: 600; position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;">动作库</div>
+            <div style="color:var(--primary); font-weight:600; cursor:pointer; font-size: 15px; z-index: 2;" onclick="App.confirmReplace()">确认</div>
+        </div>
+        <div class="lib-filters" id="lib-parts"></div>
+        <div class="lib-body" id="lib-list"></div>
+    </div>
+
+    <!-- VIEW 7: WORKOUT EXECUTION -->
+    <div id="view-workout" class="view">
+        <div class="workout-container">
+            <div class="wk-header">
+                <div style="display:flex; align-items:center;">
+                    <div class="wk-phase-tag" id="wk-phase-name">主训</div>
+                    <div id="wk-total-time" style="font-family:monospace; font-variant-numeric: tabular-nums;">00:00</div>
+                </div>
+                <div style="cursor:pointer;" onclick="App.openConfirmModal('确定要结束训练吗？', () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕ 结束</div>
+            </div>
+            
+            <!-- Action List Overlay -->
+            <div class="wk-action-list-overlay" id="wk-action-list">
+                <div class="wk-al-header" onclick="window.ViewWorkout.toggleActionList()">
+                    <div>
+                        <div class="wk-al-current" id="wk-al-name">--</div>
+                        <div class="wk-al-set" id="wk-al-set">Set 1/4</div>
+                    </div>
+                    <div style="font-size:10px; color:#888;">▼</div>
+                </div>
+                <div class="wk-al-body" id="wk-al-body"></div>
+            </div>
+
+            <div class="wk-video-area">
+                <div class="wk-video-placeholder">VIDEO LIVE STREAM</div>
+                
+                <div class="wk-overlay-info">
+                    <!-- Info moved to top left overlay -->
+                </div>
+
+                <!-- Count Overlay -->
+                <div class="wk-countdown-overlay" id="wk-overlay-cnt" style="display:none;">
+                    <div style="color:#fff; font-size:20px; margin-bottom:20px;">准备开始</div>
+                    <div class="wk-count-num" id="wk-cnt-num">3</div>
+                </div>
+
+                <!-- Rest Overlay -->
+                <div class="wk-rest-overlay" id="wk-overlay-rest" style="display:none;">
+                    <div style="color:#888; font-size:16px;">休息一下</div>
+                    <div class="wk-count-num" id="wk-rest-time" style="color:#fff;">30</div>
+                    <div class="sim-btn" onclick="window.ViewWorkout.nextSet()" style="margin-top:20px; padding:10px 30px; font-size:14px;">跳过休息</div>
+                </div>
+            </div>
+
+            <div class="wk-dashboard">
+                <!-- Left: Power Chart -->
+                <div class="wk-dash-col">
+                    <div class="wk-chart-title">实时功率 (W)</div>
+                    <canvas id="wk-power-chart" class="wk-chart-canvas"></canvas>
+                </div>
+
+                <!-- Center: Weight Dial -->
+                <div class="wk-dash-center">
+                    <div class="wk-dial-wrapper" id="wk-dial-wrapper">
+                        <svg class="wk-dial-svg" viewBox="0 0 100 100">
+                            <path class="wk-dial-track" d="M 20 80 A 40 40 0 1 1 80 80" />
+                            <path class="wk-dial-progress" id="wk-dial-progress" d="M 20 80 A 40 40 0 1 1 80 80" stroke-dasharray="200" stroke-dashoffset="200" />
+                        </svg>
+                        <div class="wk-dial-info">
+                            <div class="wk-dial-val" id="wk-dial-val">20.0</div>
+                            <div class="wk-dial-unit">KG</div>
+                        </div>
+                    </div>
+                    <div class="wk-dial-controls">
+                        <div class="wk-dial-btn" onclick="window.ViewWorkout.adjustWeight(-0.5)">-</div>
+                        <div class="wk-dial-btn" onclick="window.ViewWorkout.adjustWeight(0.5)">+</div>
+                    </div>
+                </div>
+                
+                <!-- Right: Stroke Curve -->
+                <div class="wk-dash-col">
+                    <div class="wk-chart-title">行程曲线 (cm)</div>
+                    <canvas id="wk-stroke-chart" class="wk-chart-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Simulation Tools (Fixed) -->
+        <div class="sim-controls">
+            <div class="sim-btn" onclick="window.ViewWorkout.simRep()">+1 次数</div>
+            <div class="sim-btn" onclick="window.ViewWorkout.simTime()">>> 时间</div>
+            <div class="sim-btn" onclick="window.ViewWorkout.simPower()">⚡ 爆发</div>
+        </div>
+    </div>
+
+    <!-- VIEW 6: SCHEDULE -->
+    <div id="view-schedule" class="view">
+        <div class="chat-header">
+            <div class="chat-back" onclick="App.switchView('view-home')">✕ 关闭</div>
+            <div class="chat-title">训练日程</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="result-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
+            <i style="font-size:64px; margin-bottom:20px; font-style:normal;">📅</i>
+            <div style="font-size:18px; font-weight:700; margin-bottom:10px;">日程已创建</div>
+            <div style="font-size:13px; color:#888;">您的训练计划已加入日程表</div>
+        </div>
+    </div>
+
+    <!-- VIEW 8: SUMMARY -->
+    <div id="view-summary" class="view">
+        <div class="result-header">
+            <div class="chat-back" onclick="App.reset()">✕ 关闭</div>
+            <div class="chat-title">运动结算</div>
+            <div style="width: 60px;"></div>
+        </div>
+        <div class="result-body">
+            <div class="summary-hero">
+                <div style="font-size:14px; color:#888;">本次运动得分</div>
+                <div class="sum-big-score">92</div>
+                <div style="font-size:12px; color:var(--primary);">状态极佳，再接再厉！</div>
+            </div>
+            <div class="sum-grid">
+                <div class="sum-card"><div style="color:#888; font-size:12px;">总时长</div><div style="font-size:24px; font-weight:700;" id="sum-time">--</div></div>
+                <div class="sum-card"><div style="color:#888; font-size:12px;">消耗(kcal)</div><div style="font-size:24px; font-weight:700;" id="sum-cal">--</div></div>
+            </div>
+            <div style="padding:20px;"><button class="btn-full" onclick="App.reset()">完成</button></div>
+        </div>
+    </div>
+
+    <!-- MODALS & DIALOGS -->
+    <div id="modal-profile" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">修改档案</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.saveProfile()">保存</div>
+        </div>
+        <div class="tabs">
+            <div class="tab active" onclick="App.switchTab('basic')">基础</div>
+            <div class="tab" onclick="App.switchTab('pref')">偏好</div>
+            <div class="tab" onclick="App.switchTab('goal')">目标</div>
+        </div>
+        <div class="modal-body" id="profile-form"></div>
+    </div>
+
+    <div id="modal-schedule" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">确认训练日</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.confirmSchedule()">确认</div>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:15px; font-size:13px; color:#888;">请确认您的每周训练安排：</div>
+            <div class="options-grid" id="schedule-days-list"></div>
+        </div>
+    </div>
+    
+    <div id="modal-action-detail" class="modal">
+        <div class="modal-header">
+            <div style="font-size:16px; font-weight:700;">动作详情</div>
+            <div style="color:#888; cursor:pointer;" onclick="App.closeActionDetail()">✕</div>
+        </div>
+        <div class="tabs" id="detail-tabs"></div>
+        <div class="modal-body" id="action-detail-body"></div>
+        <div class="bottom-bar" id="action-detail-footer" style="display:none; padding:15px 20px;"></div>
+    </div>
+
+    <div id="dialog-confirm" class="dialog-overlay">
+        <div class="dialog-box">
+            <div class="dialog-title">提示</div>
+            <div class="dialog-msg" id="dialog-msg">--</div>
+            <div class="dialog-btns">
+                <button class="dialog-btn cancel" onclick="App.closeConfirmModal()">取消</button>
+                <button class="dialog-btn confirm" id="dialog-confirm-btn">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="js/data/constants.js"></script>
+<script src="js/data/config.js"></script>
+<script src="js/data/text-variants.js"></script>
+<script src="js/data/database.js"></script>
+<script src="js/core/store.js"></script>
+<script src="js/core/user-ability.js"></script>
+<script src="js/core/phase-engine.js"></script>
+<script src="js/core/logic.js"></script>
+<script src="js/modules/voice.js"></script>
+<script src="js/modules/ui-utils.js"></script>
+<script src="js/modules/view-home.js"></script>
+<script src="js/modules/view-chat.js"></script>
+<script src="js/modules/view-reasoning.js"></script>
+<script src="js/modules/view-result.js"></script>
+<script src="js/modules/view-library.js"></script>
+<script src="js/modules/view-workout.js"></script>
+<script src="js/app.js"></script>
+<script src="js/modules/prd-annotations.js"></script>
+
+</body>
+</html>
