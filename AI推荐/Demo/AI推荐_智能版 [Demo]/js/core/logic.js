@@ -385,7 +385,10 @@ window.Logic = {
         // Fallback to frequency match only if specific goal/gender match fails
         if (!template) template = CONFIG.TEMPLATES.find(t => t.freq === freq) || CONFIG.TEMPLATES[0]; // Default to first if no freq match (unlikely with 1-5 covered)
 
-        const phaseSchedule = window.PhaseEngine.generateSchedule(weeks);
+        // 2. Select Periodization Model based on User Level
+        // Decoupled from user level, default to Linear
+        const pModel = input.periodization || '线性周期';
+        const phaseSchedule = window.PhaseEngine.generateSchedule(weeks, pModel);
         const schedule = [];
         
         // Map template slots to days
@@ -404,6 +407,7 @@ window.Logic = {
                 week: w,
                 phase: pParams.name,
                 intensity: pParams.intensity,
+                volume: pParams.volume || 1.0, // 修复：透传容量系数，支持线性/波浪周期
                 days: []
             };
             

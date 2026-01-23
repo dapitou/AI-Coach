@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AEKE AI Operations Backend</title>
+    <title>AEKE AI 运营后台</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-dark: #0f1012;
@@ -68,6 +70,8 @@
         .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: #000; font-weight: 600; }
         .btn-primary:hover { background: #00c853; }
+        .btn-secondary { background: #333; color: #fff; border: 1px solid #444; }
+        .btn-secondary:hover { background: #444; border-color: #666; }
         .btn-text { background: transparent; color: var(--primary); padding: 0; }
         .btn-danger { background: transparent; color: var(--danger); padding: 0; }
         .btn-warn { background: transparent; color: #ffab00; padding: 0; }
@@ -121,6 +125,13 @@
         .tree-node { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; margin-top: 5px; }
         .tree-header { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
         .tree-label { font-weight: 600; color: #ddd; font-size: 12px; }
+
+        /* TOOLTIPS */
+        .field-label-wrapper { display: flex; align-items: center; gap: 6px; position: relative; cursor: help; width: fit-content; }
+        .field-tooltip-icon { width: 14px; height: 14px; background: #333; color: #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: help; }
+        .field-tooltip-content { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: rgba(20,20,20,0.95); border: 1px solid #444; padding: 8px 12px; border-radius: 4px; width: max-content; max-width: 240px; color: #ddd; font-size: 12px; display: none; z-index: 1000; white-space: normal; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,0.5); margin-bottom: 8px; text-align: left; pointer-events: none; font-weight: normal; }
+        .field-label-wrapper:hover .field-tooltip-content { display: block; }
+        .field-tooltip-content::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #444 transparent transparent transparent; }
     </style>
 </head>
 <body>
@@ -186,49 +197,143 @@ const MUSCLES = ['胸大肌','背阔肌','斜方肌','竖脊肌','三角肌','�
 const OPTS_HELPER = (arr) => arr.map(x => `<option>${x}</option>`).join('');
 
 const MOCK_DATA = {
-    actions: [
-        { id: 'ACT_001', opsId: 'OPS_ACT_001', name: '杠铃卧推', part: '胸部', muscle: '胸大肌', level: 'L3', mode: '水平推', equip: '横杆', paradigm: '抗阻', func: '增肌', status: '上架' },
-        { id: 'ACT_002', opsId: 'OPS_ACT_002', name: '深蹲', part: '腿部', muscle: '股四头肌', level: 'L4', mode: '膝主导', equip: '自重', paradigm: '抗阻', func: '力量', status: '上架' },
-        { id: 'ACT_003', opsId: 'OPS_ACT_003', name: '哑铃侧平举', part: '肩部', muscle: '三角肌', level: 'L2', mode: '孤立', equip: '手柄', paradigm: '抗阻', func: '塑形', status: '下架' }
-    ],
+    actions: [],
     courses: [
         { id: 'CRS_001', opsId: 'OPS_CRS_001', name: '胸部增肌入门', type: '力量', level: 'L1', duration: 30, target: '胸部', paradigm: '抗阻', equip: '横杆', cal: 120, status: '上架' },
         { id: 'CRS_002', opsId: 'OPS_CRS_002', name: '全身燃脂HIIT', type: 'HIIT', level: 'L3', duration: 20, target: '全身', paradigm: '间歇', equip: '自重', cal: 180, status: '上架' }
     ],
     plans: [
-        { id: 'PLN_001', opsId: 'OPS_PLN_001', name: '4周增肌突破', goal: '增肌', cycle: '4周', level: 'L2', freq: 3, type: '官方模板', status: '上架' }
+        { 
+            id: 'PLN_HYP_01', opsId: 'OPS_HYP_001', name: '4周全身增肌入门', goal: '增肌', funcGoal: '增肌', cycle: '4', level: 'L1', freq: 3, type: '官方模板', status: '上架',
+            phases: [
+                { name: '适应期', type: '适应期', duration: '1周', tpl: 'TPL_HYP_1', i: 0.70, v: 1.0 },
+                { name: '基础期', type: '进阶期', duration: '3周', tpl: 'TPL_HYP_1', i: 0.80, v: 1.1 }
+            ]
+        },
+        { 
+            id: 'PLN_HYP_02', opsId: 'OPS_HYP_002', name: '8周分化增肌进阶', goal: '增肌', funcGoal: '增肌', cycle: '8', level: 'L3', freq: 4, type: '官方模板', status: '上架',
+            phases: [
+                { name: '适应期', type: '适应期', duration: '2周', tpl: 'TPL_HYP_2', i: 0.80, v: 1.0 },
+                { name: '肥大期', type: '进阶期', duration: '4周', tpl: 'TPL_HYP_4', i: 0.90, v: 1.2 },
+                { name: '突破期', type: '突破期', duration: '2周', tpl: 'TPL_HYP_4', i: 1.00, v: 1.0 }
+            ]
+        },
+        { 
+            id: 'PLN_STR_01', opsId: 'OPS_STR_001', name: '12周力量举基础', goal: '增肌', funcGoal: '力量', cycle: '12', level: 'L4', freq: 4, type: '官方模板', status: '上架',
+            phases: [
+                { name: '解剖适应', type: '适应期', duration: '4周', tpl: 'TPL_HYP_2', i: 0.75, v: 1.2 },
+                { name: '最大力量', type: '进阶期', duration: '6周', tpl: 'TPL_HYP_2', i: 0.90, v: 0.8 },
+                { name: '巅峰转化', type: '突破期', duration: '2周', tpl: 'TPL_HYP_2', i: 1.10, v: 0.6 }
+            ]
+        },
+        { 
+            id: 'PLN_FAT_01', opsId: 'OPS_FAT_001', name: '4周HIIT燃脂挑战', goal: '减重', funcGoal: '减脂', cycle: '4', level: 'L2', freq: 3, type: '官方模板', status: '上架',
+            phases: [
+                { name: '启动期', type: '适应期', duration: '1周', tpl: 'TPL_FAT_3', i: 0.60, v: 1.0 },
+                { name: '燃脂期', type: '进阶期', duration: '3周', tpl: 'TPL_FAT_3', i: 0.75, v: 1.2 }
+            ]
+        },
+        { 
+            id: 'PLN_CAR_01', opsId: 'OPS_CAR_001', name: '8周心肺耐力提升', goal: '健康', funcGoal: '心肺', cycle: '8', level: 'L2', freq: 4, type: '官方模板', status: '上架',
+            phases: [
+                { name: '基础有氧', type: '适应期', duration: '3周', tpl: 'TPL_CAR_4', i: 0.60, v: 1.0 },
+                { name: '间歇强化', type: '进阶期', duration: '5周', tpl: 'TPL_CAR_4', i: 0.75, v: 1.1 }
+            ]
+        },
+        { 
+            id: 'PLN_POS_01', opsId: 'OPS_POS_001', name: '4周办公室体态改善', goal: '健康', funcGoal: '体态', cycle: '4', level: 'L1', freq: 2, type: '官方模板', status: '上架',
+            phases: [
+                { name: '改善期', type: '适应期', duration: '4周', tpl: 'TPL_POS_2', i: 0.50, v: 1.0 }
+            ]
+        },
+        { 
+            id: 'PLN_POW_01', opsId: 'OPS_POW_001', name: '6周运动表现爆发', goal: '增肌', funcGoal: '爆发', cycle: '6', level: 'L4', freq: 4, type: '官方模板', status: '上架',
+            phases: [
+                { name: '基础力量', type: '适应期', duration: '2周', tpl: 'TPL_POW_4', i: 0.80, v: 1.0 },
+                { name: '爆发转化', type: '进阶期', duration: '4周', tpl: 'TPL_POW_4', i: 0.90, v: 0.8 }
+            ]
+        },
+        { 
+            id: 'PLN_FLX_01', opsId: 'OPS_FLX_001', name: '4周柔韧性与恢复', goal: '健康', funcGoal: '柔韧', cycle: '4', level: 'L1', freq: 3, type: '官方模板', status: '上架',
+            phases: [
+                { name: '舒展期', type: '适应期', duration: '4周', tpl: 'TPL_FLX_3', i: 0.40, v: 1.0 }
+            ]
+        }
     ],
     templates: [
+        // Hypertrophy / Strength Templates
         { 
-            id: 'TPL_001', name: '一分化 (全身)', goal: '增肌', freq: 1, level: 'All', slots: 1, status: '上架',
+            id: 'TPL_HYP_1', name: '一分化 (全身综合)', goal: '增肌', freq: 1, level: 'All', slots: 1, status: '上架',
             basicSlots: [{name:'全身综合', type:'力量', dim:'部位', target:'全身'}]
         },
         { 
-            id: 'TPL_002', name: '二分化 (上下肢)', goal: '增肌', freq: 2, level: 'All', slots: 2, status: '上架',
+            id: 'TPL_HYP_2', name: '二分化 (上下肢)', goal: '增肌', freq: 2, level: 'All', slots: 2, status: '上架',
             basicSlots: [{name:'上肢日', type:'力量', dim:'部位', target:'胸部'}, {name:'下肢日', type:'力量', dim:'部位', target:'腿部'}]
         },
         { 
-            id: 'TPL_003', name: '三分化 (推拉腿)', goal: '增肌', freq: 3, level: 'All', slots: 3, status: '上架',
+            id: 'TPL_HYP_3', name: '三分化 (推拉腿)', goal: '增肌', freq: 3, level: 'All', slots: 3, status: '上架',
             basicSlots: [{name:'推力日', type:'力量', dim:'动作模式', target:'水平推'}, {name:'拉力日', type:'力量', dim:'动作模式', target:'垂直拉'}, {name:'腿部日', type:'力量', dim:'动作模式', target:'膝主导'}]
         },
         { 
-            id: 'TPL_004', name: '三分化 (臀腿侧重)', goal: '增肌', freq: 3, level: 'All', slots: 3, status: '上架',
-            basicSlots: [{name:'臀腿日', type:'力量', dim:'部位', target:'臀部'}, {name:'上肢日', type:'力量', dim:'部位', target:'胸部'}, {name:'臀腿日', type:'力量', dim:'部位', target:'腿部'}]
+            id: 'TPL_HYP_4', name: '四分化 (非线性)', goal: '增肌', freq: 4, level: 'All', slots: 4, status: '上架',
+            basicSlots: [{name:'胸臂雕刻', type:'力量', dim:'部位', target:'胸部'}, {name:'臀腿轰炸', type:'力量', dim:'部位', target:'腿部'}, {name:'背肩强化', type:'力量', dim:'部位', target:'背部'}, {name:'核心全身', type:'力量', dim:'部位', target:'核心'}]
         },
         { 
-            id: 'TPL_005', name: '四分化 (非线性)', goal: '增肌', freq: 4, level: 'All', slots: 4, status: '上架',
-            basicSlots: [{name:'上肢力量', type:'力量', dim:'部位', target:'胸部'}, {name:'下肢力量', type:'力量', dim:'部位', target:'腿部'}, {name:'上肢肥大', type:'力量', dim:'部位', target:'背部'}, {name:'下肢肥大', type:'力量', dim:'部位', target:'臀部'}]
-        },
-        { 
-            id: 'TPL_006', name: '五分化 (单部位)', goal: '增肌', freq: 5, level: 'All', slots: 5, status: '上架',
+            id: 'TPL_HYP_5', name: '五分化 (单部位)', goal: '增肌', freq: 5, level: 'All', slots: 5, status: '上架',
             basicSlots: [{name:'胸部专项', type:'力量', dim:'部位', target:'胸部'}, {name:'背部专项', type:'力量', dim:'部位', target:'背部'}, {name:'肩部专项', type:'力量', dim:'部位', target:'肩部'}, {name:'手臂专项', type:'力量', dim:'部位', target:'手臂'}, {name:'臀腿专项', type:'力量', dim:'部位', target:'腿部'}]
         },
+        // Fat Loss Templates
         { 
-            id: 'TPL_007', name: '减脂循环', goal: '减脂', freq: 3, level: 'L1', slots: 3, status: '上架',
+            id: 'TPL_FAT_3', name: '减脂循环 (3天)', goal: '减脂', freq: 3, level: 'All', slots: 3, status: '上架',
             basicSlots: [
                 {name:'全身HIIT', type:'HIIT', dim:'部位', target:'全身'},
                 {name:'有氧耐力', type:'有氧', dim:'部位', target:'全身'},
                 {name:'核心强化', type:'力量', dim:'部位', target:'核心'}
+            ]
+        },
+        { 
+            id: 'TPL_FAT_5', name: '高频燃脂循环 (5天)', goal: '减脂', freq: 5, level: 'L3', slots: 5, status: '上架',
+            basicSlots: [
+                {name:'全身HIIT', type:'HIIT', dim:'部位', target:'全身'},
+                {name:'上肢塑形', type:'力量', dim:'部位', target:'胸部'},
+                {name:'有氧耐力', type:'有氧', dim:'部位', target:'全身'},
+                {name:'下肢塑形', type:'力量', dim:'部位', target:'腿部'},
+                {name:'核心燃脂', type:'HIIT', dim:'部位', target:'核心'}
+            ]
+        },
+        // Health / Wellness Templates (Renamed from Split)
+        { 
+            id: 'TPL_CAR_4', name: '心肺耐力循环 (4天)', goal: '健康', freq: 4, level: 'All', slots: 4, status: '上架',
+            basicSlots: [
+                {name:'LISS有氧', type:'有氧', dim:'部位', target:'全身'},
+                {name:'HIIT燃脂', type:'HIIT', dim:'部位', target:'全身'},
+                {name:'核心强化', type:'力量', dim:'部位', target:'核心'},
+                {name:'LISS有氧', type:'有氧', dim:'部位', target:'全身'}
+            ]
+        },
+        { 
+            id: 'TPL_POS_2', name: '体态矫正方案 (2天)', goal: '健康', freq: 2, level: 'L1', slots: 2, status: '上架',
+            basicSlots: [
+                {name:'上肢体态', type:'力量', dim:'动作功能', target:'体态'},
+                {name:'下肢稳定', type:'力量', dim:'动作功能', target:'平衡'}
+            ]
+        },
+        { 
+            id: 'TPL_FLX_3', name: '柔韧与恢复方案 (3天)', goal: '健康', freq: 3, level: 'All', slots: 3, status: '上架',
+            basicSlots: [
+                {name:'全身拉伸', type:'拉伸', dim:'动作功能', target:'柔韧'},
+                {name:'瑜伽流', type:'瑜伽', dim:'动作功能', target:'恢复'},
+                {name:'泡沫轴放松', type:'康复', dim:'动作功能', target:'恢复'}
+            ]
+        },
+        // Performance Templates
+        { 
+            id: 'TPL_POW_4', name: '爆发力专项分化 (4天)', goal: '增肌', freq: 4, level: 'L4', slots: 4, status: '上架',
+            basicSlots: [
+                {name:'下肢爆发', type:'力量', dim:'动作功能', target:'爆发'},
+                {name:'上肢力量', type:'力量', dim:'动作模式', target:'水平推'},
+                {name:'全身爆发', type:'HIIT', dim:'动作功能', target:'爆发'},
+                {name:'核心稳定', type:'力量', dim:'动作模式', target:'核心稳定'}
             ]
         }
     ]
@@ -438,11 +543,46 @@ const RULE_OPTS = {
     '动作功能': ['增肌', '力量', '耐力', '减脂', '心肺', '恢复', '柔韧', '协调', '体态', '激活', '平衡'],
 };
 
+const SCHEMA = {
+    '动作': {
+        id: '动作ID', opsId: '动作运营ID', name: '动作名称', intro: '动作介绍',
+        products: '关联产品', packages: '关联销售套餐',
+        courseType: '适合课程类型', weight: '动作权重', level: '动作难度', mode: '动作模式', func: '动作功能',
+        construct: '动作构造', constructCount: '复合次数', measure: '默认计量维度', impact: '冲击等级',
+        pain: '疼痛部位', met: '动作MET值', coach: '动作教练', equip: '动作配件',
+        part: '主要部位', subPart: '次要部位', muscle: '主动肌', antagonist: '拮抗肌', synergist: '辅助肌', stabilizer: '稳定肌',
+        orientation: '动作朝向', posture: '动作体位', unilateral: '单侧/双侧', mirror: '镜像动作',
+        powerModule: '力量模组', leverArm: '力臂位置', stroke: '行程类型', benchAngle: '健身凳角度',
+        focus: '动作重点', feedback: '纠错反馈', algoFile: '算法文件',
+        cover: '封面图', thumb: '缩略图', video: '动作视频', videoDur: '动作视频时长', demoCount: '动作演示次数',
+        singleDur: '单次动作时长', mirrorVideo: '动作镜像视频', teachVideo: '动作教学视频', teachDur: '教学视频时长',
+        status: '状态', paradigm: '训练范式'
+    },
+    '课程': {
+        id: '课程ID', opsId: '课程运营ID', name: '课程名称', intro: '课程介绍',
+        products: '关联产品', packages: '关联销售套餐', form: '课程形态', isPk: 'PK课程',
+        weight: '推荐权重', type: '课程类型', goal: '课程目标', target: '目标部位', level: '课程难度', duration: '课程时长',
+        equip: '课程配件', coach: '课程教练', pain: '疼痛部位', impact: '冲击等级', met: '课程MET值', cal: '预估卡路里',
+        segments: '环节配置',
+        cover: '课程封面图', thumb: '课程缩略图', preview: '预览视频', video: '课程视频',
+        style: '课程风格', rpe: '预估RPE', rhythm: '动作节奏', hr: '目标心率',
+        status: '状态', paradigm: '训练范式'
+    },
+    '计划': {
+        id: '计划ID', opsId: '计划运营ID', name: '计划名称', intro: '计划介绍',
+        products: '关联产品', packages: '关联销售套餐', type: '计划类型',
+        goal: '计划目标', funcGoal: '计划功能目标', level: '计划难度', cycle: '计划周期', freq: '计划周频',
+        phases: '阶段配置',
+        status: '状态'
+    }
+};
+
 const RENDERERS = {
     // ============================================================
     // 1. 动作管理 (Action Management)
     // ============================================================
     action_list: () => `
+        ${BatchControls('动作')}
         ${FilterBar([
             {label:'动作名称/ID', type:'text', placeholder:'输入名称/ID/运营ID'},
             {label:'部位', type:'select', opts:['胸部','背部','腿部','肩部','手臂','核心']},
@@ -450,7 +590,7 @@ const RENDERERS = {
             {label:'状态', type:'select', opts:['上架','下架']}
         ])}
         <table class="data-table">
-            <thead><tr><th>动作ID</th><th>运营ID</th><th>名称</th><th>部位</th><th>主动肌</th><th>模式</th><th>器械</th><th>范式</th><th>功能</th><th>难度</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr>${ThWithTooltip('动作ID')}${ThWithTooltip('动作运营ID')}${ThWithTooltip('动作名称')}${ThWithTooltip('主要部位')}${ThWithTooltip('主动肌')}${ThWithTooltip('动作模式')}${ThWithTooltip('动作器械')}${ThWithTooltip('训练范式')}${ThWithTooltip('动作功能')}${ThWithTooltip('动作难度')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
             <tbody>
                 ${MOCK_DATA.actions.map(item => `
                 <tr>
@@ -496,13 +636,13 @@ const RENDERERS = {
         <div class="form-section">
             <div class="section-header">推荐标签</div>
             <div class="form-grid">
+                ${Field('适合课程类型', 'select', ['力量','有氧','HIIT','搏击','普拉提','瑜伽','拉伸','气功','康复','冥想','高尔夫'], '新增', false, '', true)}
                 ${Field('动作权重', 'number', '10', '原“推荐值”', true)}
                 ${Field('动作难度', 'select', ['L1','L2','L3','L4','L5'], '已有')}
                 ${Field('动作模式', 'select', ['水平推','垂直推','水平拉','垂直拉','髋主导','膝主导','弓步','旋转','核心稳定','步态'], '已有')}
                 ${Field('动作功能', 'select', ['增肌','力量','耐力','爆发','减脂','心肺','恢复','柔韧','协调','体态','专项','激活','平衡','呼吸'], '原“功能标签”', false, '', true)}
-                ${Field('适合课程类型', 'select', ['力量','有氧','HIIT','搏击','普拉提','瑜伽','拉伸','气功','康复','冥想','高尔夫'], '新增', false, '', true)}
-                ${Field('动作构造', 'select', ['复合动作','孤立动作'], '新增')}
-                ${Field('└─ 复合次数', 'number', '1', '原“计次逻辑”', false, '', false, '次')}
+                ${Field('动作构造', 'select', ['复合动作','孤立动作'], '新增').replace('select', 'select onchange="app.toggleSub(\'construct\', this.value)"')}
+                ${Field('└─ 复合次数', 'number', '1', '原“计次逻辑”', false, 'sub-construct', false, '次')}
                 ${Field('默认计量维度', 'select', ['计次','计时'], '新增')}
                 ${Field('冲击等级', 'select', ['无冲击','低冲击','高冲击'], '新增')}
                 ${Field('疼痛部位', 'select', ['无','手腕','肘部','肩部','腰部','髋部','膝盖','脚踝'], '新增', false, '', true)}
@@ -529,28 +669,35 @@ const RENDERERS = {
             <div class="form-grid">
                 ${Field('动作朝向', 'select', ['正身','侧身'], '已有')}
                 ${Field('动作体位', 'select', ['站姿','坐姿','仰卧','俯卧','侧卧','跪姿','悬挂','支撑'], '新增')}
-                ${Field('单侧/双侧', 'select', ['单侧','双侧'], '原“计次方式”')}
-                ${Field('└─ 镜像动作', 'select', ['是','否'], '已有')}
+                ${Field('单侧/双侧', 'select', ['单侧','双侧'], '原“计次方式”').replace('select', 'select onchange="app.toggleSub(\'unilateral\', this.value)"')}
+                ${Field('└─ 镜像动作', 'select', ['是','否'], '已有', false, 'sub-unilateral')}
+                ${Field('力量模组', 'select', ['是','否'], '已有').replace('select', 'select onchange="app.togglePowerModule(this)"')}
                 
-                <div class="form-group full">
-                    <label>力臂位置 <span class="tag-new">新增</span></label>
-                    <div style="display:flex; gap:20px; background:#111; border:1px solid #444; padding:10px; border-radius:4px; flex-wrap:wrap;">
-                        <div style="min-width: 180px;">
-                            <div style="font-size:11px; color:#888; margin-bottom:5px;">左力臂 (Left)</div>
-                            <div style="display:flex; gap:8px;">
-                                <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">L</span><input type="number" min="1" max="9" value="1" style="width:40px; text-align:center; padding:4px;"></div>
-                                <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">V</span><input type="number" min="1" max="7" value="3" style="width:40px; text-align:center; padding:4px;"></div>
-                                <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">L</span><input type="number" min="1" max="3" value="2" style="width:40px; text-align:center; padding:4px;"></div>
+                <div class="form-group full power-module-field" style="display:none; background:#1a1a1a; padding:15px; border:1px dashed #444; border-radius:4px; margin-top:10px;">
+                    <label style="margin-bottom:10px; color:var(--primary);">力量模组配置 (必填)</label>
+                    <div style="display:flex; flex-direction:column; gap:15px;">
+                        <div class="form-group full">
+                            <label>力臂位置 <span class="tag-new">新增</span></label>
+                            <div style="display:flex; gap:20px; background:#111; border:1px solid #444; padding:10px; border-radius:4px; flex-wrap:wrap;">
+                                <div style="min-width: 180px;">
+                                    <div style="font-size:11px; color:#888; margin-bottom:5px;">左力臂</div>
+                                    <div style="display:flex; gap:8px;">
+                                        <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">L</span><input type="number" min="1" max="9" value="1" style="width:40px; text-align:center; padding:4px;"></div>
+                                        <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">V</span><input type="number" min="1" max="7" value="3" style="width:40px; text-align:center; padding:4px;"></div>
+                                        <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">L</span><input type="number" min="1" max="3" value="2" style="width:40px; text-align:center; padding:4px;"></div>
+                                    </div>
+                                </div>
+                                <div style="min-width: 180px;">
+                                    <div style="font-size:11px; color:#888; margin-bottom:5px;">右力臂</div>
+                                    <div style="display:flex; gap:8px;">
+                                        <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">R</span><input type="number" min="1" max="9" value="1" style="width:40px; text-align:center; padding:4px;"></div>
+                                        <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">V</span><input type="number" min="1" max="7" value="3" style="width:40px; text-align:center; padding:4px;"></div>
+                                        <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">L</span><input type="number" min="1" max="3" value="2" style="width:40px; text-align:center; padding:4px;"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div style="min-width: 180px;">
-                            <div style="font-size:11px; color:#888; margin-bottom:5px;">右力臂 (Right)</div>
-                            <div style="display:flex; gap:8px;">
-                                <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">R</span><input type="number" min="1" max="9" value="1" style="width:40px; text-align:center; padding:4px;"></div>
-                                <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">V</span><input type="number" min="1" max="7" value="3" style="width:40px; text-align:center; padding:4px;"></div>
-                                <div style="display:flex; align-items:center;"><span style="color:#666; margin-right:4px; font-size:10px; width:10px;">L</span><input type="number" min="1" max="3" value="2" style="width:40px; text-align:center; padding:4px;"></div>
-                            </div>
-                        </div>
+                        ${Field('行程类型', 'select', ['长行程','中行程','短行程','超短行程'], '已有')}
                     </div>
                 </div>
 
@@ -559,11 +706,10 @@ const RENDERERS = {
         </div>
 
         <div class="form-section">
-            <div class="section-header">动作纠错</div>
+            <div class="section-header">动作教学</div>
             <div class="form-grid">
-                ${Field('常见错误', 'select', ['膝盖内扣','腰背拱起'], '已有', false, 'full', true)}
-                
                 <div class="form-group full">
+                    <label>动作重点 <span class="tag-exist">非必填</span></label>
                     <div class="sub-list" style="gap:8px;">
                         <div style="display:flex; gap:8px;">
                             <input type="text" value="保持核心收紧，背部挺直" style="flex:1">
@@ -576,17 +722,9 @@ const RENDERERS = {
                     </div>
                     <button class="btn-primary" style="margin-top:8px; width:100px;" onclick="app.addFocusRow(this)">+ 添加重点</button>
                 </div>
-            </div>
-        </div>
 
-        <div class="form-section">
-            <div class="section-header">硬件与算法配置</div>
-            <div class="form-grid">
-                ${Field('AI配置', 'select', ['是','否'], '已有')}
-                ${Field('└─ 算法文件', 'file', '', '已有')}
-                ${Field('└─ CV纠错配置', 'text', 'CV_Model_01', '原“CV配置”')}
-                ${Field('力量模组', 'select', ['是','否'], '已有')}
-                ${Field('行程类型', 'select', ['长行程','中行程','短行程','超短行程'], '已有')}
+                ${Field('纠错反馈', 'select', ['膝盖内扣','腰背拱起'], '原“CV配置”', false, 'full', true)}
+                ${Field('算法文件', 'file', '', '非必填')}
             </div>
         </div>
 
@@ -608,6 +746,7 @@ const RENDERERS = {
         <div class="deprecated-box">
             <div class="deprecated-title">废弃字段 (仅展示)</div>
             <div class="deprecated-list">
+                <span class="deprecated-item">AI配置</span>
                 <span class="deprecated-item">动作描述</span>
                 <span class="deprecated-item">动作目标</span>
                 <span class="deprecated-item">└─ 目标次数</span>
@@ -635,6 +774,7 @@ const RENDERERS = {
     // 2. 课程管理 (Course Management)
     // ============================================================
     course_list: () => `
+        ${BatchControls('课程')}
         ${FilterBar([
             {label:'课程名称/ID', type:'text', placeholder:'输入名称/ID/运营ID'},
             {label:'类型', type:'select', opts:['力量','HIIT','有氧','瑜伽']},
@@ -642,7 +782,7 @@ const RENDERERS = {
             {label:'状态', type:'select', opts:['上架','下架']}
         ])}
         <table class="data-table">
-            <thead><tr><th>课程ID</th><th>运营ID</th><th>名称</th><th>类型</th><th>目标部位</th><th>范式</th><th>器械</th><th>难度</th><th>时长(min)</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr>${ThWithTooltip('课程ID')}${ThWithTooltip('课程运营ID')}${ThWithTooltip('课程名称')}${ThWithTooltip('课程类型')}${ThWithTooltip('目标部位')}${ThWithTooltip('训练范式')}${ThWithTooltip('课程配件')}${ThWithTooltip('课程难度')}${ThWithTooltip('课程时长')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
             <tbody>
                 ${MOCK_DATA.courses.map(item => `
                 <tr>
@@ -705,6 +845,7 @@ const RENDERERS = {
 
         <div class="form-section">
             <div class="section-header">环节配置 (Segments)</div>
+            <div class="section-header">环节配置</div>
             <div style="padding:20px;">
                 <div class="sub-list">
                     ${SegmentItem('热身', '热身', '5', '流式范式')}
@@ -760,6 +901,7 @@ const RENDERERS = {
     // 3. 计划管理 (Plan Management)
     // ============================================================
     plan_list: () => `
+        ${BatchControls('计划')}
         ${FilterBar([
             {label:'计划名称/ID', type:'text', placeholder:'输入名称/ID/运营ID'},
             {label:'目标', type:'select', opts:['增肌','减脂','力量']},
@@ -767,7 +909,7 @@ const RENDERERS = {
             {label:'状态', type:'select', opts:['上架','下架']}
         ])}
         <table class="data-table">
-            <thead><tr><th>计划ID</th><th>运营ID</th><th>名称</th><th>类型</th><th>目标</th><th>难度</th><th>周期</th><th>周频</th><th>状态</th><th>操作</th></tr></thead>
+            <thead><tr>${ThWithTooltip('计划ID')}${ThWithTooltip('计划运营ID')}${ThWithTooltip('计划名称')}${ThWithTooltip('计划类型')}${ThWithTooltip('计划目标')}${ThWithTooltip('计划难度')}${ThWithTooltip('计划周期')}${ThWithTooltip('计划周频')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
             <tbody>
                 ${MOCK_DATA.plans.map(item => `
                 <tr>
@@ -789,7 +931,15 @@ const RENDERERS = {
             </tbody>
         </table>
     `,
-    plan_detail: () => `
+    plan_detail: () => {
+        const id = app.state.id;
+        const plan = MOCK_DATA.plans.find(p => p.id === id) || {
+            id: 'NEW', opsId: '', name: '', goal: '增肌', funcGoal: '增肌', cycle: '4', level: 'L1', freq: 3, type: '官方模板', phases: []
+        };
+        
+        const phasesHtml = (plan.phases || []).map((p, idx) => StageItem(idx+1, p.name, p.type, p.duration, p.tpl, p.i, p.v)).join('');
+
+        return `
         <div class="form-section">
             <div class="section-header">产品关联</div>
             <div class="form-grid">
@@ -800,10 +950,10 @@ const RENDERERS = {
         <div class="form-section">
             <div class="section-header">基础信息</div>
             <div class="form-grid">
-                ${Field('计划ID', 'text', 'PLN_001', '已有', true)}
-                ${Field('计划运营ID', 'text', '', '原“计划运营”')}
-                ${Field('计划类型', 'select', ['官方模板','用户生成'], '新增')}
-                ${Field('计划名称', 'text', '4周增肌突破计划', '已有')}
+                ${Field('计划ID', 'text', plan.id, '已有', true)}
+                ${Field('计划运营ID', 'text', plan.opsId, '原“计划运营”')}
+                ${Field('计划类型', 'select', ['官方模板','用户生成'], '新增').replace(`>${plan.type}<`, ` selected>${plan.type}<`)}
+                ${Field('计划名称', 'text', plan.name, '已有')}
                 ${Field('计划介绍', 'textarea', '...', '已有', false, 'full')}
             </div>
         </div>
@@ -811,33 +961,25 @@ const RENDERERS = {
         <div class="form-section">
             <div class="section-header">推荐标签</div>
             <div class="form-grid">
-                ${Field('计划目标', 'select', ['增肌','减重','健康'], '已有')}
-                ${Field('计划功能目标', 'select', ['增肌','力量','耐力','爆发','减脂','心肺','恢复','柔韧','协调','体态','专项','激活','平衡'], '新增')}
-                ${Field('计划难度', 'select', ['L1','L2','L3','L4','L5'], '已有')}
-                ${Field('计划周期', 'number', '4', '新增', false, '', false, '周')}
-                ${Field('计划周频', 'number', '3', '新增', false, '', false, '天')}
-            </div>
-        </div>
-
-        <div class="form-section">
-            <div class="section-header">需求池</div>
-            <div class="form-grid">
-                ${Field('周期模型', 'select', ['线性周期','波浪周期','区块周期'], '新增')}
+                ${Field('计划目标', 'select', ['增肌','减重','健康'], '已有').replace(`>${plan.goal}<`, ` selected>${plan.goal}<`)}
+                ${Field('计划功能目标', 'select', ['增肌','力量','耐力','爆发','减脂','心肺','恢复','柔韧','协调','体态','专项','激活','平衡'], '新增').replace(`>${plan.funcGoal}<`, ` selected>${plan.funcGoal}<`)}
+                ${Field('计划难度', 'select', ['L1','L2','L3','L4','L5'], '已有').replace(`>${plan.level}<`, ` selected>${plan.level}<`)}
+                ${Field('计划周期', 'number', plan.cycle, '新增', false, '', false, '周')}
+                ${Field('计划周频', 'number', plan.freq, '新增', false, '', false, '天')}
             </div>
         </div>
 
         <div class="form-section">
             <div class="section-header">阶段配置 (Stages)</div>
+            <div class="section-header">阶段配置</div>
             <div style="padding:20px;">
                 <div class="sub-list">
-                    ${StageItem(1, '适应期', '适应期', '1周')}
-                    ${StageItem(2, '进阶期', '进阶期', '2周')}
-                    ${StageItem(3, '突破期', '突破期', '1周')}
+                    ${phasesHtml || '<div style="color:#666; text-align:center; padding:20px;">暂无阶段配置</div>'}
                 </div>
-                <button class="btn btn-primary" style="margin-top:10px; width:100%;">+ 添加阶段</button>
+                <button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="app.addStage()">+ 添加阶段</button>
             </div>
         </div>
-    `,
+    `},
 
     // ============================================================
     // 4. 阶段模板管理 (Phase Template Management)
@@ -953,7 +1095,7 @@ const RENDERERS = {
             <div class="section-header">主动肌-拮抗肌映射</div>
             <div style="padding:20px;">
                 <table class="data-table">
-                    <thead><tr><th>主动肌</th><th>拮抗肌 (多选)</th><th>示例</th><th>操作</th></tr></thead>
+                    <thead><tr>${ThWithTooltip('主动肌')}${ThWithTooltip('拮抗肌 (多选)')}${ThWithTooltip('示例')}<th>操作</th></tr></thead>
                     <tbody>
                         ${MAPPING_DATA.antagonist.map(item => `
                         <tr>
@@ -971,7 +1113,7 @@ const RENDERERS = {
             <div class="section-header">动作模式-热身功能映射</div>
             <div style="padding:20px;">
                 <table class="data-table">
-                    <thead><tr><th>主训模式</th><th>推荐热身功能 (主要部位)</th><th>操作</th></tr></thead>
+                    <thead><tr>${ThWithTooltip('主训模式')}${ThWithTooltip('推荐热身功能 (主要部位)')}<th>操作</th></tr></thead>
                     <tbody>
                         ${MAPPING_DATA.warmup.map(item => `
                         <tr>
@@ -988,7 +1130,7 @@ const RENDERERS = {
             <div class="section-header">强度指标换算映射</div>
             <div style="padding:20px;">
                 <table class="data-table">
-                    <thead><tr><th>等级</th><th>力量负荷</th><th>自重次数</th><th>心率(MHR)</th><th>组间休息</th><th>计时时长</th></tr></thead>
+                    <thead><tr>${ThWithTooltip('等级')}${ThWithTooltip('力量负荷')}${ThWithTooltip('自重次数')}${ThWithTooltip('心率(MHR)')}${ThWithTooltip('组间休息')}${ThWithTooltip('计时时长')}</tr></thead>
                     <tbody>
                         ${MAPPING_DATA.intensity.map(item => `
                         <tr>
@@ -1008,7 +1150,7 @@ const RENDERERS = {
             <div class="section-header">动作模式与主练部位映射</div>
             <div style="padding:20px;">
                 <table class="data-table">
-                    <thead><tr><th>模式名称</th><th>主要部位</th><th>次要部位 (多选)</th><th>操作</th></tr></thead>
+                    <thead><tr>${ThWithTooltip('模式名称')}${ThWithTooltip('主要部位')}${ThWithTooltip('次要部位 (多选)')}<th>操作</th></tr></thead>
                     <tbody>
                         ${MAPPING_DATA.mode.map(item => `
                         <tr>
@@ -1039,6 +1181,7 @@ const RENDERERS = {
         ${tab === 'global' ? `
         <div class="form-section">
             <div class="section-header">1.1 策略矩阵配置 (Strategy Matrix)</div>
+            <div class="section-header">1.1 策略矩阵配置</div>
             <div style="padding:20px; overflow-x:auto;">
                 ${ConfigTable('strategy', [
                     {label:'目标', key:'target', type:'select', opts:['增肌','力量','减脂','HIIT','耐力','爆发','心肺','有氧','瑜伽','普拉提','拉伸','恢复','柔韧','协调','体态','激活','平衡','专项']},
@@ -1165,6 +1308,209 @@ const RENDERERS = {
 
 // --- HELPER FUNCTIONS ---
 
+const FIELD_DESCRIPTIONS = {
+    // 动作
+    '关联产品': '指定该内容适用的硬件产品型号（如K1、S1），未选中的产品端将不可见。',
+    '关联销售套餐': '指定该内容绑定的销售权益（如标准版、豪华版），用于会员权益控制。',
+    '动作ID': '系统自动生成的唯一标识符，用于数据库索引和关联，不可修改。',
+    '动作运营ID': '运营人员自定义的业务编码，用于跨系统对齐或内部管理。',
+    '动作名称': '展示给用户的标准动作名称，需简洁准确，支持语音播报。',
+    '动作介绍': '动作的详细图文/文本描述，用于详情页展示，包含动作要领和功效。',
+    '适合课程类型': '定义该动作适用的课程场景（如力量、有氧），影响AI排课时的筛选逻辑。',
+    '动作权重': '推荐算法的优先级系数，数值越高，在同类动作中被推荐的概率越大。',
+    '动作难度': '动作的执行门槛（L1-L5），用于匹配用户的运动等级。',
+    '动作模式': '动作的生物力学分类（如水平推、膝主导），用于确保训练计划的动作模式平衡。',
+    '动作功能': '动作的主要训练效果（如增肌、爆发），用于匹配用户的具体训练目标。',
+    '动作构造': '区分复合动作（多关节）和孤立动作（单关节），影响排课顺序（通常复合优先）。',
+    '复合次数': '复合动作的计次逻辑系数，例如“硬拉+划船”做完一套算1次还是2次。',
+    '默认计量维度': '动作的默认结算方式，计次（Rep）或计时（Time），影响训练界面的显示。',
+    '冲击等级': '动作对关节的冲击力大小，用于为大体重或伤病用户规避高风险动作。',
+    '疼痛部位': '该动作可能加剧疼痛的身体部位，用于伤病用户的智能规避（黑名单）。',
+    '动作MET值': '代谢当量值，用于科学计算该动作单位时间内的卡路里消耗。',
+    '动作教练': '演示该动作的教练IP，用于前端展示和用户偏好匹配。',
+    '动作配件': '执行该动作所需的辅助器械（如横杆、手柄），用于根据用户拥有的器械进行筛选。',
+    '主要部位': '动作训练的核心目标肌群所在的身体区域，用于排课时的部位匹配。',
+    '次要部位': '动作涉及的协同发力部位，用于计算全身疲劳度和辅助肌群状态。',
+    '主动肌': '动作主要发力的具体肌肉（如胸大肌中束），用于精准的塑形和负荷计算。',
+    '拮抗肌': '与主动肌功能相反的肌肉，用于超级组编排（如胸背对抗）和肌肉平衡分析。',
+    '辅助肌': '协助完成动作的肌肉群，用于评估继发性疲劳。',
+    '稳定肌': '维持身体姿态的肌肉群，用于核心稳定性评估和康复训练推荐。',
+    '动作朝向': '用户执行动作时相对于设备屏幕的朝向，用于视觉算法的骨骼点识别校准。',
+    '动作体位': '执行动作时的身体姿态（如站姿、仰卧），用于流式训练的体位衔接优化。',
+    '单侧/双侧': '区分动作是单侧轮流进行还是双侧同时进行，影响总组数和时长的计算。',
+    '镜像动作': '若为单侧动作，是否需要左右对称各做一组（如单臂划船），影响排课逻辑。',
+    '力量模组': '是否启用智能设备的电机阻力功能，选“是”则需配置力臂和行程。',
+    '力臂位置': '智能设备力臂的调节档位（高度/角度），指导用户调整设备。',
+    '行程类型': '动作的运动幅度范围，影响电机的发力行程判定。',
+    '健身凳角度': '执行动作时健身凳靠背的调节角度，指导用户调整设备。',
+    '动作重点': '教学视频中需要用户特别关注的技术细节，用于生成语音提示或重点字幕。',
+    '纠错反馈': '视觉算法检测的常见错误类型（如膝盖内扣），用于实时语音纠错。',
+    '算法文件': '配套的运动算法模型文件，用于动作识别和计数。',
+    '封面图': '动作在列表页或卡片展示的静态预览图。',
+    '缩略图': '动作的小尺寸预览图，用于快速浏览。',
+    '动作视频': '标准的动作演示视频，用于循环播放展示动作轨迹。',
+    '动作视频时长': '演示视频的长度，用于前端循环播放控制。',
+    '动作演示次数': '视频中动作重复的次数，用于辅助用户理解节奏。',
+    '单次动作时长': '完成一次标准动作所需的平均时间，用于估算课程总时长。',
+    '动作镜像视频': '单侧动作另一侧的演示视频（如有）。',
+    '动作教学视频': '详细的动作讲解视频，包含口播和要点拆解。',
+    '教学视频时长': '教学视频的长度。',
+    
+    // 课程
+    '课程形态': '区分视频跟练课、结构化模板课或AI实时生成课，决定数据来源和交互方式。',
+    '课程ID': '课程的唯一系统标识。',
+    '课程运营ID': '运营自定义的课程编码。',
+    '课程名称': '展示给用户的课程标题，需具有吸引力。',
+    'PK课程': '是否支持多人在线竞技模式。',
+    '课程介绍': '课程的详细文案描述。',
+    '推荐权重': '课程在推荐列表中的优先级。',
+    '课程类型': '课程的运动种类（如HIIT、瑜伽），决定训练范式和心率区间。',
+    '课程目标': '课程的主要训练目的（如减脂、增肌）。',
+    '目标部位': '课程重点训练的身体区域。',
+    '课程难度': '课程的整体难度等级，匹配用户能力。',
+    '课程时长': '课程的总持续时间（包含热身放松）。',
+    '课程配件': '完成该课程所需的所有器械集合。',
+    '课程教练': '带领该课程的教练。',
+    '课程MET值': '课程整体的代谢当量，用于估算热量。',
+    '预估卡路里': '完成该课程预计消耗的热量。',
+    '课程封面图': '课程的大图展示。',
+    '课程缩略图': '课程的小图展示。',
+    '预览视频': '课程的精彩片段剪辑，用于用户预览。',
+    '课程视频': '完整的跟练视频文件（仅视频课）。',
+    '课程风格': '课程的氛围风格（如沉浸式、教学型）。',
+    '预估RPE': '预期的主观疲劳度（1-10），帮助用户选择适合状态的课程。',
+    '动作节奏': '动作执行的向心/离心/顶峰收缩时间比例（如2-0-2-0）。',
+    '目标心率': '建议用户在训练中保持的心率区间。',
+    
+    // 环节
+    '环节开始点': '视频课程中该环节的起始时间戳。',
+    '环节结束点': '视频课程中该环节的结束时间戳。',
+    '循环模式': '环节内动作的执行顺序（如常规组、循环组）。',
+    '负荷策略': '环节内动作的负荷变化逻辑（如恒定、递增）。',
+    '休息配置': '是否启用组间休息。',
+    '组间休息': '动作组与组之间的休息时间。',
+    '轮间休息': '循环组大轮次之间的休息时间。',
+    '发力模式': '电机输出的阻力模式（如恒力、弹力）。',
+    
+    // 计划
+    '计划ID': '计划的唯一标识。',
+    '计划运营ID': '运营自定义的计划编码。',
+    '计划类型': '计划的生成方式（官方模板或用户生成）。',
+    '计划名称': '计划的标题。',
+    '计划介绍': '计划的详细描述。',
+    '计划目标': '计划的宏观目标（如减重）。',
+    '计划功能目标': '计划的具体功能侧重（如心肺提升）。',
+    '计划难度': '计划的整体难度等级。',
+    '计划周期': '计划持续的总周数。',
+    '计划周频': '建议每周训练的天数。',
+    '阶段周期': '该阶段持续的时间长度。',
+    '计划阶段模板': '该阶段采用的周循环排课逻辑（如三分化）。',
+    '强度系数': '该阶段相对于基准强度的倍率，用于周期化负荷调整。',
+    '容量系数': '该阶段相对于基准容量（组数）的倍率。',
+    '阶段类型': '阶段在周期中的角色（如适应期、突破期）。',
+    '阶段名称': '阶段的显示名称。',
+    
+    // 模板
+    '单周模板ID': '模板的唯一标识。',
+    '单周模板名称': '模板的名称。',
+    '单周模板目标': '模板侧重的训练目标。',
+    '模板难度': '模板适用的用户等级。',
+    '模板周频': '该模板设计的每周训练天数。',
+    '模板环节': '该模板包含的课程环节结构。',
+    '补充策略': '当训练日多于模板槽位时的填充逻辑。',
+    '休息日策略': '休息日的建议活动（如完全休息或主动恢复）。',
+    
+    // AI配置
+    '目标': '策略适用的训练目标。',
+    '等级': '策略适用的用户等级。',
+    '组数': '推荐的训练组数。',
+    '间歇': '推荐的组间休息时间（秒）。',
+    '强度': '推荐的负荷强度系数（%1RM）。',
+    '模式': '推荐的训练循环模式。',
+    '策略': '推荐的负荷变化策略。',
+    '难度': '策略的难度偏向。',
+    '环节类型': '课程环节的分类（热身/主训/放松）。',
+    '推荐占比': '该环节在总时长中的推荐占比。',
+    '最大时长': '该环节允许的最大时长限制。',
+    '动作数量限制': '该环节允许的最大动作数量。',
+    '运动等级': '用户的运动能力等级。',
+    '训练范式': '训练的底层逻辑框架（如抗阻、间歇）。',
+    '包含类型': '该范式涵盖的具体课程类型。',
+    '默认组数': '该范式下的默认训练组数。',
+    '核心特征': '该范式的主要训练特点描述。',
+    '策略名称': '策略的唯一标识名。',
+    '组序号': '策略应用到的具体组别序号。',
+    '负荷系数': '相对于1RM或基准负荷的乘数。',
+    '次数增量': '相对于基准次数的增减量。',
+    '说明': '配置项的备注说明。',
+    '范围偏移': '难度等级相对于基准的偏移量。',
+    '概率分布': '不同难度偏移值的出现概率。',
+    '阶段结构': '计划包含的阶段类型序列。',
+    '时长分配逻辑': '各阶段时长的分配比例。',
+    '因子键': '推荐算法的影响因子名称。',
+    '权重/分值': '该因子对推荐分数的贡献值。',
+    '触发规则': '该因子生效的逻辑条件。',
+    '状态值区间': '用户身体状态分数的范围。',
+    '标签': '状态对应的显示标签。',
+    '强制约束': '该状态下强制执行的排课规则（如剔除高冲击）。',
+    '参数/条件': '触发反馈调整的监控指标。',
+    '阈值/动作': '触发调整的阈值或具体的调整动作。',
+    '槽位名称': '该训练槽位的显示名称，如“上肢日”。',
+    '侧重维度': '该槽位筛选动作的主要维度，如“部位”或“动作模式”。',
+    '侧重目标': '该槽位具体的筛选目标，如“胸部”或“水平推”。',
+    '模板键(Key)': '模板的唯一标识键。',
+    '适用等级 (多选)': '该模板适用的用户运动等级。',
+    '动作槽位配置 (维度 | 枚举 | 权重)': '定义该模板包含的动作槽位及其筛选规则和权重。',
+    '排序策略': '该模板生成课程时的动作排序逻辑。',
+    '主动肌': '动作主要发力的肌肉。',
+    '拮抗肌 (多选)': '与主动肌功能相反的肌肉集合。',
+    '示例': '该映射关系的具体动作示例。',
+    '主训模式': '主训环节的动作模式分类。',
+    '推荐热身功能 (主要部位)': '针对该主训模式推荐的热身功能和部位。',
+    '力量负荷': '该等级对应的力量训练负荷范围。',
+    '自重次数': '该等级对应的自重动作重复次数。',
+    '心率(MHR)': '该等级对应的目标心率区间。',
+    '计时时长': '该等级对应的计时动作时长。',
+    '模式名称': '动作模式的名称。',
+    '次要部位 (多选)': '该模式涉及的次要发力部位。',
+    '状态': '内容的上架/下架状态，决定是否在前端可见。'
+};
+
+function LabelWithTooltip(label, status) {
+    let tagClass = 'tag-exist';
+    if (status === '新增') tagClass = 'tag-new';
+    else if (status && status.includes('原')) tagClass = 'tag-rename';
+    
+    const cleanLabel = label.replace(/└─\s*/, '');
+    const desc = FIELD_DESCRIPTIONS[cleanLabel] || FIELD_DESCRIPTIONS[label] || '暂无详细说明';
+    
+    return `
+        <label class="field-label-wrapper">
+            <span class="field-label-text">${label}</span>
+            <div class="field-tooltip-icon">?
+                <div class="field-tooltip-content">${desc}</div>
+            </div>
+            ${status ? `<span class="${tagClass}">${status}</span>` : ''}
+        </label>
+    `;
+}
+
+function ThWithTooltip(label, width) {
+    const cleanLabel = label.split(' (')[0];
+    const desc = FIELD_DESCRIPTIONS[cleanLabel] || FIELD_DESCRIPTIONS[label] || '暂无详细说明';
+    return `<th style="${width?'width:'+width:''}"><div class="field-label-wrapper" style="justify-content:flex-start;"><span class="field-label-text">${label}</span><div class="field-tooltip-icon">?<div class="field-tooltip-content">${desc}</div></div></div></th>`;
+}
+
+function BatchControls(type) {
+    return `
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:10px;">
+        <button class="btn btn-secondary" onclick="app.exportConfig('${type}')">⬇ 下载最新配置 (Excel)</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('import-${type}').click()">⬆ 批量导入配置 (Excel)</button>
+        <input type="file" id="import-${type}" accept=".xlsx, .xls, .csv" style="display:none;" onchange="app.importConfig('${type}', this)">
+    </div>
+    `;
+}
+
 function FilterBar(fields) {
     return `
     <div style="display:flex; gap:10px; margin-bottom:15px; background:var(--bg-element); padding:15px; border-radius:4px; border:var(--border);">
@@ -1214,7 +1560,7 @@ function SlotTable(title, id, initialData = []) {
             <button class="btn-primary" style="padding:4px 10px; font-size:11px;" onclick="app.addSlotRow('${id}')">+ 添加槽位</button>
         </div>
         <table class="data-table" id="${id}">
-            <thead><tr><th>槽位名称</th><th>课程类型</th><th>侧重维度</th><th>侧重目标</th><th>操作</th></tr></thead>
+            <thead><tr>${ThWithTooltip('槽位名称')}${ThWithTooltip('课程类型')}${ThWithTooltip('侧重维度')}${ThWithTooltip('侧重目标')}<th>操作</th></tr></thead>
             <tbody>
                 ${initialData.map(renderRow).join('')}
             </tbody>
@@ -1263,10 +1609,10 @@ function TemplateConfigTable() {
     <table class="data-table" id="cfg-templates">
         <thead>
             <tr>
-                <th style="width:100px">模板键(Key)</th>
-                <th style="width:140px">适用等级 (多选)</th>
-                <th>动作槽位配置 (维度 | 枚举 | 权重)</th>
-                <th style="width:100px">排序策略</th>
+                ${ThWithTooltip('模板键(Key)', '100px')}
+                ${ThWithTooltip('适用等级 (多选)', '140px')}
+                ${ThWithTooltip('动作槽位配置 (维度 | 枚举 | 权重)')}
+                ${ThWithTooltip('排序策略', '100px')}
                 <th style="width:60px">操作</th>
             </tr>
         </thead>
@@ -1296,7 +1642,9 @@ function ConfigTable(key, columns) {
     <table class="data-table" id="cfg-${key}">
         <thead>
             <tr>
-                ${columns.map(c => `<th style="${c.width?'width:'+c.width:''}">${c.label}</th>`).join('')}
+                ${columns.map(c => {
+                    return ThWithTooltip(c.label, c.width);
+                }).join('')}
                 <th style="width:60px">操作</th>
             </tr>
         </thead>
@@ -1361,9 +1709,6 @@ function renderMultiSelect(id, options, selected, onTogglePrefix) {
 }
 
 function Field(label, type, value, status, disabled=false, layout='', multi=false, suffix='') {
-    let tagClass = 'tag-exist';
-    if (status === '新增') tagClass = 'tag-new';
-    else if (status.includes('原')) tagClass = 'tag-rename';
     const inputAttr = disabled ? 'disabled style="opacity:0.5"' : '';
     let inputHtml = '';
     
@@ -1393,7 +1738,7 @@ function Field(label, type, value, status, disabled=false, layout='', multi=fals
 
     return `
         <div class="form-group ${layout}">
-            <label>${label} <span class="${tagClass}">${status}</span></label>
+            ${LabelWithTooltip(label, status)}
             ${inputHtml}
         </div>
     `;
@@ -1471,18 +1816,32 @@ function SegmentItem(name, type, duration, paradigm) {
     `;
 }
 
-function StageItem(idx, name, type, duration) {
+function StageItem(idx, name, type, duration, tplId, intensity, volume) {
+    const tplOpts = MOCK_DATA.templates.map(t => `<option value="${t.id}" ${t.id===tplId?'selected':''}>${t.name}</option>`).join('');
+    const typeOpts = ['适应期', '进阶期', '突破期', '减载期'].map(t => `<option ${t===type?'selected':''}>${t}</option>`).join('');
+    const displayName = name || type;
     return `
         <div class="sub-item">
             <div class="sub-header">
-                <span>${idx}. ${name} <span class="status-badge new">${type}</span></span>
-                <button class="btn-text">配置</button>
+                <span>${idx}. ${displayName} <span class="status-badge new">${type}</span></span>
+                <button class="btn-text" onclick="this.closest('.sub-item').remove()">删除</button>
             </div>
             <div class="form-grid" style="padding:0; gap:10px;">
+                <div class="form-group">
+                    ${LabelWithTooltip('阶段类型', '新增')}
+                    <select onchange="app.updateStageName(this)">${typeOpts}</select>
+                </div>
+                <div class="form-group">
+                    ${LabelWithTooltip('阶段名称', '新增')}
+                    <input type="text" value="${name || ''}" placeholder="${type}" oninput="app.updateStageHeader(this)">
+                </div>
                 ${Field('阶段周期', 'text', duration, '新增')}
-                ${Field('单周循环模板', 'select', ['TPL_001','TPL_002'], '新增')}
-                ${Field('强度系数', 'number', '1.0', '新增')}
-                ${Field('容量系数', 'number', '1.0', '新增')}
+                <div class="form-group ">
+                    ${LabelWithTooltip('计划阶段模板', '新增')}
+                    <select>${tplOpts}</select>
+                </div>
+                ${Field('强度系数', 'number', intensity||'1.0', '新增')}
+                ${Field('容量系数', 'number', volume||'1.0', '新增')}
             </div>
         </div>
     `;
@@ -1514,6 +1873,7 @@ const app = {
         app.state.id = id;
         app.render();
         setTimeout(() => app.toggleCourseTypeFields(document.querySelector('select')), 100); // Init fields state
+        setTimeout(() => app.initSubVisibility(), 100); // Init sub-fields state
     },
     toggleStatus: (btn) => {
         const isUp = btn.innerText === '下架';
@@ -1570,6 +1930,156 @@ const app = {
         `;
         tbody.appendChild(tr);
         if (tableId === 'tbl-basic') app.updateTemplateFreq();
+    },
+    addStage: () => {
+        const list = document.querySelector('.sub-list');
+        if (list.innerText.includes('暂无阶段配置')) list.innerHTML = '';
+        const idx = list.children.length + 1;
+        list.insertAdjacentHTML('beforeend', StageItem(idx, '', '适应期', '1周', '', '1.0', '1.0'));
+    },
+    updateStageName: (select) => {
+        const row = select.closest('.sub-item');
+        const type = select.value;
+        const nameInput = row.querySelector('input[oninput*="updateStageHeader"]');
+        const headerTitle = row.querySelector('.sub-header span');
+        nameInput.placeholder = type;
+        if (!nameInput.value.trim()) {
+            const idx = headerTitle.innerText.split('.')[0];
+            headerTitle.innerHTML = `${idx}. ${type} <span class="status-badge new">${type}</span>`;
+        } else {
+            const badge = headerTitle.querySelector('.status-badge');
+            if(badge) badge.innerText = type;
+        }
+    },
+    updateStageHeader: (input) => {
+        const row = input.closest('.sub-item');
+        const val = input.value;
+        const typeSelect = row.querySelector('select[onchange*="updateStageName"]');
+        const type = typeSelect.value;
+        const headerTitle = row.querySelector('.sub-header span');
+        const idx = headerTitle.innerText.split('.')[0];
+        const display = val.trim() || type;
+        headerTitle.innerHTML = `${idx}. ${display} <span class="status-badge new">${type}</span>`;
+    },
+    togglePowerModule: (select) => {
+        const container = select.closest('.form-grid');
+        const pmField = container.querySelector('.power-module-field');
+        if (pmField) {
+            pmField.style.display = select.value === '是' ? 'block' : 'none';
+        }
+    },
+    toggleSub: (group, val) => {
+        const subs = document.querySelectorAll(`.sub-${group}`);
+        let show = false;
+        if (group === 'construct') show = val === '复合动作';
+        if (group === 'unilateral') show = val === '单侧';
+        
+        subs.forEach(el => {
+            el.style.display = show ? 'flex' : 'none';
+        });
+    },
+    initSubVisibility: () => {
+        // 1. Generic Sub-toggles (Auto-detect all select toggleSub calls)
+        const triggers = document.querySelectorAll('select[onchange*="app.toggleSub"]');
+        triggers.forEach(el => {
+            // Extract group name from onchange attribute: app.toggleSub('groupName', ...)
+            const match = el.getAttribute('onchange').match(/toggleSub\(['"]([^'"]+)['"]/);
+            if (match && match[1]) {
+                app.toggleSub(match[1], el.value);
+            }
+        });
+        
+        // 2. Power Module (Special case)
+        const pmSelect = document.querySelector('select[onchange*="togglePowerModule"]');
+        if(pmSelect) app.togglePowerModule(pmSelect);
+    },
+    exportConfig: (type) => {
+        const map = { '动作': 'actions', '课程': 'courses', '计划': 'plans' };
+        const key = map[type];
+        if (!key || !MOCK_DATA[key]) return alert('暂不支持该类型导出');
+        
+        const schema = SCHEMA[type];
+        if (!schema) return alert('未定义导出模版');
+        
+        // Deep clone and process for Excel (stringify nested objects)
+        const data = MOCK_DATA[key].map(item => {
+            const row = {};
+            // Map to Chinese headers based on SCHEMA
+            Object.keys(schema).forEach(k => {
+                let val = item[k];
+                if (typeof val === 'object' && val !== null) {
+                    val = JSON.stringify(val);
+                }
+                row[schema[k]] = val !== undefined ? val : '';
+            });
+            return row;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, type);
+        XLSX.writeFile(wb, `AEKE_${type}配置_${new Date().toISOString().slice(0,10)}.xlsx`);
+    },
+    importConfig: (type, input) => {
+        if(!input.files || !input.files[0]) return;
+        
+        const map = { '动作': 'actions', '课程': 'courses', '计划': 'plans' };
+        const key = map[type];
+        if (!key) return alert('暂不支持该类型导入');
+        
+        const schema = SCHEMA[type];
+        if (!schema) return alert('未定义导入模版');
+
+        // Create reverse mapping: Label -> Key
+        const reverseSchema = {};
+        Object.keys(schema).forEach(k => reverseSchema[schema[k]] = k);
+
+        const file = input.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, {type: 'array'});
+                const firstSheet = wb.Sheets[wb.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                if (!jsonData || jsonData.length === 0) return alert('文件为空或格式错误');
+
+                // Parse nested JSON strings
+                const parsedData = jsonData.map(row => {
+                    const newItem = {};
+                    Object.keys(row).forEach(label => {
+                        const k = reverseSchema[label];
+                        if (k) {
+                            let val = row[label];
+                            if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+                                try { val = JSON.parse(val); } catch (e) {}
+                            }
+                            newItem[k] = val;
+                        }
+                    });
+                    return newItem;
+                });
+
+                // Merge Logic
+                let updated = 0, added = 0;
+                parsedData.forEach(newItem => {
+                    if (!newItem.id) return;
+                    const idx = MOCK_DATA[key].findIndex(old => old.id === newItem.id);
+                    if (idx > -1) { MOCK_DATA[key][idx] = { ...MOCK_DATA[key][idx], ...newItem }; updated++; }
+                    else { MOCK_DATA[key].push(newItem); added++; }
+                });
+
+                alert(`导入成功！\n更新: ${updated} 条\n新增: ${added} 条`);
+                app.render();
+            } catch (err) {
+                console.error(err);
+                alert('导入失败，请检查文件格式');
+            }
+            input.value = '';
+        }
+        reader.readAsArrayBuffer(file);
     },
     updateTemplateFreq: () => {
         const tbody = document.querySelector('#tbl-basic tbody');
@@ -1885,6 +2395,8 @@ const app = {
         
         if (page === 'course' && view === 'detail') {
              document.querySelectorAll('.sub-item').forEach(el => app.recalcSegment(el));
+             // Init rest fields visibility
+             document.querySelectorAll('select[onchange*="toggleRestFields"]').forEach(el => app.toggleRestFields(el));
         }
     }
 };
@@ -1898,12 +2410,13 @@ document.addEventListener('click', (e) => {
 });
 
 // Init
-let ACTION_DB = [];
 fetch('AI推荐_智能版 [Demo]/js/data/动作库.json')
     .then(res => res.json())
     .then(data => {
-        ACTION_DB = data;
-        console.log('Actions loaded:', ACTION_DB.length);
+        MOCK_DATA.actions = data;
+        // Also update global ACTION_DB for picker if needed, though picker uses ACTION_DB variable
+        window.ACTION_DB = data; 
+        app.render();
     })
     .catch(err => console.error('Failed to load actions:', err));
 

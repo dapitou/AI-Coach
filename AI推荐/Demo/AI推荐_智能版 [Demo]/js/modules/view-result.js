@@ -42,7 +42,9 @@ window.ViewResult = {
             document.getElementById('res-course-content').style.display = 'none';
             document.getElementById('unit-switch').style.display = 'block';
 
-            const plan = window.Logic.genPlan(inputs);
+            // Default to Linear Periodization internally
+            const pModel = '线性周期';
+            const plan = window.Logic.genPlan({ ...inputs, periodization: pModel });
             
             // 1. Plan Name: {Level} + {FuncGoal} + "计划"
             const u = window.store.user;
@@ -352,7 +354,20 @@ window.ViewResult = {
     enterPlanDay: (week, day, dayName, targetsStr) => {
         const inputs = window.store.inputs;
         const targets = targetsStr.split(',');
-        const planContext = { type: '力量', targets: targets, duration: parseInt(inputs.duration), title: `${dayName}训练`, phase: { intensity: 1.0, volume: 1.0 }, goal: window.store.user.goal };
+        
+        // 修复：从 store 中查找当前周的周期系数 (Cycle Coefficients)
+        let pIntensity = 1.0;
+        let pVolume = 1.0;
+        if (window.store.planPhases) {
+            const allWeeks = Object.values(window.store.planPhases).flat();
+            const wData = allWeeks.find(w => w.week === week);
+            if (wData) {
+                pIntensity = wData.intensity || 1.0;
+                pVolume = wData.volume || 1.0;
+            }
+        }
+
+        const planContext = { type: '力量', targets: targets, duration: parseInt(inputs.duration), title: `${dayName}训练`, phase: { intensity: pIntensity, volume: pVolume }, goal: window.store.user.goal };
         const ctx = window.Logic.runPipeline(null, planContext);
         const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
         window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
