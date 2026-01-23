@@ -83,38 +83,66 @@ window.Logic = {
         const cdStrategy = CONFIG.STRATEGY['柔韧'];
         const paradigm = CONSTANTS.COURSE_TYPES[type] || '抗阻范式';
 
-        // 1. Level Adaptation (Sports Science Core)
-        // 基于运动科学调整：容量(Volume)、强度(Intensity)、密度(Density/Rest)
+        // 1. Sports Science Adaptation (Level & Goal)
         const level = ctx.meta.level || 'L3';
         const scaling = CONFIG.LEVEL_SCALING[level] || CONFIG.LEVEL_SCALING['L3'];
+        const goal = ctx.meta.goal;
+
+        // A. Volume & Intensity Scaling
         let adjustedSets = Math.max(1, Math.round(mainStrategy.sets * scaling.vol));
         let adjustedIntensity = Math.min(1.0, Math.max(0.1, mainStrategy.intensity * scaling.int));
-        let adjustedRest = Math.max(10, Math.round(mainStrategy.rest * scaling.rest));
-        let adjustedRestRound = Math.round(adjustedRest * 1.5); // Default Inter-round rest
+        
+        // B. Rest Interval Logic (ATP-CP vs Metabolic)
+        // Strength/Power: Needs 2-5min for CNS/ATP recovery.
+        // Hypertrophy: Needs 60-90s for metabolic stress.
+        // Endurance: Needs <45s to maintain heart rate.
+        let baseRest = mainStrategy.rest;
+        if (['力量', '爆发'].includes(goal)) baseRest = Math.max(120, baseRest); // Floor 2min
+        else if (['增肌'].includes(goal)) baseRest = Math.max(60, Math.min(90, baseRest)); // Clamp 60-90s
+        else if (['减脂', '耐力', '心肺'].includes(goal)) baseRest = Math.min(45, baseRest); // Cap 45s
 
-        // Time-Constraint Adaptation
+        let adjustedRest = Math.round(baseRest * scaling.rest);
+        
+        // Flow Paradigm (Yoga/Stretch) allows 0 rest
+        if (paradigm === '抗阻范式' || paradigm === '间歇范式') {
+            adjustedRest = Math.max(10, adjustedRest);
+        }
+        let adjustedRestRound = Math.round(adjustedRest * 1.5); 
+
+        // C. Time-Constraint Adaptation (Compression)
         if (duration <= 30) {
-            if (['力量', '爆发'].includes(ctx.meta.goal)) adjustedRest = Math.min(adjustedRest, 120);
-            else if (['增肌'].includes(ctx.meta.goal)) adjustedRest = Math.min(adjustedRest, 60);
-            else adjustedRest = Math.min(adjustedRest, 45);
+            adjustedRest = Math.max(15, Math.round(adjustedRest * 0.7)); // Compress rest by 30%
             adjustedRestRound = Math.round(adjustedRest * 1.5);
         }
         
-        let singleDuration = paradigm === '抗阻范式' ? (45 + adjustedRest) : (60 + adjustedRest);
-        let count = Math.floor((mainTime * 60) / (adjustedSets * singleDuration));
+        // D. Duration Estimation (TUT Based)
+        // Estimate Time Under Tension (TUT) per set
+        let tut = 45; // Default Hypertrophy (10 reps * 4s tempo)
+        if (['力量', '爆发'].includes(goal)) tut = 20; // Low reps
+        else if (['减脂', '耐力', '心肺', 'HIIT'].includes(goal)) tut = 60; // High reps/Time
+        else if (paradigm === '流式范式') tut = 60; // Flow
+
+        // Calculate cost per action: Sets * (TUT + Rest) - LastRest + RoundRest
+        // Actually: (Sets * TUT) + ((Sets - 1) * Rest) + RestRound
+        const actionCostSec = (adjustedSets * tut) + ((adjustedSets - 1) * adjustedRest) + adjustedRestRound;
         
+        let count = Math.floor((mainTime * 60) / actionCostSec);
+        
+        // Ensure minimum variety (at least 3 actions if possible)
         if (count < 3 && adjustedSets > 2) {
-            adjustedSets = Math.max(2, Math.min(adjustedSets, Math.floor((mainTime * 60) / 3 / singleDuration)));
-            count = Math.floor((mainTime * 60) / (adjustedSets * singleDuration));
+            // Reduce sets to fit more actions
+            adjustedSets--;
+            const reducedCost = (adjustedSets * tut) + ((adjustedSets - 1) * adjustedRest) + adjustedRestRound;
+            count = Math.floor((mainTime * 60) / reducedCost);
         }
 
         const phaseStrategy = { ...mainStrategy, sets: adjustedSets, rest: adjustedRest, restRound: adjustedRestRound, intensity: adjustedIntensity };
         const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
 
         ctx.phases = [
-            { type: '热身', duration: wuTime, paradigm: '流式范式', func: '激活', targetCount: Math.ceil(wuTime/1.5), strategy: wuStrategy },
+            { type: '热身', duration: wuTime, paradigm: '流式范式', func: '激活', targetCount: Math.ceil(wuTime), strategy: { ...wuStrategy, restRound: 0, sets: 1 } },
             { type: '主训', duration: mainTime, paradigm: paradigm, func: ctx.meta.goal, targetCount: Math.max(1, count), strategy: phaseStrategy, coeffs: phaseCoeffs },
-            { type: '放松', duration: cdTime, paradigm: '流式范式', func: '放松', targetCount: Math.ceil(cdTime/1.5), strategy: cdStrategy }
+            { type: '放松', duration: cdTime, paradigm: '流式范式', func: '放松', targetCount: Math.ceil(cdTime), strategy: { ...cdStrategy, restRound: 0, sets: 1 } }
         ];
         return ctx;
     },
@@ -153,7 +181,15 @@ window.Logic = {
             const search = (criteria) => {
                 return pool.filter(a => {
                     // Paradigm Check (Strict)
-                    if (a.paradigm !== p.paradigm) return false;
+                    const actionParadigm = CONSTANTS.COURSE_TYPES[a.courseType];
+                    if (actionParadigm !== p.paradigm) {
+                        // Allow Interval actions (like Jumping Jacks) in Flow phases (Warmup/Cooldown)
+                        if (!isMain(p) && p.paradigm === '流式范式' && actionParadigm === '间歇范式') {
+                            // Pass
+                        } else {
+                            return false;
+                        }
+                    }
                     
                     // Part Check
                     if (isMain(p)) {
@@ -267,6 +303,8 @@ window.Logic = {
             const vCoeff = coeffs ? coeffs.volume : 1.0;
 
             phase.actions = phase.actions.map(a => {
+                const actionParadigm = CONSTANTS.COURSE_TYPES[a.courseType];
+
                 // 1. 计算模式判定 (Calculation Mode Judgment)
                 // 负荷优先模式：抗阻范式 (关注重量)
                 // 容量优先模式：间歇/流式范式 (关注时长/次数)
@@ -275,7 +313,7 @@ window.Logic = {
 
                 // 2. 基准参数计算
                 // 组数：优先使用 selectActions 中 Gap Filling 调整后的组数
-                let algoSets = Math.round(strategy.sets * vCoeff);
+                let algoSets = a.sets || Math.round(strategy.sets * vCoeff);
                 if (a.extraSets) algoSets += a.extraSets;
 
                 // FIX: Enforce Smart Rec (Reset to algo sets if smart mode is ON)
@@ -283,8 +321,6 @@ window.Logic = {
                 if (!window.store.courseSettings.smartRec && a.sets) {
                     sets = a.sets;
                 }
-
-                if (phase.type === '热身' || phase.type === '放松') sets = 1;
                 
                 let intensity = strategy.intensity * iCoeff;
                 let load = 0;
@@ -297,18 +333,26 @@ window.Logic = {
                     base1RM = a.demoUser1RM || window.UserAbility.oneRM[a.part] || window.UserAbility.oneRM['全身'] || 20; // Use dynamic 1RM
                     load = Math.round(base1RM * intensity);
                     
-                    // 基于强度反推次数 (简单查表模拟)
-                    let theoReps = 12;
-                    if (intensity >= 0.9) theoReps = 4;
-                    else if (intensity >= 0.8) theoReps = 8;
-                    else if (intensity >= 0.7) theoReps = 12;
+                    // Scientific Reps Mapping (NSCA/ACSM Guidelines)
+                    // >85% 1RM -> <6 Reps (Strength)
+                    // 67-85% 1RM -> 6-12 Reps (Hypertrophy)
+                    // <67% 1RM -> >12 Reps (Endurance)
+                    let theoReps = 10;
+                    if (intensity >= 0.95) theoReps = 2;
+                    else if (intensity >= 0.90) theoReps = 4;
+                    else if (intensity >= 0.85) theoReps = 6;
+                    else if (intensity >= 0.80) theoReps = 8;
+                    else if (intensity >= 0.75) theoReps = 10;
+                    else if (intensity >= 0.65) theoReps = 12;
+                    else theoReps = 15;
+
                     // RPE 修正
                     reps = Math.max(1, theoReps - (10 - rpe)).toString();
                 } else {
                     // 模式 B：容量优先 (定容量 -> 定重量)
                     // 强度系数作用于速度/频率(由教练口令控制)，时长保持与规划层一致(60s)以确保总时长准确
                     reps = (phase.paradigm === '间歇范式') ? '60' : '30';
-                    if (phase.type === '热身') reps = '60';
+                    if (phase.type === '热身' || phase.type === '放松') reps = '60';
                 }
 
                 // Apply Load Strategy (Pyramid etc)
@@ -339,6 +383,7 @@ window.Logic = {
 
                 return {
                     ...a,
+                    paradigm: actionParadigm,
                     mirror: a.mirror || (a.name && (a.name.includes('单') || a.name.includes('哑铃') || a.name.includes('侧'))),
                     base1RM,
                     sets,

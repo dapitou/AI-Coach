@@ -1,10 +1,10 @@
 const CONFIG = {
     STRATEGY: {
-        '增肌': { sets: 4, rest: 90, intensity: 0.75, mode: '常规', forceMode: '恒力', strategy: '推荐', diff: '标准', rpe: 8 },
-        '力量': { sets: 5, rest: 180, intensity: 0.85, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '进阶', rpe: 9 },
+        '增肌': { sets: 4, rest: 60, intensity: 0.75, mode: '常规', forceMode: '恒力', strategy: '推荐', diff: '标准', rpe: 8 },
+        '力量': { sets: 5, rest: 120, intensity: 0.85, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '进阶', rpe: 9 },
         '减脂': { sets: 4, rest: 30, intensity: 0.65, mode: '循环', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 7 },
         '耐力': { sets: 3, rest: 45, intensity: 0.50, mode: '超级', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 6 },
-        '爆发': { sets: 4, rest: 150, intensity: 0.70, mode: '常规', forceMode: '弹力', strategy: '递增', diff: '进阶', rpe: 9 },
+        '爆发': { sets: 4, rest: 120, intensity: 0.70, mode: '常规', forceMode: '弹力', strategy: '递增', diff: '进阶', rpe: 9 },
         '心肺': { sets: 4, rest: 20, intensity: 0.65, mode: '循环', forceMode: '划船', strategy: '计时', diff: '标准', rpe: 7 },
         '激活': { sets: 2, rest: 0, intensity: 0.40, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 4 },
         '柔韧': { sets: 2, rest: 0, intensity: 0.30, mode: '常规', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 3 },
@@ -17,7 +17,7 @@ const CONFIG = {
         '协调': { sets: 3, rest: 60, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 6 },
         '体态': { sets: 3, rest: 45, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 5 },
         '平衡': { sets: 3, rest: 60, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 6 },
-        '专项': { sets: 3, rest: 90, intensity: 0.70, mode: '常规', forceMode: '恒力', strategy: '推荐', diff: '标准', rpe: 8 }
+        '专项': { sets: 3, rest: 60, intensity: 0.70, mode: '常规', forceMode: '恒力', strategy: '推荐', diff: '标准', rpe: 8 }
     },
     LEVEL_COEFF: { 'L1': 0.5, 'L2': 0.8, 'L3': 1.0, 'L4': 1.2, 'L5': 1.5 },
     LEVEL_SCALING: {

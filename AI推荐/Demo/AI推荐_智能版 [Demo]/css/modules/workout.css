@@ -14,67 +14,147 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 15px;
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
+    padding: 0 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
     z-index: 10;
-    font-size: 14px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
 }
 
-.wk-phase-tag {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
+.wk-header > * {
+    pointer-events: auto;
+}
+
+.wk-header-left, .wk-header-right {
+    flex: 0 0 80px;
+    display: flex;
+    align-items: center;
+}
+.wk-header-right { justify-content: flex-end; }
+
+.wk-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: var(--fs-lg);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.wk-close-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.3); }
+
+.wk-progress-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+.wk-progress-info {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: var(--fs-sm);
+    color: rgba(255,255,255,0.8);
+    font-weight: 600;
+}
+
+.wk-progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.wk-progress-fill {
+    height: 100%;
     background: var(--primary);
-    color: #000;
-    margin-right: 10px;
+    width: 0%;
+    transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 0 8px var(--primary);
+}
+
+.wk-time-badge {
+    font-family: "SF Mono", "Roboto Mono", monospace;
+    font-size: var(--fs-lg);
+    color: #fff;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 8px;
+    border-radius: 6px;
+    backdrop-filter: blur(5px);
+    font-variant-numeric: tabular-nums;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .wk-video-area {
     flex: 1;
-    background: #1a1a1a;
+    background: #111;
     position: relative;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     overflow: hidden;
 }
 
 .wk-video-placeholder {
-    font-size: 20px;
-    color: #444;
+    font-size: var(--fs-md);
+    color: #333;
     font-weight: 700;
     letter-spacing: 2px;
     text-transform: uppercase;
 }
 
-.wk-overlay-info {
+.wk-top-info {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
-    right: 20px;
+    top: 100px;
+    left: 0;
+    width: 100%;
+    text-align: center;
     text-shadow: 0 2px 4px rgba(0,0,0,0.8);
     pointer-events: none;
+    z-index: 101; /* Above countdown overlay */
+    transition: opacity 0.2s;
 }
 
-.wk-action-name {
-    font-size: 24px;
+.wk-phase-label {
+    font-size: var(--fs-sm);
+    color: var(--primary);
     font-weight: 700;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.wk-next-hint {
-    font-size: 12px;
-    color: rgba(255,255,255,0.7);
-    display: flex;
-    align-items: center;
-    gap: 5px;
+.wk-main-title {
+    font-size: var(--fs-xxl);
+    font-weight: 800;
+    margin-bottom: 5px;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+.wk-sub-info {
+    font-size: var(--fs-lg);
+    color: rgba(255,255,255,0.9);
+    font-weight: 500;
 }
 
 .wk-dashboard {
     height: 260px;
-    background: #111;
+    background: #0a0a0a;
     border-top: 1px solid #222;
     padding: 15px;
     display: flex;
@@ -92,7 +172,7 @@
     background: #161616;
     border-radius: 8px;
     padding: 10px;
-    border: 1px solid #222;
+    border: 1px solid #2a2a2a;
     position: relative;
 }
 
@@ -106,7 +186,7 @@
 }
 
 .wk-chart-title {
-    font-size: 10px;
+    font-size: var(--fs-xs);
     color: #666;
     position: absolute;
     top: 8px;
@@ -127,13 +207,12 @@
 .wk-dial-svg {
     width: 100%;
     height: 100%;
-    transform: rotate(150deg); /* Start from bottom left */
 }
 
 .wk-dial-track {
     fill: none;
     stroke: #333;
-    stroke-width: 8;
+    stroke-width: 6;
     stroke-linecap: round;
 }
 
@@ -142,7 +221,28 @@
     stroke: var(--primary);
     stroke-width: 8;
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.1s linear;
+    /* transition: stroke-dashoffset 0.1s linear; Removed for instant drag response */
+}
+
+.wk-dial-toast {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: #000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+.wk-dial-toast.show {
+    opacity: 1;
+    top: -40px;
 }
 
 .wk-dial-info {
@@ -154,7 +254,7 @@
 }
 
 .wk-dial-val {
-    font-size: 32px;
+    font-size: var(--fs-xxl);
     font-weight: 700;
     color: #fff;
     line-height: 1;
@@ -162,7 +262,7 @@
 }
 
 .wk-dial-unit {
-    font-size: 12px;
+    font-size: var(--fs-sm);
     color: #888;
 }
 
@@ -201,21 +301,52 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 100%; /* Cover video area */
     background: rgba(0,0,0,0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 100;
     flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+.wk-countdown-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.wk-active-counter {
+    font-size: var(--fs-huge);
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.wk-active-counter.emphasis {
+    color: var(--danger);
+    animation: none;
+}
+
+.wk-active-counter.visible {
+    opacity: 1;
 }
 
 .wk-count-num {
-    font-size: 120px;
+    font-size: var(--fs-giant);
     font-weight: 800;
     color: var(--primary);
-    animation: pulse 1s infinite;
+    animation: none;
     font-variant-numeric: tabular-nums;
+}
+
+#wk-rest-time {
+    animation: none;
+    color: #fff;
 }
 
 .wk-rest-overlay {
@@ -229,14 +360,18 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 90;
-    backdrop-filter: blur(5px);
+    z-index: 102; /* Above top info */
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
 }
+.wk-rest-overlay.active { opacity: 1; pointer-events: auto; }
 
 /* Action List Overlay */
 .wk-action-list-overlay {
     position: absolute;
-    top: 55px;
+    top: 60px;
     left: 15px;
     z-index: 50;
     background: rgba(0,0,0,0.6);
@@ -261,17 +396,17 @@
 }
 
 .wk-al-current {
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .wk-al-set {
-    font-size: 10px;
-    color: var(--primary);
+    font-size: var(--fs-sm);
+    color: #fff;
     margin-top: 2px;
 }
 
@@ -287,7 +422,7 @@
 
 .wk-al-phase {
     padding: 8px 12px;
-    font-size: 10px;
+    font-size: var(--fs-xs);
     color: #888;
     background: #1a1a1a;
     border-bottom: 1px solid #222;
@@ -296,7 +431,7 @@
 
 .wk-al-item {
     padding: 10px 12px;
-    font-size: 12px;
+    font-size: var(--fs-sm);
     color: #ccc;
     border-bottom: 1px solid #222;
     cursor: pointer;
@@ -314,7 +449,7 @@
 }
 
 .wk-al-badge {
-    font-size: 9px;
+    font-size: 9px; /* Keep tiny */
     background: #333;
     padding: 1px 4px;
     border-radius: 2px;
@@ -325,8 +460,12 @@
 /* Simulation Controls */
 .sim-controls {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: 290px; /* 540px/2 + 20px padding */
+    right: auto;
+    bottom: auto;
+    transform: translateY(-50%);
     background: rgba(0,0,0,0.8);
     border: 1px solid #333;
     border-radius: 8px;
@@ -342,12 +481,17 @@
     border: 1px solid #444;
     color: #fff;
     padding: 5px 10px;
-    font-size: 10px;
+    font-size: var(--fs-xs);
     border-radius: 4px;
     cursor: pointer;
     text-align: center;
 }
 .sim-btn:active { background: #444; }
+.sim-hint {
+    font-size: var(--fs-xs);
+    color: #888;
+    margin-bottom: 5px;
+}
 
 /* Summary View */
 .summary-hero {
@@ -372,4 +516,9 @@
     border-radius: 12px;
     padding: 15px;
     text-align: center;
+}
+
+.hidden-visibility {
+    visibility: hidden;
+    pointer-events: none;
 }

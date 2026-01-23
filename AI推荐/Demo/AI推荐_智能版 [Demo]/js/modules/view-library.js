@@ -34,6 +34,7 @@ window.ViewLibrary = {
             const antagonist = action.antagonist || '无';
             const synergist = (action.subPart && action.subPart.length) ? action.subPart.join('、') : '无';
             const stabilizer = '核心肌群';
+            const paradigm = action.paradigm || CONSTANTS.COURSE_TYPES[action.courseType] || '抗阻范式';
 
             let addBtn = '';
             if (source === 'library') {
@@ -48,7 +49,7 @@ window.ViewLibrary = {
                     </div>
                     <div class="ad-tags"><div class="ad-tag">${action.part}</div><div class="ad-tag">${action.construct || '复合动作'}</div><div class="ad-tag">${action.difficulty}</div></div>
                 </div>
-                <div class="ad-section"><div class="ad-sec-title">基本信息</div><div class="info-grid"><div class="info-card"><div class="ic-label">器械</div><div class="ic-val">${action.equip[0]}</div></div><div class="info-card"><div class="ic-label">冲击</div><div class="ic-val">${action.impact}</div></div><div class="info-card"><div class="ic-label">范式</div><div class="ic-val">${action.paradigm.replace('范式','')}</div></div></div></div>
+                <div class="ad-section"><div class="ad-sec-title">基本信息</div><div class="info-grid"><div class="info-card"><div class="ic-label">器械</div><div class="ic-val">${action.equip[0]}</div></div><div class="info-card"><div class="ic-label">冲击</div><div class="ic-val">${action.impact}</div></div><div class="info-card"><div class="ic-label">范式</div><div class="ic-val">${paradigm.replace('范式','')}</div></div></div></div>
                 <div class="ad-section"><div class="ad-sec-title">肌群参与</div><div class="muscle-map"><div class="muscle-card"><div class="mc-label">主动肌 (Agonist)</div><div class="mc-val highlight">${action.muscle}</div></div><div class="muscle-card"><div class="mc-label">拮抗肌 (Antagonist)</div><div class="mc-val">${antagonist}</div></div><div class="muscle-card"><div class="mc-label">辅助肌 (Synergist)</div><div class="mc-val">${synergist}</div></div><div class="muscle-card"><div class="mc-label">稳定肌 (Stabilizer)</div><div class="mc-val">${stabilizer}</div></div></div></div>
                 <div class="ad-section"><div class="ad-sec-title">动作说明</div><div class="desc-box">${action.name}是一个经典的${action.part}训练动作，主要针对${action.muscle}进行强化。通过${action.construct || '复合'}运动模式，能够有效提升${action.func.join('与')}能力。适合${action.difficulty}及以上水平训练者。</div></div>
             `;

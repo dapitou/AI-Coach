@@ -556,7 +556,7 @@ const SCHEMA = {
         focus: '动作重点', feedback: '纠错反馈', algoFile: '算法文件',
         cover: '封面图', thumb: '缩略图', video: '动作视频', videoDur: '动作视频时长', demoCount: '动作演示次数',
         singleDur: '单次动作时长', mirrorVideo: '动作镜像视频', teachVideo: '动作教学视频', teachDur: '教学视频时长',
-        status: '状态', paradigm: '训练范式'
+        status: '状态'
     },
     '课程': {
         id: '课程ID', opsId: '课程运营ID', name: '课程名称', intro: '课程介绍',
@@ -590,7 +590,7 @@ const RENDERERS = {
             {label:'状态', type:'select', opts:['上架','下架']}
         ])}
         <table class="data-table">
-            <thead><tr>${ThWithTooltip('动作ID')}${ThWithTooltip('动作运营ID')}${ThWithTooltip('动作名称')}${ThWithTooltip('主要部位')}${ThWithTooltip('主动肌')}${ThWithTooltip('动作模式')}${ThWithTooltip('动作器械')}${ThWithTooltip('训练范式')}${ThWithTooltip('动作功能')}${ThWithTooltip('动作难度')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
+            <thead><tr>${ThWithTooltip('动作ID')}${ThWithTooltip('动作运营ID')}${ThWithTooltip('动作名称')}${ThWithTooltip('主要部位')}${ThWithTooltip('主动肌')}${ThWithTooltip('动作模式')}${ThWithTooltip('动作器械')}${ThWithTooltip('动作功能')}${ThWithTooltip('动作难度')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
             <tbody>
                 ${MOCK_DATA.actions.map(item => `
                 <tr>
@@ -601,7 +601,6 @@ const RENDERERS = {
                     <td>${item.muscle || '-'}</td>
                     <td>${item.mode}</td>
                     <td>${item.equip}</td>
-                    <td>${item.paradigm}</td>
                     <td>${item.func}</td>
                     <td><span class="status-badge">${item.level}</span></td>
                     <td><span class="status-badge ${item.status==='上架'?'new':''}">${item.status}</span></td>

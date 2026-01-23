@@ -18,7 +18,13 @@ window.ViewWorkout = {
         isPaused: false,
         currentLoad: 20,
         isDialDragging: false,
-        side: null // 'L' | 'R' | null
+        side: null, // 'L' | 'R' | null
+        lastAngle: 0,
+        simState: {
+            activeKey: null, // 'z' or 'm'
+            direction: 0, // 1: concentric, -1: eccentric
+            maxPower: 0
+        }
     },
 
     start: (ctx) => {
@@ -29,8 +35,8 @@ window.ViewWorkout = {
         s.actionIdx = 0;
         s.setIdx = 0;
         s.totalTime = 0;
-        s.powerHistory = new Array(50).fill(0);
-        s.strokeHistory = new Array(100).fill(0);
+        s.powerHistory = []; // Stores per-rep peak power: {val, side}
+        s.strokeHistory = new Array(100).fill({val:0, side:null});
         s.isPaused = false;
         
         App.switchView('view-workout');
@@ -39,8 +45,39 @@ window.ViewWorkout = {
         if (s.interval) clearInterval(s.interval);
         s.interval = setInterval(ViewWorkout.tick, 100); // 100ms tick for smooth UI
 
+        // Setup Header
+        const header = document.querySelector('.wk-header');
+        if(header) {
+            header.innerHTML = `
+                <div class="wk-header-left">
+                    <div class="wk-close-btn" onclick="App.openConfirmModal('确定要结束训练吗？', () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕</div>
+                </div>
+                <div class="wk-header-center">
+                    <div class="wk-progress-container">
+                        <div class="wk-progress-info"><span>课程进度</span><span id="wk-prog-text">0%</span></div>
+                        <div class="wk-progress-track"><div class="wk-progress-fill" id="wk-prog-fill"></div></div>
+                    </div>
+                </div>
+                <div class="wk-header-right">
+                    <div class="wk-time-badge" id="wk-total-time">00:00</div>
+                </div>
+            `;
+        }
+
         ViewWorkout.initDial();
+        ViewWorkout.initSimControls();
         ViewWorkout.prepareSet();
+        
+        // Inject Sim Controls UI
+        const simHTML = `
+            <div class="sim-hint">键盘模拟</div>
+            <div class="sim-btn">按住 Z (左侧)</div>
+            <div class="sim-btn">按住 M (右侧)</div>
+            <div class="sim-hint" style="margin-top:5px">松开回程计次</div>
+            <div class="sim-btn" onclick="window.ViewWorkout.simTime()" style="margin-top:10px;">>> 加速 (X)</div>
+        `;
+        const simContainer = document.querySelector('.sim-controls');
+        if(simContainer) simContainer.innerHTML = simHTML;
     },
 
     prepareSet: () => {
@@ -48,19 +85,51 @@ window.ViewWorkout = {
         const phase = s.ctx.phases[s.phaseIdx];
         const action = phase.actions[s.actionIdx];
         const set = action.setDetails[s.setIdx];
+        
+        if (!set) {
+            console.error("Set details missing, skipping...");
+            return ViewWorkout.finishSet(); // Auto-skip if error
+        }
 
         s.status = 'countdown';
         s.timer = 3; // 3s countdown
         s.setTimer = 0;
         s.currentReps = 0;
-        s.targetReps = set.reps;
+        s.targetReps = parseInt(set.reps) || 0; // Ensure number for calculation
         s.currentPower = 0;
         s.currentStroke = 0;
         s.side = action.mirror ? 'L' : null;
         
+        // Check Power Module
+        const hasPower = action.powerModule === '是';
+        const dialWrapper = document.getElementById('wk-dial-wrapper');
+        const dialControls = document.querySelector('.wk-dial-controls');
+        const charts = document.querySelectorAll('.wk-dash-col');
+        
+        if (hasPower) {
+            if(dialWrapper) dialWrapper.style.visibility = 'visible';
+            if(dialControls) dialControls.style.visibility = 'visible';
+            charts.forEach(c => c.style.visibility = 'visible');
+        } else {
+            if(dialWrapper) dialWrapper.style.visibility = 'hidden';
+            if(dialControls) dialControls.style.visibility = 'hidden';
+            charts.forEach(c => c.style.visibility = 'hidden');
+        }
+
         // Auto-set Weight
-        s.currentLoad = set.load || 20;
+        s.currentLoad = (set.load !== undefined && set.load !== null) ? set.load : 20;
         ViewWorkout.updateDialUI();
+
+        // Show Toast
+        if (hasPower) ViewWorkout.showDialToast();
+
+        // Hide active counter (fade out)
+        const counter = document.getElementById('wk-active-counter');
+        if(counter) counter.classList.remove('visible');
+        
+        // Force hide rest overlay immediately
+        const restOverlay = document.getElementById('wk-overlay-rest');
+        if(restOverlay) restOverlay.classList.remove('active');
 
         ViewWorkout.render();
         ViewWorkout.renderActionList();
@@ -70,6 +139,8 @@ window.ViewWorkout = {
     tick: () => {
         const s = ViewWorkout.state;
         if (s.isPaused) return;
+        
+        ViewWorkout.updateSimLogic();
 
         // Global Stats
         if (s.status !== 'finished') s.totalTime += 0.1;
@@ -80,7 +151,15 @@ window.ViewWorkout = {
             if (s.timer <= 0) {
                 s.status = 'working';
                 s.timer = 0;
-                ViewWorkout.render(); // Remove overlay
+                
+                // Hide countdown overlay
+                const cntOverlay = document.getElementById('wk-overlay-cnt');
+                if(cntOverlay) cntOverlay.classList.remove('active');
+                // Show active counter (fade in)
+                const counter = document.getElementById('wk-active-counter');
+                if(counter) counter.classList.add('visible');
+                
+                ViewWorkout.render();
             } else {
                 ViewWorkout.updateCountdownUI();
             }
@@ -90,15 +169,29 @@ window.ViewWorkout = {
             // Auto-finish time-based sets
             const phase = s.ctx.phases[s.phaseIdx];
             const action = phase.actions[s.actionIdx];
-            const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式';
+            const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式' || action.measure === '计时';
             
             if (isTimeBased && s.setTimer >= s.targetReps) { // targetReps stores seconds for time-based
                 ViewWorkout.finishSet();
+                if (s.status !== 'working') return;
             }
             
             ViewWorkout.updateDashboard();
             ViewWorkout.drawPowerChart();
             ViewWorkout.drawStrokeChart();
+            
+            // Emphasis Animation
+            const counterEl = document.getElementById('wk-active-counter');
+            if (counterEl) {
+                let isEmphasis = false;
+                if (isTimeBased) {
+                    if (s.targetReps - s.setTimer <= 5) isEmphasis = true;
+                } else {
+                    if (s.targetReps - s.currentReps <= 3 && s.targetReps > 3) isEmphasis = true;
+                }
+                if (isEmphasis) counterEl.classList.add('emphasis');
+                else counterEl.classList.remove('emphasis');
+            }
         } else if (s.status === 'resting') {
             s.timer -= 0.1;
             if (s.timer <= 0) {
@@ -113,6 +206,7 @@ window.ViewWorkout = {
         const s = ViewWorkout.state;
         const phase = s.ctx.phases[s.phaseIdx];
         const action = phase.actions[s.actionIdx];
+        const loopMode = phase.strategy.loopMode || '常规组';
         
         // Handle Mirrored Sets (L -> R)
         if (action.mirror && s.side === 'L') {
@@ -125,27 +219,78 @@ window.ViewWorkout = {
             return; // Skip rest, continue working
         }
 
-        // Check if last set of last action of last phase
-        const isLastSet = s.setIdx >= action.sets - 1;
-        const isLastAction = s.actionIdx >= phase.actions.length - 1;
-        const isLastPhase = s.phaseIdx >= s.ctx.phases.length - 1;
-
-        if (isLastSet && isLastAction && isLastPhase) {
-            ViewWorkout.finishWorkout();
-            return;
-        }
-
         // Determine Rest Time
         let restTime = 0;
-        if (isLastSet) {
-            // Action/Phase Switch
-            restTime = (phase.strategy.restRound !== undefined) ? phase.strategy.restRound : 30; 
+        let isRoundSwitch = false;
+        
+        // Use strategy values directly, default to 0 if undefined to avoid fabricating data
+        const strategyRest = parseInt(phase.strategy.rest) || 0;
+        // If restRound is undefined, fallback to rest (or 0 if rest is 0)
+        const strategyRestRound = (phase.strategy.restRound !== undefined && phase.strategy.restRound !== "") ? parseInt(phase.strategy.restRound) : strategyRest;
+
+        if (loopMode === '循环组' || loopMode === '超级组') {
+            // Circuit Logic: Rest between actions, RestRound after full cycle
+            // Check if this is the last action in the phase
+            const isLastActionInPhase = s.actionIdx >= phase.actions.length - 1;
+            if (isLastActionInPhase) {
+                isRoundSwitch = true;
+                restTime = strategyRestRound;
+            } else {
+                restTime = strategyRest;
+            }
         } else {
-            // Set Switch
-            restTime = (phase.strategy.rest !== undefined) ? phase.strategy.rest : 30;
+            // Regular Logic: Rest between sets, RestRound between actions
+            const isLastSetInAction = s.setIdx >= action.sets - 1;
+            if (isLastSetInAction) {
+                isRoundSwitch = true;
+                restTime = strategyRestRound;
+            } else {
+                restTime = strategyRest;
+            }
         }
 
-        if (restTime > 0) {
+        // Check for Workout Finish
+        // We need to peek if nextSet will overflow
+        // But simpler: nextSet handles index increment. If it overflows phase, we check there.
+        // Let's just set rest. If nextSet detects end of workout, it handles it.
+        // Wait, we need to know if we should rest. If workout ends, no rest.
+        
+        // Peek next state
+        let nextP = s.phaseIdx, nextA = s.actionIdx, nextS = s.setIdx;
+        let finished = false;
+
+        if (loopMode === '循环组' || loopMode === '超级组') {
+             nextA++;
+             if (nextA >= phase.actions.length) {
+                 nextA = 0;
+                 nextS++;
+                 // Assuming all actions in circuit have same sets, or we skip finished ones
+                 // For simplicity, use first action's sets as circuit sets
+                 if (nextS >= phase.actions[0].sets) {
+                     nextP++;
+                     nextA = 0;
+                     nextS = 0;
+                 }
+             }
+        } else {
+            nextS++;
+            if (nextS >= action.sets) {
+                nextS = 0;
+                nextA++;
+                if (nextA >= phase.actions.length) {
+                    nextA = 0;
+                    nextP++;
+                }
+            }
+        }
+
+        if (nextP >= s.ctx.phases.length) {
+            finished = true;
+        }
+
+        if (finished) {
+            ViewWorkout.finishWorkout();
+        } else if (restTime > 0) {
             s.status = 'resting';
             s.timer = restTime;
             ViewWorkout.renderRest();
@@ -156,20 +301,66 @@ window.ViewWorkout = {
 
     nextSet: () => {
         const s = ViewWorkout.state;
-        const phase = s.ctx.phases[s.phaseIdx];
-        const action = phase.actions[s.actionIdx];
+        // Prevent multiple calls if already transitioning
+        if (s.status === 'transition') return;
+        s.status = 'transition';
 
-        if (s.setIdx < action.sets - 1) {
-            s.setIdx++;
-        } else {
-            s.setIdx = 0;
-            if (s.actionIdx < phase.actions.length - 1) {
-                s.actionIdx++;
-            } else {
-                s.actionIdx = 0;
+        const phase = s.ctx.phases[s.phaseIdx];
+        const loopMode = phase.strategy.loopMode || '常规组';
+
+        if (loopMode === '循环组' || loopMode === '超级组') {
+            // Circuit: Action -> Action -> ... -> Next Set
+            // Find next valid action that has sets remaining
+            let nextA = s.actionIdx + 1;
+            let nextS = s.setIdx;
+            let found = false;
+            
+            // Search for next available slot
+            for (let i = 0; i < phase.actions.length * 10; i++) { // Safety limit
+                if (nextA >= phase.actions.length) {
+                    nextA = 0;
+                    nextS++;
+                }
+                // Check if this action has this set
+                if (nextS < phase.actions[nextA].sets) {
+                    s.actionIdx = nextA;
+                    s.setIdx = nextS;
+                    found = true;
+                    break;
+                } else {
+                    const maxSets = Math.max(...phase.actions.map(a => a.sets));
+                    if (nextS >= maxSets) break; // Phase done
+                    nextA++;
+                }
+            }
+            
+            if (!found) {
+                // Move to next phase
                 s.phaseIdx++;
+                s.actionIdx = 0;
+                s.setIdx = 0;
+            }
+        } else {
+            // Regular: Set -> Set -> ... -> Next Action
+            const action = phase.actions[s.actionIdx];
+            if (s.setIdx < action.sets - 1) {
+                s.setIdx++;
+            } else {
+                s.setIdx = 0;
+                if (s.actionIdx < phase.actions.length - 1) {
+                    s.actionIdx++;
+                } else {
+                    s.actionIdx = 0;
+                    s.phaseIdx++;
+                }
             }
         }
+
+        if (s.phaseIdx >= s.ctx.phases.length) {
+            ViewWorkout.finishWorkout();
+            return;
+        }
+
         ViewWorkout.prepareSet();
     },
 
@@ -177,6 +368,7 @@ window.ViewWorkout = {
         const s = ViewWorkout.state;
         s.status = 'finished';
         clearInterval(s.interval);
+        ViewWorkout.removeSimControls();
         
         // Show Summary
         App.switchView('view-summary');
@@ -194,35 +386,73 @@ window.ViewWorkout = {
 
     // --- Simulation Controls ---
     
-    togglePause: () => {
-        const s = ViewWorkout.state;
-        s.isPaused = !s.isPaused;
-        const btn = document.getElementById('wk-pause-btn');
-        if(btn) btn.innerText = s.isPaused ? '▶' : 'II';
+    initSimControls: () => {
+        document.addEventListener('keydown', ViewWorkout.handleKeyDown);
+        document.addEventListener('keyup', ViewWorkout.handleKeyUp);
     },
 
-    simRep: () => {
+    removeSimControls: () => {
+        document.removeEventListener('keydown', ViewWorkout.handleKeyDown);
+        document.removeEventListener('keyup', ViewWorkout.handleKeyUp);
+    },
+
+    handleKeyDown: (e) => {
         const s = ViewWorkout.state;
-        if (s.status !== 'working') return;
         
-        s.currentReps++;
-        s.currentPower = Math.floor(Math.random() * 50 + 150); // Spike power
-        s.currentStroke = 100; // Spike stroke
-        
-        // Visual Feedback
-        const repEl = document.getElementById('wk-rep-val');
-        if(repEl) {
-            repEl.style.transform = 'scale(1.5)';
-            repEl.style.color = '#fff';
-            setTimeout(() => {
-                repEl.style.transform = 'scale(1)';
-                repEl.style.color = 'var(--primary)';
-            }, 200);
+        if (e.key.toLowerCase() === 'x') {
+            ViewWorkout.simTime();
+            return;
         }
 
+        if (s.status !== 'working') return;
+        if (e.key.toLowerCase() === 'z') {
+            s.simState.activeKey = 'z';
+            s.simState.direction = 1;
+            s.side = 'L';
+        } else if (e.key.toLowerCase() === 'm') {
+            s.simState.activeKey = 'm';
+            s.simState.direction = 1;
+            s.side = 'R';
+        }
+    },
+
+    handleKeyUp: (e) => {
+        const s = ViewWorkout.state;
+        if (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'm') {
+            s.simState.direction = -1;
+        }
+    },
+
+    updateSimLogic: () => {
+        const s = ViewWorkout.state;
+        if (s.status !== 'working') return;
+
+        // Stroke Simulation
+        if (s.simState.direction === 1) {
+            s.currentStroke = Math.min(100, s.currentStroke + 5);
+            s.currentPower = Math.min(300, s.currentPower + 10 + Math.random()*10);
+            s.simState.maxPower = Math.max(s.simState.maxPower, s.currentPower);
+        } else if (s.simState.direction === -1) {
+            s.currentStroke = Math.max(0, s.currentStroke - 5);
+            s.currentPower = Math.max(0, s.currentPower - 10);
+            
+            // Count Rep on return to 0
+            if (s.currentStroke === 0 && s.simState.activeKey) {
+                s.currentReps++;
+                s.powerHistory.push({ val: s.simState.maxPower, side: s.side });
+                s.simState.activeKey = null;
+                s.simState.direction = 0;
+                s.simState.maxPower = 0;
+                ViewWorkout.checkRepFinish();
+            }
+        }
+    },
+
+    checkRepFinish: () => {
+        const s = ViewWorkout.state;
         const phase = s.ctx.phases[s.phaseIdx];
         const action = phase.actions[s.actionIdx];
-        const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式';
+        const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式' || action.measure === '计时';
 
         if (!isTimeBased && s.currentReps >= s.targetReps) {
             ViewWorkout.finishSet();
@@ -232,13 +462,7 @@ window.ViewWorkout = {
     simTime: () => {
         const s = ViewWorkout.state;
         if (s.status === 'working') s.setTimer += 5;
-        if (s.status === 'resting') s.timer = Math.max(1, s.timer - 5);
-    },
-
-    simPower: () => {
-        const s = ViewWorkout.state;
-        s.currentPower = Math.floor(Math.random() * 100 + 200);
-        s.currentStroke = 80;
+        else if (s.status === 'resting' || s.status === 'countdown') s.timer -= 5;
     },
 
     // --- Rendering ---
@@ -248,26 +472,53 @@ window.ViewWorkout = {
         const phase = s.ctx.phases[s.phaseIdx];
         const action = phase.actions[s.actionIdx];
         const set = action.setDetails[s.setIdx];
-        const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式';
+        const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式' || action.measure === '计时';
 
-        // Header
-        document.getElementById('wk-phase-name').innerText = phase.type;        
+        // Top Screen Info
+        let topInfo = document.querySelector('.wk-top-info');
+        if (!topInfo) {
+            topInfo = document.querySelector('.wk-overlay-info');
+            if (topInfo) {
+                topInfo.classList.add('wk-top-info');
+            } else {
+                topInfo = document.createElement('div');
+                topInfo.className = 'wk-top-info';
+                document.querySelector('.wk-video-area').appendChild(topInfo);
+            }
+        }
         
         let nameSuffix = '';
         if (s.side === 'L') nameSuffix = ' (左侧)';
         if (s.side === 'R') nameSuffix = ' (右侧)';
         
-        document.getElementById('wk-al-name').innerText = action.name + nameSuffix;
-        document.getElementById('wk-al-set').innerText = `Set ${s.setIdx + 1}/${action.sets} · ${set.load}kg x ${set.reps}${action.mirror ? '/侧' : ''}`;
+        const targetStr = isTimeBased ? `${s.targetReps}s` : `${s.targetReps}次`;
         
-        // Hide overlays
-        document.getElementById('wk-overlay-cnt').style.display = 'none';
-        document.getElementById('wk-overlay-rest').style.display = 'none';
+        topInfo.innerHTML = `
+            <div class="wk-phase-label">${phase.type}</div>
+            <div class="wk-main-title">${action.name}${nameSuffix}</div>
+            <div class="wk-sub-info">第 ${s.setIdx + 1} / ${action.sets} 组 · 目标 ${targetStr}</div>
+        `;
+
+        // Update Action List Overlay
+        document.getElementById('wk-al-name').innerText = phase.type;
+        document.getElementById('wk-al-set').innerText = `${action.name} ${s.setIdx + 1}/${action.sets}`;
+        
+        // Update Progress Bar
+        const pct = s.totalSets > 0 ? Math.min(100, (s.completedSets / s.totalSets) * 100) : 0;
+        const fill = document.getElementById('wk-prog-fill');
+        const text = document.getElementById('wk-prog-text');
+        if(fill) fill.style.width = `${pct}%`;
+        if(text) text.innerText = `${Math.round(pct)}%`;
     },
 
     renderCountdown: () => {
         const el = document.getElementById('wk-overlay-cnt');
-        el.style.display = 'flex';
+        if(el) {
+            el.style.display = 'flex'; // Ensure flex layout
+            // Force reflow for transition
+            void el.offsetWidth;
+            el.classList.add('active');
+        }
         ViewWorkout.updateCountdownUI();
     },
 
@@ -278,7 +529,19 @@ window.ViewWorkout = {
 
     renderRest: () => {
         const el = document.getElementById('wk-overlay-rest');
-        el.style.display = 'flex';
+        if(el) {
+            el.style.display = 'flex';
+            void el.offsetWidth;
+            el.classList.add('active');
+        }
+        
+        // Hide active counter during rest
+        const counter = document.getElementById('wk-active-counter');
+        if(counter) {
+            counter.classList.remove('visible');
+            counter.classList.remove('emphasis');
+        }
+
         ViewWorkout.updateRestUI();
     },
 
@@ -291,22 +554,44 @@ window.ViewWorkout = {
         const s = ViewWorkout.state;
         const phase = s.ctx.phases[s.phaseIdx];
         const action = phase.actions[s.actionIdx];
-        const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式';
+        const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式' || action.measure === '计时';
 
         // Power Decay
-        if (s.currentPower > 0) s.currentPower *= 0.95;
+        // if (s.currentPower > 0) s.currentPower *= 0.95; // Handled by sim logic now
         
         // Stroke Simulation (Sine wave if working)
-        if (s.status === 'working') {
-            s.currentStroke = 50 + Math.sin(Date.now() / 500) * 40;
-        } else {
-            s.currentStroke = 0;
+        if (s.status !== 'working') {
+             s.currentStroke = 0;
         }
         
         // Total Time
         const m = Math.floor(s.totalTime / 60);
         const sec = Math.floor(s.totalTime % 60);
         document.getElementById('wk-total-time').innerText = `${m < 10 ? '0'+m : m}:${sec < 10 ? '0'+sec : sec}`;
+
+        // Active Counter (Bottom Screen)
+        let counterVal = '';
+        if (isTimeBased) {
+            counterVal = Math.ceil(s.targetReps - s.setTimer) + 's';
+        } else {
+            counterVal = s.currentReps + '次';
+        }
+        
+        // Inject counter into dashboard if not present
+        let counterEl = document.getElementById('wk-active-counter');
+        if (!counterEl) {
+            counterEl = document.createElement('div');
+            counterEl.id = 'wk-active-counter';
+            counterEl.className = 'wk-active-counter';
+            const center = document.querySelector('.wk-dash-center');
+            if(center) center.insertBefore(counterEl, center.firstChild);
+        }
+        counterEl.innerText = counterVal;
+
+        // Fix: Ensure visibility if working (handles case where element was created after countdown finished)
+        if (s.status === 'working' && !counterEl.classList.contains('visible')) {
+            counterEl.classList.add('visible');
+        }
     },
 
     drawPowerChart: () => {
@@ -322,21 +607,19 @@ window.ViewWorkout = {
         const w = cvs.width;
         const h = cvs.height;
 
-        // Update History
-        s.powerHistory.push(s.currentPower);
-        s.powerHistory.shift();
-
         ctx.clearRect(0, 0, w, h);
         
-        const barWidth = w / s.powerHistory.length;
-        ctx.fillStyle = '#269e70';
+        // Show last 10 reps
+        const displayData = s.powerHistory.slice(-10);
+        const barWidth = w / 10;
 
-        for (let i = 0; i < s.powerHistory.length; i++) {
-            const val = s.powerHistory[i];
-            const barH = (val / 300) * h;
+        for (let i = 0; i < displayData.length; i++) {
+            const item = displayData[i];
+            const barH = (item.val / 300) * h;
             const x = i * barWidth;
             const y = h - barH;
-            ctx.fillRect(x, y, barWidth - 1, barH);
+            ctx.fillStyle = item.side === 'R' ? '#0a84ff' : '#32C48C';
+            ctx.fillRect(x + 2, y, barWidth - 4, barH);
         }
     },
 
@@ -352,21 +635,20 @@ window.ViewWorkout = {
         const w = cvs.width;
         const h = cvs.height;
 
-        s.strokeHistory.push(s.currentStroke);
+        s.strokeHistory.push({val: s.currentStroke, side: s.side});
         s.strokeHistory.shift();
 
         ctx.clearRect(0, 0, w, h);
-        ctx.beginPath();
+        
+        ctx.lineWidth = 3;
+        // Draw segments to handle color changes
         for (let i = 0; i < s.strokeHistory.length; i++) {
-            const val = s.strokeHistory[i];
+            const point = s.strokeHistory[i];
             const x = (i / (s.strokeHistory.length - 1)) * w;
-            const y = h - (val / 100) * h;
-            if(i===0) ctx.moveTo(x,y);
-            else ctx.lineTo(x,y);
+            const y = h - (point.val / 100) * h;
+            ctx.fillStyle = point.side === 'R' ? '#0a84ff' : '#32C48C';
+            ctx.fillRect(x, y, 2, 2); // Simple dot rendering for multi-color line
         }
-        ctx.strokeStyle = '#2979ff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
     },
 
     // --- Dial Logic ---
@@ -374,6 +656,27 @@ window.ViewWorkout = {
         const wrapper = document.getElementById('wk-dial-wrapper');
         if(!wrapper) return;
         
+        // Update SVG Path for 2/3 circle with gap at bottom
+        // Start 135 deg (bottom left), End 45 deg (bottom right) via Top
+        // Coordinates for r=40, c=50,50
+        // Start: x=21.72, y=78.28
+        // End: x=78.28, y=78.28
+        
+        // Inject Toast
+        if (!wrapper.querySelector('.wk-dial-toast')) {
+            wrapper.insertAdjacentHTML('beforeend', '<div class="wk-dial-toast" id="wk-dial-toast">已为你推荐重量</div>');
+        }
+
+        const track = wrapper.querySelector('.wk-dial-track');
+        const progress = wrapper.querySelector('.wk-dial-progress');
+        const d = "M 21.72 78.28 A 40 40 0 1 1 78.28 78.28";
+        if(track) track.setAttribute('d', d);
+        if(progress) {
+            progress.setAttribute('d', d);
+            // Total length approx 188.5
+            progress.style.strokeDasharray = 188.5;
+        }
+
         const handleMove = (e) => {
             if (!ViewWorkout.state.isDialDragging) return;
             e.preventDefault();
@@ -385,42 +688,53 @@ window.ViewWorkout = {
             
             // Calculate angle
             let angle = Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
-            // Normalize angle to 0-360 starting from 9 o'clock clockwise
-            // Our dial starts at 150deg (bottom left) and goes 240deg to 390deg (bottom right)
-            // atan2 returns -180 to 180.
-            // Map to 0-240 range.
+            // atan2: Right=0, Bottom=90, Left=180, Top=-90
+            // Map to 0-360 where 0 is Bottom-Left (135 deg in standard)
             
-            // Shift angle so start (150deg) is 0.
-            // 150deg is roughly 5 o'clock position in standard math? No, 0 is 3 o'clock.
-            // 150 is bottom right. Wait.
-            // CSS rotate(150deg) rotates the whole SVG.
-            // Let's simplify: Map Y position or just use simple distance for now, or proper angle.
-            // Proper angle:
-            let deg = angle + 90; // 0 at 12 o'clock
-            if (deg < 0) deg += 360;
+            // Standard degrees: 135 (Start) -> -90 (Top) -> 45 (End)
+            // We want a continuous value.
+            // Rotate so Start is 0.
+            // Start is 135. 
+            // angle - 135.
+            // 135 - 135 = 0.
+            // 45 - 135 = -90 -> +360 = 270.
+            // -90 (Top) - 135 = -225 -> +360 = 135.
             
-            // Map to value 2-50
-            // This is complex to get right without visual feedback loop.
-            // Let's use a simpler approach: Dragging up/down changes value.
+            let relativeAngle = angle - 135;
+            if (relativeAngle < 0) relativeAngle += 360;
             
-            const dy = (ViewWorkout.state.lastY - clientY);
-            ViewWorkout.adjustWeight(dy * 0.1);
-            ViewWorkout.state.lastY = clientY;
+            // Clamp to 0 - 270
+            if (relativeAngle > 270) {
+                // Closer to start or end?
+                if (relativeAngle > 315) relativeAngle = 0; // Snap to start
+                else relativeAngle = 270; // Snap to end
+            }
+            
+            // Map 0-270 to Weight 2-50
+            const pct = relativeAngle / 270;
+            const w = 2 + pct * (50 - 2);
+            
+            // Snap to 0.5
+            const snapped = Math.round(w * 2) / 2;
+            
+            if (snapped !== ViewWorkout.state.currentLoad) {
+                ViewWorkout.state.currentLoad = snapped;
+                ViewWorkout.updateDialUI();
+            }
         };
 
         wrapper.addEventListener('mousedown', (e) => {
             ViewWorkout.state.isDialDragging = true;
-            ViewWorkout.state.lastY = e.clientY;
             document.addEventListener('mousemove', handleMove);
             document.addEventListener('mouseup', () => {
                 ViewWorkout.state.isDialDragging = false;
                 document.removeEventListener('mousemove', handleMove);
             }, {once:true});
+            handleMove(e); // Immediate update
         });
         
         wrapper.addEventListener('touchstart', (e) => {
             ViewWorkout.state.isDialDragging = true;
-            ViewWorkout.state.lastY = e.touches[0].clientY;
             document.addEventListener('touchmove', handleMove, {passive:false});
             document.addEventListener('touchend', () => {
                 ViewWorkout.state.isDialDragging = false;
@@ -442,14 +756,19 @@ window.ViewWorkout = {
         document.getElementById('wk-dial-val').innerText = val.toFixed(1);
         
         // Update Progress Arc
-        // Total arc length for r=40 is 2*PI*40 = 251.
-        // We show 240 degrees of it, so max stroke is 251 * (240/360) = 167.
-        // Let's assume full circle for simplicity of CSS, but masked.
-        // Actually, CSS stroke-dasharray="200" is set.
-        // Map 2-50 to 0-200 offset.
+        // Total length approx 188.5
+        const maxLen = 188.5;
         const pct = (val - 2) / (50 - 2);
-        const offset = 200 - (pct * 200);
+        const offset = maxLen - (pct * maxLen);
         document.getElementById('wk-dial-progress').style.strokeDashoffset = offset;
+    },
+
+    showDialToast: () => {
+        const t = document.getElementById('wk-dial-toast');
+        if(t) {
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
     },
 
     // --- Action List Logic ---
@@ -468,10 +787,18 @@ window.ViewWorkout = {
             p.actions.forEach((a, aIdx) => {
                 const isActive = (pIdx === currentP && aIdx === currentA);
                 const mirrorBadge = a.mirror ? '<span class="wk-al-badge">双侧</span>' : '';
+                
+                // Calculate completed sets
+                let completed = 0;
+                if (pIdx < currentP) completed = a.sets;
+                else if (pIdx === currentP && aIdx < currentA) completed = a.sets;
+                else if (pIdx === currentP && aIdx === currentA) completed = ViewWorkout.state.setIdx;
+                
+                const progress = `<span style="${isActive ? 'color:var(--primary)' : 'color:#666'}">${completed}/${a.sets}</span>`;
                 html += `
                 <div class="wk-al-item ${isActive?'active':''}" onclick="ViewWorkout.jumpToAction(${pIdx}, ${aIdx})">
                     <span>${a.name} ${mirrorBadge}</span>
-                    <span>${a.sets}组</span>
+                    ${progress}
                 </div>`;
             });
         });

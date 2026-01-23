@@ -81,6 +81,9 @@ const Voice = {
     },
     
     startListening: () => {
+        const activeView = document.querySelector('.view.active');
+        if (activeView && activeView.id !== 'view-home' && activeView.id !== 'view-chat') return;
+
         if (!Voice.rec || Voice.selfSpeaking) return;
         try {
             Voice.isListening = true; 

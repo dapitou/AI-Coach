@@ -9,6 +9,16 @@
     --danger: #ff453a;
     --font: "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
     --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    
+    /* Global Font Sizes */
+    --fs-xs: 10px;
+    --fs-sm: 12px;
+    --fs-md: 14px;
+    --fs-lg: 16px;
+    --fs-xl: 20px;
+    --fs-xxl: 32px;
+    --fs-huge: 48px;
+    --fs-giant: 120px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; outline: none; user-select: none; -webkit-tap-highlight-color: transparent; }
