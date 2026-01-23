@@ -215,7 +215,7 @@ window.ViewLibrary = {
                 html += groups[gName].map(a => {
                     const isSelected = (window.store.replaceState.selectedIds || []).includes(a.id);
                     return `
-                    <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.openActionDetail('${a.id}', 'library')"><div class="lib-info"><div class="lib-name">${a.name}</div><div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div></div><div class="lib-check-area" onclick="event.stopPropagation(); App.selectLibAction('${a.id}')"><div class="lib-check"></div></div></div>`;
+                    <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.openActionDetail('${a.id}', 'library')"><div class="lib-thumb"></div><div class="lib-info"><div class="lib-name">${a.name}</div><div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div></div><div class="lib-check-area" onclick="event.stopPropagation(); App.selectLibAction('${a.id}')"><div class="lib-check"></div></div></div>`;
                 }).join('');
             });
         }
@@ -254,6 +254,20 @@ window.ViewLibrary = {
                 window.currentCtx.phases[pIdx].actions[aIdx] = rawAction;
             }
         }
+        
+        // Recalculate duration for Custom Course
+        if (window.currentCtx.source === 'Custom') {
+            const p = window.currentCtx.phases[pIdx];
+            let pDur = 0;
+            p.actions.forEach(a => {
+                const rest = p.strategy.rest || 60;
+                const singleDur = 45; // Approx
+                pDur += ((a.sets || 3) * (singleDur + rest));
+            });
+            p.duration = Math.ceil(pDur / 60);
+            window.currentCtx.meta.duration = window.currentCtx.phases.reduce((acc, ph) => acc + (ph.duration || 0), 0);
+        }
+
         App.recalculateLoadStrategy();
         App.renderFineTuning(window.currentCtx);
         App.closeLibrary();

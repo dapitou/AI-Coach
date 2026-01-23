@@ -17,7 +17,20 @@ const App = {
         // Force bind click event to ensure it works
         const btn = document.getElementById('home-start-btn');
         if(btn) btn.onclick = App.startSession;
+
+        // Global click to close tooltips
+        document.addEventListener('click', (e) => {
+            if(App.closeTooltips) App.closeTooltips();
+        });
     },
+    
+    startCustomFlow: () => {
+        window.ViewResult.startCustomFlow();
+    },
+
+    saveTemplate: () => {
+        window.ViewResult.saveTemplate();
+    }
 };
 
 window.App = App;

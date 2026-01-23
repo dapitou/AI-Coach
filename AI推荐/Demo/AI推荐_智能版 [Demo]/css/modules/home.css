@@ -12,16 +12,43 @@
 .big-btn i { font-size: 24px; color: var(--primary); }
 .big-btn span { font-size: 14px; font-weight: 500; letter-spacing: 0.5px; }
 
+.custom-template-link { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 20px; cursor: pointer; transition: 0.2s; letter-spacing: 0.5px; }
+.custom-template-link:hover { color: var(--primary); }
+
 .home-bottom { flex: 1; background: rgba(20,20,20,0.85); backdrop-filter: blur(40px); border-top: 1px solid rgba(255,255,255,0.1); border-radius: 32px 32px 0 0; padding: 30px; transform: translateY(0); transition: transform 0.4s var(--ease-out); display: flex; flex-direction: column; box-shadow: 0 -20px 60px rgba(0,0,0,0.9); z-index: 10; margin-top: -40px; }
 .home-bottom.hidden { transform: translateY(100%); }
 
 .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .profile-title { font-size: 16px; font-weight: 700; }
-.edit-btn { color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; }
-.profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; overflow-y: auto; padding-bottom: 20px; }
-.info-item { background: rgba(255,255,255,0.03); padding: 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
-.info-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
-.info-val { font-size: 14px; font-weight: 600; color: #fff; }
+.edit-btn { color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer; position: relative; }
+
+/* Red Dot Notification */
+.red-dot { position: absolute; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; box-shadow: 0 0 4px var(--danger); }
+.edit-btn .red-dot { top: 2px; right: -8px; }
+.tab .red-dot { top: 10px; right: 10px; }
+.form-label .red-dot { position: relative; display: inline-block; top: -1px; margin-left: 4px; right: auto; }
+
+/* Profile List Style Optimization */
+.profile-grid { display: flex; flex-direction: column; gap: 0; overflow-y: auto; padding-bottom: 20px; }
+.info-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); background: transparent; border-radius: 0; border-top: none; border-left: none; border-right: none; }
+.info-item:last-child { border-bottom: none; }
+.info-label { font-size: 13px; color: #888; margin-bottom: 0; font-weight: 400; }
+.info-val { font-size: 13px; font-weight: 500; color: #fff !important; text-align: right; } /* Force white as requested */
+
+/* Tooltip Styles */
+.help-icon { display: inline-block; width: 14px; height: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; text-align: center; line-height: 14px; font-size: 10px; color: #888; cursor: pointer; margin-left: 6px; vertical-align: middle; position: relative; }
+.help-icon:hover { color: #fff; background: rgba(255,255,255,0.2); }
+.field-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; background: rgba(30,30,30,0.95); border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-size: 11px; color: #ddd; width: max-content; max-width: 220px; z-index: 100; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.6); line-height: 1.4; text-align: left; pointer-events: none; white-space: normal; }
+.field-tooltip.active { display: block; animation: fadeIn 0.2s; }
+.form-label { position: relative; display: flex; align-items: center; }
+
+/* Profile Modal Layout */
+.profile-fatigue-sticky { padding: 20px 20px 15px 20px; background: #111; border-bottom: 1px solid #222; }
+/* Custom Range Slider Style */
+#in-fatigue { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; outline: none; transition: 0.2s; cursor: pointer; border: none !important; }
+#in-fatigue::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.5); transition: transform 0.1s; }
+#in-fatigue::-webkit-slider-thumb:active { transform: scale(1.2); }
+#in-fatigue::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.5); border: none; }
 
 /* START BUTTON */
 #home-start-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; cursor: pointer; z-index: 200; pointer-events: auto; width: 200px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }

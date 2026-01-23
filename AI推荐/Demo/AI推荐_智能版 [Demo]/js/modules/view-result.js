@@ -1,4 +1,30 @@
 window.ViewResult = {
+    startCustomFlow: () => {
+        // Create Empty Context
+        const ctx = {
+            source: 'Custom',
+            meta: {
+                type: '自定义',
+                targets: [],
+                duration: 0,
+                level: window.store.user.level,
+                goal: window.store.user.goal
+            },
+            phases: [
+                { type: '热身', duration: 0, actions: [], paradigm: '流式范式', strategy: { rest: 0, sets: 1, intensity: 0.4 } },
+                { type: '主训', duration: 0, actions: [], paradigm: '抗阻范式', strategy: { rest: 60, restRound: 90, sets: 3, intensity: 0.75 } },
+                { type: '放松', duration: 0, actions: [], paradigm: '流式范式', strategy: { rest: 0, sets: 1, intensity: 0.3 } }
+            ]
+        };
+        
+        window.store.flow = 'custom';
+        window.currentCtx = ctx;
+        window.store.activePhaseIdx = 1; // Default to Main
+        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: false }; 
+
+        App.showResult();
+    },
+
     showResult: () => {
         const flow = window.store.flow;
         const inputs = window.store.inputs;
@@ -10,7 +36,7 @@ window.ViewResult = {
         
         App.switchView('view-result');
         
-        if (flow === 'course') {
+        if (flow === 'course' || flow === 'custom') {
             document.getElementById('view-result').classList.add('plan-mode');
             btnMain.innerText = '开始训练';
             btnMain.onclick = () => {
@@ -22,15 +48,19 @@ window.ViewResult = {
             document.getElementById('res-course-content').style.display = 'block';
             document.getElementById('unit-switch').style.display = 'block';
 
-            const ctx = window.Logic.genCourse(inputs);
-            window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: true };
-            window.currentCtx = ctx;
-            
-            const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
-            window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
+            let ctx = window.currentCtx;
+            if (flow === 'course') {
+                ctx = window.Logic.genCourse(inputs);
+                window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: true };
+                window.currentCtx = ctx;
+                
+                const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
+                window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
+            }
 
             App.setupCourseResultUI(ctx, `${inputs.type}训练`);
             App.renderFineTuning(ctx);
+            App.initResultScroll();
             
         } else {
             document.getElementById('view-result').classList.add('plan-mode');
@@ -382,6 +412,7 @@ window.ViewResult = {
         window.currentCtx = ctx;
         App.setupCourseResultUI(ctx, `W${week} | ${dayName}`);
         App.renderFineTuning(ctx);
+        App.initResultScroll();
         document.getElementById('btn-close-result').style.display = 'none'; // Hide close, show back
         document.getElementById('btn-back-plan').style.display = 'block';
     },
@@ -399,19 +430,36 @@ window.ViewResult = {
 
     setupCourseResultUI: (ctx, title) => {
         const u = window.store.user;
-        const hero = `
-            <div class="plan-hero">
-                <div class="plan-hero-title">${title}</div>
-                <div class="plan-hero-tags">
-                    <div class="ph-tag">${u.level}</div>
-                    <div class="ph-tag">${ctx.meta.duration}分钟</div>
-                    <div class="ph-tag">${ctx.meta.targets.join('、')}</div>
+        const isCustom = ctx.source === 'Custom';
+        
+        let hero = '';
+        if (isCustom) {
+            hero = `
+            <div class="plan-hero" style="padding-top:60px; padding-bottom:0;">
+                <div class="plan-hero-title" style="display:flex; align-items:center; gap:8px;" onclick="App.expandHeader()">
+                    <span id="custom-course-title" contenteditable="true" style="border-bottom:1px dashed rgba(255,255,255,0.3); outline:none;" onblur="window.currentCtx.meta.title = this.innerText">自定义课程</span>
+                    <i style="font-size:14px; color:#666; font-style:normal; cursor:pointer;" onclick="document.getElementById('custom-course-title').focus()">✎</i>
                 </div>
-                <div class="plan-hero-intro">
-                    <div style="margin-bottom:4px"><b>训练目标</b>${ctx.meta.goal}</div>
-                    <div><b>课程简介</b>本课程针对${ctx.meta.targets.join('、')}设计，旨在通过${ctx.meta.type}训练提升${ctx.meta.goal}能力。</div>
-                </div>
+                <!-- No Tags, No Intro -->
             </div>`;
+            // Update header title to match
+            document.getElementById('res-title').innerText = '自定义课程';
+            document.getElementById('res-sub').innerText = '自由编排';
+        } else {
+            hero = `
+                <div class="plan-hero">
+                    <div class="plan-hero-title" onclick="App.expandHeader()">${title}</div>
+                    <div class="plan-hero-tags">
+                        <div class="ph-tag">${u.level}</div>
+                        <div class="ph-tag">${ctx.meta.duration}分钟</div>
+                        <div class="ph-tag">${ctx.meta.targets.join('、')}</div>
+                    </div>
+                    <div class="plan-hero-intro">
+                        <div style="margin-bottom:4px"><b>训练目标</b>${ctx.meta.goal}</div>
+                        <div><b>课程简介</b>本课程针对${ctx.meta.targets.join('、')}设计，旨在通过${ctx.meta.type}训练提升${ctx.meta.goal}能力。</div>
+                    </div>
+                </div>`;
+        }
 
         const stats = `
             <div class="stats-bar" id="res-stats" style="background:transparent; border-bottom:1px solid rgba(255,255,255,0.1);">
@@ -452,9 +500,10 @@ window.ViewResult = {
             let tabsHtml = '';
             ctx.phases.forEach((p, idx) => {
                 const isActive = idx === window.store.activePhaseIdx;
-                tabsHtml += `<div class="plan-flow-item ${isActive?'active':''}" onclick="App.switchPhase(${idx})" style="flex:${p.duration}; min-width:0;">
+                const dur = p.duration || 0;
+                tabsHtml += `<div class="plan-flow-item ${isActive?'active':''}" onclick="App.switchPhase(${idx})" style="flex:${p.duration || 1}; min-width:0;">
                     <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.type}</div>
-                    <div style="font-size:9px; opacity:0.8;">${p.duration}min</div>
+                    <div style="font-size:9px; opacity:0.8;">${dur}min</div>
                 </div>`;
                 if (idx < ctx.phases.length - 1) tabsHtml += `<div class="plan-flow-arrow" style="font-size:10px; color:#444;">→</div>`;
             });
@@ -474,14 +523,14 @@ window.ViewResult = {
         
         const descContainer = document.getElementById('course-phase-desc');
         if (descContainer) {
-            descContainer.innerHTML = `<div class="plan-phase-desc-static">${phaseIntro}</div>`;
+            descContainer.innerHTML = phaseIntro ? `<div class="plan-phase-desc-static">${phaseIntro}</div>` : '';
         }
 
         if (p) {
             let controlsHtml = '';
             
             const smartRecHtml = `
-                <div class="control-group" style="margin-right:10px;">
+                <div class="control-group" style="margin-right:2px;">
                     <span class="cg-label">智能推荐</span>
                     <div class="smart-switch ${isSmart?'active':''}" onclick="App.toggleSmartRec()">
                         <div class="smart-knob"></div>
@@ -508,11 +557,11 @@ window.ViewResult = {
                     </div>
                     <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
                         <span class="cg-label">组间</span>
-                        <input type="number" class="phase-select" style="width:45px; text-align:center; padding:4px 2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-4px;">s</span>
+                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                     </div>
                     <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
                         <span class="cg-label">轮间</span>
-                        <input type="number" class="phase-select" style="width:45px; text-align:center; padding:4px 2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-4px;">s</span>
+                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                     </div>
                 </div>`;
             } else {
@@ -525,11 +574,11 @@ window.ViewResult = {
                     ${smartRecHtml}
                     <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
                         <span class="cg-label">组间</span>
-                        <input type="number" class="phase-select" style="width:45px; text-align:center; padding:4px 2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-4px;">s</span>
+                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                     </div>
                     <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
                         <span class="cg-label">轮间</span>
-                        <input type="number" class="phase-select" style="width:45px; text-align:center; padding:4px 2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-4px;">s</span>
+                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                     </div>
                 </div>`;
             }
@@ -543,6 +592,10 @@ window.ViewResult = {
             
             <div class="action-list">`;
             
+            if (p.actions.length === 0) {
+                html += `<div style="text-align:center; padding:30px 0; color:#666; font-size:12px; border:1px dashed #333; border-radius:8px; margin-bottom:10px; cursor:pointer;" onclick="App.addAction(${pIdx})">点击添加动作</div>`;
+            }
+
             p.actions.forEach((a, aIdx) => {
                 if (!a.setDetails || a.setDetails.length !== a.sets) {
                     a.setDetails = [];
@@ -553,7 +606,7 @@ window.ViewResult = {
 
                 const isResistance = a.paradigm === '抗阻范式';
                 const isWarmup = p.type === '热身' || p.type === '放松';
-                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式';
+                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
                 const isMirror = a.mirror;
                 const repUnit = isTimeBased ? 's' : '';
 
@@ -581,7 +634,7 @@ window.ViewResult = {
 
                 let summary = '';
                 if (isResistance && !isWarmup && !isTimeBased) {
-                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组 x ${a.reps}</span> <span class="ac-tag">${setDetailsStr}</span>`;
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 } else {
                     summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 }
@@ -797,6 +850,7 @@ window.ViewResult = {
         const arrow = document.getElementById(`ac-arrow-${pIdx}-${aIdx}`);
         if (body) body.style.display = action.expanded ? 'block' : 'none';
         if (arrow) arrow.innerText = action.expanded ? '▲' : '▼';
+        if (action.expanded) App.collapseHeader();
     },
 
     toggleUnit: () => {
@@ -902,10 +956,14 @@ window.ViewResult = {
             totalActions += p.actions.length;
             p.actions.forEach(a => totalSets += a.sets);
         });
-        document.getElementById('st-time').innerText = ctx.meta.duration + 'min';
+        
+        // Recalculate duration for custom course
+        const totalDur = ctx.phases.reduce((acc, p) => acc + (p.duration || 0), 0);
+        
+        document.getElementById('st-time').innerText = totalDur + 'min';
         document.getElementById('st-count').innerText = totalActions + '个';
         document.getElementById('st-vol').innerText = totalSets + '组';
-        document.getElementById('st-cal').innerText = Math.floor(4.5 * window.store.user.weight * (ctx.meta.duration/60)) + 'kcal';
+        document.getElementById('st-cal').innerText = Math.floor(4.5 * window.store.user.weight * (totalDur/60)) + 'kcal';
     },
 
     openScheduleModal: () => {
@@ -936,6 +994,21 @@ window.ViewResult = {
                 const p = window.currentCtx.phases[pIdx];
                 if (p && p.actions) {
                     p.actions.splice(aIdx, 1);
+                    
+                    // Recalculate phase duration for custom flow
+                    if (window.currentCtx.source === 'Custom') {
+                        let pDur = 0;
+                        p.actions.forEach(a => {
+                            const rest = p.strategy.rest || 60;
+                            const singleDur = 45; // Approx
+                            pDur += (a.sets * (singleDur + rest));
+                        });
+                        p.duration = Math.ceil(pDur / 60);
+                        
+                        // Update meta duration
+                        window.currentCtx.meta.duration = window.currentCtx.phases.reduce((acc, ph) => acc + (ph.duration || 0), 0);
+                    }
+
                     App.renderFineTuning(window.currentCtx);
                 }
             } catch (e) {
@@ -957,5 +1030,32 @@ window.ViewResult = {
         document.getElementById('chat-history').innerHTML = '';
         document.getElementById('app').classList.remove('state-chat');
         document.getElementById('home-bg-layer').classList.remove('hidden');
+    },
+
+    saveTemplate: () => {
+        App.showToast('课程已保存到“我的模板”');
+    },
+
+    initResultScroll: () => {
+        const scrollArea = document.querySelector('.plan-scroll-area');
+        if (scrollArea) {
+            let lastScrollTop = 0;
+            scrollArea.onscroll = (e) => {
+                const st = e.target.scrollTop;
+                if (st > lastScrollTop && st > 10) App.collapseHeader();
+                else if (st < lastScrollTop) App.expandHeader();
+                lastScrollTop = st <= 0 ? 0 : st;
+            };
+        }
+    },
+
+    collapseHeader: () => {
+        const container = document.querySelector('.plan-layout-container');
+        if (container && !container.classList.contains('collapsed')) container.classList.add('collapsed');
+    },
+
+    expandHeader: () => {
+        const container = document.querySelector('.plan-layout-container');
+        if (container && container.classList.contains('collapsed')) container.classList.remove('collapsed');
     }
 };

@@ -55,13 +55,14 @@
                         <i>📅</i><span>给我一份计划</span>
                     </div>
                 </div>
+                <div class="custom-template-link" onclick="App.startCustomFlow()">自定义课程模板 &gt;</div>
             </div>
         </div>
         
         <div class="home-bottom hidden" id="profile-card">
             <div class="profile-header">
                 <div class="profile-title">我的运动档案</div>
-                <div class="edit-btn" onclick="App.openProfile()">修改 ></div>
+                <div class="edit-btn" onclick="App.openProfile()">更新 ></div>
             </div>
             <div class="profile-grid" id="profile-display"></div>
         </div>
@@ -101,8 +102,11 @@
                     <div class="result-sub" id="res-sub" style="font-size: 10px; opacity: 0.7;">--</div>
                 </div>
             </div>
-            <div class="unit-switch" id="unit-switch" onclick="App.toggleUnit()" style="transform: scale(0.9);">
-                <div class="unit-knob">KG</div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="unit-switch" id="unit-switch" onclick="App.toggleUnit()" style="transform: scale(0.9);">
+                    <div class="unit-knob">KG</div>
+                </div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--primary); cursor: pointer;" onclick="App.saveTemplate()">保存</div>
             </div>
         </div>
         <div class="result-body" id="res-body" style="padding-top: 0;">
@@ -265,6 +269,7 @@
             <div style="font-size:16px; font-weight:700;">修改档案</div>
             <div style="color:var(--primary); cursor:pointer;" onclick="App.saveProfile()">保存</div>
         </div>
+        <div id="profile-fatigue-container" class="profile-fatigue-sticky"></div>
         <div class="tabs">
             <div class="tab active" onclick="App.switchTab('basic')">基础</div>
             <div class="tab" onclick="App.switchTab('pref')">偏好</div>
