@@ -35,6 +35,7 @@ window.ViewLibrary = {
             const synergist = (action.subPart && action.subPart.length) ? action.subPart.join('、') : '无';
             const stabilizer = '核心肌群';
             const paradigm = action.paradigm || CONSTANTS.COURSE_TYPES[action.courseType] || '抗阻范式';
+            const mirrorTag = action.mirror ? `<div class="ad-tag" style="color:var(--primary); border-color:var(--primary);">镜像</div>` : '';
 
             let addBtn = '';
             if (source === 'library') {
@@ -47,7 +48,7 @@ window.ViewLibrary = {
                     <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
                         <div class="ad-title" style="margin-bottom:0;">${action.name}</div>${addBtn}
                     </div>
-                    <div class="ad-tags"><div class="ad-tag">${action.part}</div><div class="ad-tag">${action.construct || '复合动作'}</div><div class="ad-tag">${action.difficulty}</div></div>
+                    <div class="ad-tags"><div class="ad-tag">${action.part}</div><div class="ad-tag">${action.construct || '复合动作'}</div><div class="ad-tag">${action.difficulty}</div>${mirrorTag}</div>
                 </div>
                 <div class="ad-section"><div class="ad-sec-title">基本信息</div><div class="info-grid"><div class="info-card"><div class="ic-label">器械</div><div class="ic-val">${action.equip[0]}</div></div><div class="info-card"><div class="ic-label">冲击</div><div class="ic-val">${action.impact}</div></div><div class="info-card"><div class="ic-label">范式</div><div class="ic-val">${paradigm.replace('范式','')}</div></div></div></div>
                 <div class="ad-section"><div class="ad-sec-title">肌群参与</div><div class="muscle-map"><div class="muscle-card"><div class="mc-label">主动肌 (Agonist)</div><div class="mc-val highlight">${action.muscle}</div></div><div class="muscle-card"><div class="mc-label">拮抗肌 (Antagonist)</div><div class="mc-val">${antagonist}</div></div><div class="muscle-card"><div class="mc-label">辅助肌 (Synergist)</div><div class="mc-val">${synergist}</div></div><div class="muscle-card"><div class="mc-label">稳定肌 (Stabilizer)</div><div class="mc-val">${stabilizer}</div></div></div></div>
@@ -101,8 +102,8 @@ window.ViewLibrary = {
         App.switchView('view-library');
     },
 
-    openLibrary: (pIdx, aIdx) => {
-        window.store.replaceState = { pIdx, aIdx, mode: 'replace' };
+    openLibrary: (pIdx, aIdx, source = 'result') => {
+        window.store.replaceState = { pIdx, aIdx, mode: 'replace', source };
         const currentAction = window.currentCtx.phases[pIdx].actions[aIdx];
         window.store.libFilter = { part: currentAction.part, equip:[], difficulty:[], impact:[], showPanel: false };
         App.renderLibraryFilters();
@@ -111,7 +112,12 @@ window.ViewLibrary = {
     },
 
     closeLibrary: () => {
-        App.switchView('view-result');
+        const source = window.store.replaceState?.source;
+        if (source === 'workout') {
+            App.switchView('view-workout');
+        } else {
+            App.switchView('view-result');
+        }
         window.store.replaceState = null;
     },
 
@@ -215,8 +221,9 @@ window.ViewLibrary = {
                 html += `<div class="lib-group-title">${gName}</div>`;
                 html += groups[gName].map(a => {
                     const isSelected = (window.store.replaceState.selectedIds || []).includes(a.id);
+                    const mirrorTag = a.mirror ? `<span style="font-size:9px; color:var(--primary); border:1px solid var(--primary); padding:0 2px; border-radius:2px; margin-left:4px;">镜像</span>` : '';
                     return `
-                    <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.openActionDetail('${a.id}', 'library')"><div class="lib-thumb"></div><div class="lib-info"><div class="lib-name">${a.name}</div><div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div></div><div class="lib-check-area" onclick="event.stopPropagation(); App.selectLibAction('${a.id}')"><div class="lib-check"></div></div></div>`;
+                    <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.openActionDetail('${a.id}', 'library')"><div class="lib-thumb"></div><div class="lib-info"><div class="lib-name">${a.name}${mirrorTag}</div><div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div></div><div class="lib-check-area" onclick="event.stopPropagation(); App.selectLibAction('${a.id}')"><div class="lib-check"></div></div></div>`;
                 }).join('');
             });
         }
@@ -237,7 +244,7 @@ window.ViewLibrary = {
     },
 
     confirmReplace: () => {
-        const { pIdx, aIdx, selectedIds, mode } = window.store.replaceState;
+        const { pIdx, aIdx, selectedIds, mode, source } = window.store.replaceState;
         if (!selectedIds || selectedIds.length === 0) return App.closeLibrary();
         
         if (mode === 'add') {
@@ -270,7 +277,13 @@ window.ViewLibrary = {
         }
 
         App.recalculateLoadStrategy();
-        App.renderFineTuning(window.currentCtx);
-        App.closeLibrary();
+        
+        if (source === 'workout') {
+            window.ViewWorkout.onActionReplaced(pIdx, aIdx);
+            App.closeLibrary(); // Will switch back to workout based on source check
+        } else {
+            App.renderFineTuning(window.currentCtx);
+            App.closeLibrary();
+        }
     }
 };

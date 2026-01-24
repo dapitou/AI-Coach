@@ -57,9 +57,16 @@ window.Logic = {
 
     planPhases: (ctx) => {
         const { duration, type } = ctx.meta;
-        const maxWarmup = 5;
-        const wuTime = Math.min(Math.round(duration * 0.15), maxWarmup);
-        const cdTime = Math.min(Math.round(duration * 0.15), maxWarmup);
+        
+        // NEW RULE: Fixed Formula T/10
+        // Warmup/Cooldown Count = ceil(Total Duration / 10)
+        // Each action = 30s (0.5 min)
+        const wuCount = Math.ceil(duration / 10);
+        const cdCount = Math.ceil(duration / 10);
+        
+        const wuTime = wuCount * 0.5;
+        const cdTime = cdCount * 0.5;
+        
         const mainTime = duration - wuTime - cdTime;
         
         // Strategy Resolution: Type (Strong) > Goal (Weak)
@@ -140,9 +147,9 @@ window.Logic = {
         const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
 
         ctx.phases = [
-            { type: '热身', duration: wuTime, paradigm: '流式范式', func: '激活', targetCount: Math.ceil(wuTime), strategy: { ...wuStrategy, restRound: 0, sets: 1 } },
+            { type: '热身', duration: wuTime, paradigm: '流式范式', func: '激活', targetCount: wuCount, strategy: { ...wuStrategy, restRound: 0, sets: 1 } },
             { type: '主训', duration: mainTime, paradigm: paradigm, func: ctx.meta.goal, targetCount: Math.max(1, count), strategy: phaseStrategy, coeffs: phaseCoeffs },
-            { type: '放松', duration: cdTime, paradigm: '流式范式', func: '放松', targetCount: Math.ceil(cdTime), strategy: { ...cdStrategy, restRound: 0, sets: 1 } }
+            { type: '放松', duration: cdTime, paradigm: '流式范式', func: '放松', targetCount: cdCount, strategy: { ...cdStrategy, restRound: 0, sets: 1 } }
         ];
         return ctx;
     },
@@ -156,7 +163,7 @@ window.Logic = {
         // Ensure DB is populated
         if (DB.length === 0) DB = FALLBACK_DB;
 
-        const calculateScore = (a) => {
+        const calculateScore = (a, dominantEquip) => {
             let score = 100 + Math.random() * 15;
             const daysSince = (new Date() - a.lastTrained) / (1000 * 3600 * 24);
             if (daysSince > 7) score += 60;
@@ -164,10 +171,20 @@ window.Logic = {
             if (a.difficulty === meta.level) score += 30;
             else if (Math.abs(CONSTANTS.LEVEL_MAP[a.difficulty] - CONSTANTS.LEVEL_MAP[meta.level]) === 1) score += 10;
             else score -= 20;
+
+            // NEW: Equipment Consistency Bonus
+            if (dominantEquip && a.equip.includes(dominantEquip)) score += 20;
+            
+            // NEW: Slot Weight Priority (Simplified: Compound > Isolation)
+            if (a.construct === '复合动作') score += 10;
+
             return { ...a, score };
         };
         
         ctx.phases.forEach(p => {
+            // NEW: Phase-level Equipment Tracker (Reset per phase)
+            const phaseEquipCounts = {};
+
             // 0. Safety Filter (Global Constraint - Always Active)
             let pool = DB.filter(a => {
                 if (a.equip && a.equip.some(e => !constraints.availableEquip.includes(e))) return false;
@@ -179,6 +196,13 @@ window.Logic = {
 
             // Helper: Search with criteria (Supports Relaxation)
             const search = (criteria) => {
+                // Determine dominant equipment so far
+                let dominantEquip = null;
+                let maxEqCount = -1;
+                for(let eq in phaseEquipCounts) {
+                    if(phaseEquipCounts[eq] > maxEqCount) { maxEqCount = phaseEquipCounts[eq]; dominantEquip = eq; }
+                }
+
                 return pool.filter(a => {
                     // Paradigm Check (Strict)
                     const actionParadigm = CONSTANTS.COURSE_TYPES[a.courseType];
@@ -218,8 +242,27 @@ window.Logic = {
                         if (Math.abs(diffVal - userVal) > 1) return false;
                     }
 
+                    // NEW: Variation Exclusion
+                    const getCoreName = (n) => n.replace(/哑铃|杠铃|器械|绳索|自重|史密斯|坐姿|站姿|俯身|上斜|下斜/g, '').trim();
+                    const coreName = getCoreName(a.name);
+                    const hasVariation = selected.some(s => {
+                        const sCore = getCoreName(s.name);
+                        const nameMatch = (sCore === coreName || s.name.includes(coreName) || coreName.includes(s.name));
+                        // Rule: Exclude if same action core but different equipment (e.g. DB Bench vs Barbell Bench)
+                        return nameMatch && s.equip[0] !== a.equip[0];
+                    });
+                    if (hasVariation) return false;
+
+                    // NEW: Bodyweight Consecutive Exclusion
+                    if (a.equip[0] === '自重' && selected.length > 0) {
+                        const last = selected[selected.length - 1];
+                        if (last.equip[0] === '自重') {
+                             if (last.name === a.name || last.name.includes(a.name) || a.name.includes(last.name)) return false;
+                        }
+                    }
+
                     return true;
-                }).map(calculateScore).sort((a,b) => b.score - a.score);
+                }).map(a => calculateScore(a, dominantEquip)).sort((a,b) => b.score - a.score);
             };
 
             let selected = [];
@@ -238,6 +281,9 @@ window.Logic = {
                     if (!usedIds.has(picked.id)) {
                         selected.push(picked);
                         usedIds.add(picked.id);
+                        // Update Session Equip Counts
+                        const eq = picked.equip[0];
+                        phaseEquipCounts[eq] = (phaseEquipCounts[eq] || 0) + 1;
                     }
                     sourceList.splice(randomIdx, 1);
                 }
@@ -256,26 +302,17 @@ window.Logic = {
                 pick(candidates);
             }
 
-            // 2. 缺口填充 (Gap Filling) - 核心逻辑优化
-            // 若筛选出的动作不足以填满时长，自动增加已选动作的组数
+            // FIX: 4. Force Fill / Recycle to meet targetCount -> Merge Sets
             if (selected.length > 0 && selected.length < needed) {
-                let missingSlots = needed - selected.length;
-                let fillIdx = 0;
-                // 熔断限制：单个动作最大组数 ≤ 6
-                const MAX_SETS = 6; 
-                
-                while(missingSlots > 0) {
-                    // 轮询增加组数
-                    if (selected[fillIdx].sets === undefined) selected[fillIdx].sets = p.strategy.sets; // Init if needed
-                    
-                    if (selected[fillIdx].sets < MAX_SETS) {
-                        selected[fillIdx].sets = (selected[fillIdx].sets || p.strategy.sets) + 1;
-                        missingSlots--;
-                    }
-                    fillIdx = (fillIdx + 1) % selected.length;
-                    
-                    // 防止死循环：如果所有动作都达到上限仍有缺口，则停止填充
-                    if (selected.every(a => (a.sets || p.strategy.sets) >= MAX_SETS)) break;
+                let missing = needed - selected.length;
+                let i = 0;
+                while (missing > 0) {
+                    // Add set to existing actions in round-robin
+                    const targetAction = selected[i % selected.length];
+                    if (!targetAction.extraSets) targetAction.extraSets = 0;
+                    targetAction.extraSets += 1;
+                    missing--;
+                    i++;
                 }
             }
 
@@ -352,7 +389,13 @@ window.Logic = {
                     // 模式 B：容量优先 (定容量 -> 定重量)
                     // 强度系数作用于速度/频率(由教练口令控制)，时长保持与规划层一致(60s)以确保总时长准确
                     reps = (phase.paradigm === '间歇范式') ? '60' : '30';
-                    if (phase.type === '热身' || phase.type === '放松') reps = '60';
+                    if (phase.type === '热身' || phase.type === '放松') reps = '30';
+                }
+
+                // FIX: Preserve existing setDetails if Smart Rec is OFF (Manual Mode)
+                // This ensures manual edits are not overwritten by global refreshes (e.g. Replace Action)
+                if (!window.store.courseSettings.smartRec && a.setDetails && a.setDetails.length === sets) {
+                    return a;
                 }
 
                 // Apply Load Strategy (Pyramid etc)

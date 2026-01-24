@@ -107,3 +107,22 @@
 
 /* SCHEDULE VIEW */
 #view-schedule .result-body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+
+/* EMPTY STATE */
+.empty-state-box {
+    border: 1px dashed #333;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    background: rgba(255,255,255,0.02);
+    margin-bottom: 10px;
+}
+.empty-state-box:hover {
+    border-color: var(--primary);
+    background: rgba(50, 196, 140, 0.05);
+}
+.empty-icon { font-size: 24px; color: var(--primary); margin-bottom: 10px; font-weight: 300; }
+.empty-text { font-size: 14px; color: #fff; font-weight: 600; margin-bottom: 4px; }
+.empty-sub { font-size: 11px; color: #666; }

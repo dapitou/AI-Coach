@@ -58,6 +58,7 @@ window.ViewResult = {
                 window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
             }
 
+            App.recalculateDurations(ctx); // FIX: Recalculate durations before rendering UI to avoid "locked" 5min
             App.setupCourseResultUI(ctx, `${inputs.type}训练`);
             App.renderFineTuning(ctx);
             App.initResultScroll();
@@ -410,6 +411,7 @@ window.ViewResult = {
         document.getElementById('unit-switch').style.display = 'block';
         
         window.currentCtx = ctx;
+        App.recalculateDurations(ctx); // FIX: Recalculate durations before rendering UI
         App.setupCourseResultUI(ctx, `W${week} | ${dayName}`);
         App.renderFineTuning(ctx);
         App.initResultScroll();
@@ -488,6 +490,7 @@ window.ViewResult = {
     },
 
     renderFineTuning: (ctx) => {
+        App.recalculateDurations(ctx); // Recalculate before rendering
         const resContent = document.getElementById('res-phase-content');
         const settings = window.store.courseSettings;
         const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
@@ -537,51 +540,35 @@ window.ViewResult = {
                     </div>
                 </div>`;
 
-            if (p.type === '主训') {
-                const rest = p.strategy?.rest || 60;
-                const restRound = p.strategy?.restRound || Math.round(rest * 1.5);
-                const disabledAttr = isSmart ? 'disabled style="opacity:0.5; pointer-events:none;"' : '';
-                
-                controlsHtml = `
-                <div class="phase-controls-row">
-                    ${smartRecHtml}
-                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
-                        <span class="cg-label">负荷</span>
-                        <select class="phase-select" ${disabledAttr} onchange="App.updateGlobalSetting('loadStrategy', this.value)">
-                            ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, settings.loadStrategy)}
-                        </select>
-                    </div>
-                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
-                        <span class="cg-label">模式</span>
-                        <select class="phase-select" ${disabledAttr} onchange="App.updateGlobalSetting('loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, settings.loopMode)}</select>
-                    </div>
-                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
-                        <span class="cg-label">组间</span>
-                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
-                    </div>
-                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
-                        <span class="cg-label">轮间</span>
-                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
-                    </div>
-                </div>`;
-            } else {
-                const rest = p.strategy?.rest || 0;
-                const restRound = p.strategy?.restRound || 0;
-                const disabledAttr = isSmart ? 'disabled style="opacity:0.5; pointer-events:none;"' : '';
-                
-                controlsHtml = `
-                <div class="phase-controls-row">
-                    ${smartRecHtml}
-                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
-                        <span class="cg-label">组间</span>
-                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
-                    </div>
-                    <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
-                        <span class="cg-label">轮间</span>
-                        <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
-                    </div>
-                </div>`;
-            }
+            // Unified Controls for ALL phases
+            const rest = p.strategy?.rest || 0;
+            const restRound = p.strategy?.restRound || 0;
+            const pLoadStrategy = p.strategy?.loadStrategy || '恒定';
+            const pLoopMode = p.strategy?.loopMode || '常规组';
+            const disabledAttr = isSmart ? 'disabled style="opacity:0.5; pointer-events:none;"' : '';
+            
+            controlsHtml = `
+            <div class="phase-controls-row">
+                ${smartRecHtml}
+                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                    <span class="cg-label">负荷</span>
+                    <select class="phase-select" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'loadStrategy', this.value)">
+                        ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, pLoadStrategy)}
+                    </select>
+                </div>
+                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                    <span class="cg-label">模式</span>
+                    <select class="phase-select" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, pLoopMode)}</select>
+                </div>
+                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                    <span class="cg-label">组间</span>
+                    <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
+                </div>
+                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                    <span class="cg-label">轮间</span>
+                    <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
+                </div>
+            </div>`;
 
             html += `
             <div class="phase-header-row" style="justify-content:flex-end; margin-bottom:10px;">
@@ -643,7 +630,7 @@ window.ViewResult = {
                 a.setDetails.forEach((s, sIdx) => {
                     let isDisabled = isSmart;
                     if (!isSmart && !isWarmup && isResistance) {
-                        const strat = settings.loadStrategy;
+                        const strat = pLoadStrategy;
                         if (strat === '递增' || strat === '递减') {
                             if (sIdx > 0 && sIdx < a.setDetails.length - 1) isDisabled = true;
                         }
@@ -666,7 +653,7 @@ window.ViewResult = {
                         return (isDisabled && isSmart) ? `<div onclick="window.App.showToast('请关闭智能推荐自定义编辑')">${stepperContent(val, field)}</div>` : stepperContent(val, field);
                     };
 
-                    const mirrorLabel = isMirror ? `<span style="font-size:10px; color:var(--primary); margin-left:4px; border:1px solid var(--primary); padding:0 2px; border-radius:2px;">双侧</span>` : '';
+                    const mirrorLabel = isMirror ? `<span style="font-size:10px; color:var(--primary); margin-left:4px; border:1px solid var(--primary); padding:0 2px; border-radius:2px;">镜像</span>` : '';
 
                     let inputs = '';
                     if (isResistance && !isWarmup && !isTimeBased) {
@@ -749,8 +736,63 @@ window.ViewResult = {
             } else {
                 window.currentCtx.phases[pIdx].strategy[key] = val;
             }
-            App.renderFineTuning(window.currentCtx);
+            
+            if (key === 'loadStrategy') {
+                App.clearSetDetails(pIdx); // Force regenerate for this phase
+                App.recalculateLoadStrategy();
+            } else {
+                App.renderFineTuning(window.currentCtx);
+            }
         }
+    },
+
+    recalculateDurations: (ctx) => {
+        if (!ctx || !ctx.phases) return;
+        
+        ctx.phases.forEach(p => {
+            let phaseSeconds = 0;
+            const rest = p.strategy.rest || 0;
+            const restRound = p.strategy.restRound || 0;
+            
+            p.actions.forEach((a, aIdx) => {
+                let actionSeconds = 0;
+                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
+                const singleDur = a.singleDur || 3;
+                
+                // Ensure setDetails exists
+                if (!a.setDetails) return;
+                
+                a.setDetails.forEach((s, sIdx) => {
+                    let setDur = 0;
+                    if (isTimeBased) {
+                        setDur = parseInt(s.reps) || 0;
+                    } else {
+                        setDur = (parseInt(s.reps) || 0) * singleDur;
+                    }
+                    
+                    if (a.mirror) setDur *= 2;
+                    
+                    actionSeconds += setDur;
+                    
+                    // Add rest if not last set
+                    if (sIdx < a.setDetails.length - 1) {
+                        actionSeconds += rest;
+                    }
+                });
+                
+                phaseSeconds += actionSeconds;
+                
+                // Add restRound if not last action
+                if (aIdx < p.actions.length - 1) {
+                    phaseSeconds += restRound;
+                }
+            });
+            
+            p.duration = Math.ceil(phaseSeconds / 60);
+        });
+        
+        // Update meta duration
+        ctx.meta.duration = ctx.phases.reduce((acc, p) => acc + (p.duration || 0), 0);
     },
 
     adjustSetData: (pIdx, aIdx, sIdx, field, dir) => {
@@ -781,7 +823,7 @@ window.ViewResult = {
         if (isNaN(numVal)) numVal = 0;
         
         if (action.setDetails && action.setDetails[sIdx]) {
-            let strat = window.store.courseSettings.loadStrategy;
+            let strat = phase.strategy.loadStrategy || '恒定';
             const isSmart = window.store.courseSettings.smartRec;
             
             action.setDetails[sIdx][field] = numVal;
@@ -800,7 +842,7 @@ window.ViewResult = {
                         else if (firstVal > lastVal) newStrat = '递减';
                         
                         if (newStrat !== strat) {
-                            window.store.courseSettings.loadStrategy = newStrat;
+                            phase.strategy.loadStrategy = newStrat;
                             strat = newStrat;
                             window.App.showToast(`策略已自动切换为: ${newStrat}`);
                         }
@@ -897,8 +939,19 @@ window.ViewResult = {
 
     updateGlobalSetting: (key, val) => {
         window.store.courseSettings[key] = val;
-        if (key === 'loadStrategy') App.recalculateLoadStrategy();
+        if (key === 'loadStrategy') {
+            App.clearSetDetails(); // Force regenerate all
+            App.recalculateLoadStrategy();
+        }
         App.renderFineTuning(window.currentCtx);
+    },
+
+    clearSetDetails: (pIdx = null) => {
+        if (!window.currentCtx) return;
+        window.currentCtx.phases.forEach((p, idx) => {
+            if (pIdx !== null && idx !== pIdx) return;
+            p.actions.forEach(a => delete a.setDetails);
+        });
     },
 
     addSet: (pIdx, aIdx) => {
@@ -908,7 +961,7 @@ window.ViewResult = {
         action.setDetails.push({ ...lastSet });
         
         // Re-apply strategy when adding a set
-        const strat = window.store.courseSettings.loadStrategy;
+        const strat = window.currentCtx.phases[pIdx].strategy.loadStrategy || '恒定';
         if (!window.store.courseSettings.smartRec && (strat === '递增' || strat === '递减')) {
              const sets = action.setDetails.length;
              if (sets > 2) {

@@ -6,14 +6,14 @@ const CONFIG = {
         '耐力': { sets: 3, rest: 45, intensity: 0.50, mode: '超级', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 6 },
         '爆发': { sets: 4, rest: 120, intensity: 0.70, mode: '常规', forceMode: '弹力', strategy: '递增', diff: '进阶', rpe: 9 },
         '心肺': { sets: 4, rest: 20, intensity: 0.65, mode: '循环', forceMode: '划船', strategy: '计时', diff: '标准', rpe: 7 },
-        '激活': { sets: 2, rest: 0, intensity: 0.40, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 4 },
-        '柔韧': { sets: 2, rest: 0, intensity: 0.30, mode: '常规', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 3 },
+        '激活': { sets: 2, rest: 0, intensity: 0.40, mode: '循环', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 4 },
+        '柔韧': { sets: 2, rest: 0, intensity: 0.30, mode: '循环', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 3 },
         'HIIT': { sets: 6, rest: 30, intensity: 0.75, mode: '循环', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 8 },
         '有氧': { sets: 4, rest: 15, intensity: 0.60, mode: '循环', forceMode: '划船', strategy: '计时', diff: '标准', rpe: 6 },
         '瑜伽': { sets: 1, rest: 0, intensity: 0.40, mode: '常规', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 4 },
         '普拉提': { sets: 3, rest: 30, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 5 },
         '拉伸': { sets: 1, rest: 0, intensity: 0.20, mode: '常规', forceMode: '恒力', strategy: '计时', diff: '保守', rpe: 2 },
-        '恢复': { sets: 2, rest: 0, intensity: 0.30, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '保守', rpe: 2 },
+        '恢复': { sets: 2, rest: 0, intensity: 0.30, mode: '循环', forceMode: '恒力', strategy: '恒定', diff: '保守', rpe: 2 },
         '协调': { sets: 3, rest: 60, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 6 },
         '体态': { sets: 3, rest: 45, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '计时', diff: '标准', rpe: 5 },
         '平衡': { sets: 3, rest: 60, intensity: 0.50, mode: '常规', forceMode: '恒力', strategy: '恒定', diff: '标准', rpe: 6 },
@@ -50,6 +50,11 @@ const CONFIG = {
         { name: '递减', index: '1', coeff: 1.0, inc: 0 },
         { name: '递减', index: '2', coeff: 0.90, inc: '+2' },
         { name: '递减', index: '3+', coeff: 0.80, inc: '+4' }
+    ],
+    structure: [
+        { type: '热身', ratio: 'T/10 (向上取整)', max: '-', count: '自动计算' },
+        { type: '主训', ratio: '余量填充', max: '-', count: '-' },
+        { type: '放松', ratio: 'T/10 (向上取整)', max: '-', count: '自动计算' }
     ],
     FLOWS: {
         'course': [
