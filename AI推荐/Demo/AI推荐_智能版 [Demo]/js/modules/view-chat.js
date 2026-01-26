@@ -46,9 +46,17 @@ window.ViewChat = {
                 const confirmText = TEXT_VARIANTS.analysisStart[Math.floor(Math.random() * TEXT_VARIANTS.analysisStart.length)];
                 const bubble = document.createElement('div');
                 bubble.className = 'chat-bubble chat-ai';
-                chatHistory.appendChild(bubble);
                 
-                App.typeWriter(bubble, confirmText, 30);
+                // 布局防抖优化：预计算高度
+                bubble.style.opacity = '0';
+                bubble.innerText = confirmText;
+                chatHistory.appendChild(bubble);
+                const h = bubble.offsetHeight;
+                bubble.style.height = h + 'px';
+                bubble.style.opacity = '1';
+                bubble.innerText = '';
+                
+                App.typeWriter(bubble, confirmText, 30, () => { bubble.style.height = 'auto'; });
                 Voice.speak(confirmText);
                 
                 // Scroll to align
@@ -72,7 +80,15 @@ window.ViewChat = {
             App.hideTyping();
             const bubble = document.createElement('div');
             bubble.className = 'chat-bubble chat-ai';
+            
+            // 布局防抖优化：预计算高度，防止文字换行导致选项跳动
+            bubble.style.opacity = '0';
+            bubble.innerText = qText;
             chatHistory.appendChild(bubble);
+            const h = bubble.offsetHeight;
+            bubble.style.height = h + 'px';
+            bubble.style.opacity = '1';
+            bubble.innerText = '';
 
             let optionsHtml = '';
             if (config.type === 'slider') {
@@ -106,7 +122,7 @@ window.ViewChat = {
             optContainer.innerHTML = optionsHtml;
             chatHistory.appendChild(optContainer);
 
-            App.typeWriter(bubble, qText, 30); 
+            App.typeWriter(bubble, qText, 30, () => { bubble.style.height = 'auto'; }); 
             Voice.speak(qText);
 
             ViewChat.alignBubble(bubble);
@@ -463,8 +479,17 @@ window.ViewChat = {
                     const chatHistory = document.getElementById('chat-history');
                     const bubble = document.createElement('div');
                     bubble.className = 'chat-bubble chat-ai';
+                    
+                    // 布局防抖优化
+                    bubble.style.opacity = '0';
+                    bubble.innerText = text;
                     chatHistory.appendChild(bubble);
-                    App.typeWriter(bubble, text, 30);
+                    const h = bubble.offsetHeight;
+                    bubble.style.height = h + 'px';
+                    bubble.style.opacity = '1';
+                    bubble.innerText = '';
+                    
+                    App.typeWriter(bubble, text, 30, () => { bubble.style.height = 'auto'; });
                     const optContainer = document.createElement('div');
                     optContainer.innerHTML = `<div class="options-grid">
                         <div class="opt-chip recommend" onclick="App.handleInput('fatigue_resolution', 'switch', false)">切换为${rec}</div>
@@ -536,15 +561,15 @@ window.ViewChat = {
         const chatHistory = document.getElementById('chat-history');
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble chat-user';
-        bubble.innerText = displayVal;
         chatHistory.appendChild(bubble);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
         
-        App.updateSummary();
-        window.store.step++;
-        
-        // 4. Natural Delay before next question
-        setTimeout(() => App.nextStep(), 600);
+        // 用户回答也使用打字机效果，完成后再滚动和跳转
+        App.typeWriter(bubble, displayVal, 30, () => {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            App.updateSummary();
+            window.store.step++;
+            setTimeout(() => App.nextStep(), 600);
+        });
     },
     
     updateSummary: () => {

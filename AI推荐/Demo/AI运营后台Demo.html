@@ -142,7 +142,8 @@
             <div class="nav-item active" onclick="app.navigate('action')">动作管理</div>
             <div class="nav-item" onclick="app.navigate('course')">课程管理</div>
             <div class="nav-item" onclick="app.navigate('plan')">计划管理</div>
-            <div class="nav-item" onclick="app.navigate('template')">阶段模板管理</div>
+            <div class="nav-item" onclick="app.navigate('segment')">课程环节模板管理</div>
+            <div class="nav-item" onclick="app.navigate('template')">计划阶段模板管理</div>
             <div class="nav-item" onclick="app.navigate('mapping')">数据映射管理</div>
             <div class="nav-item" onclick="app.navigate('ai')">AI推荐管理</div>
         </nav>
@@ -264,76 +265,76 @@ const MOCK_DATA = {
         // Hypertrophy / Strength Templates
         { 
             id: 'TPL_HYP_1', name: '一分化 (全身综合)', goal: '增肌', freq: 1, level: 'All', slots: 1, status: '上架',
-            basicSlots: [{name:'全身综合', type:'力量', dim:'部位', target:'全身'}]
+            basicSlots: [{name:'全身综合', type:'力量', focusDim:'部位', focusTarget:'全身'}]
         },
         { 
             id: 'TPL_HYP_2', name: '二分化 (上下肢)', goal: '增肌', freq: 2, level: 'All', slots: 2, status: '上架',
-            basicSlots: [{name:'上肢日', type:'力量', dim:'部位', target:'胸部'}, {name:'下肢日', type:'力量', dim:'部位', target:'腿部'}]
+            basicSlots: [{name:'上肢日', type:'力量', focusDim:'部位', focusTarget:'胸部'}, {name:'下肢日', type:'力量', focusDim:'部位', focusTarget:'腿部'}]
         },
         { 
             id: 'TPL_HYP_3', name: '三分化 (推拉腿)', goal: '增肌', freq: 3, level: 'All', slots: 3, status: '上架',
-            basicSlots: [{name:'推力日', type:'力量', dim:'动作模式', target:'水平推'}, {name:'拉力日', type:'力量', dim:'动作模式', target:'垂直拉'}, {name:'腿部日', type:'力量', dim:'动作模式', target:'膝主导'}]
+            basicSlots: [{name:'推力日', type:'力量', focusDim:'动作模式', focusTarget:'水平推'}, {name:'拉力日', type:'力量', focusDim:'动作模式', focusTarget:'垂直拉'}, {name:'腿部日', type:'力量', focusDim:'动作模式', focusTarget:'膝主导'}]
         },
         { 
             id: 'TPL_HYP_4', name: '四分化 (非线性)', goal: '增肌', freq: 4, level: 'All', slots: 4, status: '上架',
-            basicSlots: [{name:'胸臂雕刻', type:'力量', dim:'部位', target:'胸部'}, {name:'臀腿轰炸', type:'力量', dim:'部位', target:'腿部'}, {name:'背肩强化', type:'力量', dim:'部位', target:'背部'}, {name:'核心全身', type:'力量', dim:'部位', target:'核心'}]
+            basicSlots: [{name:'胸臂雕刻', type:'力量', focusDim:'部位', focusTarget:'胸部'}, {name:'臀腿轰炸', type:'力量', focusDim:'部位', focusTarget:'腿部'}, {name:'背肩强化', type:'力量', focusDim:'部位', focusTarget:'背部'}, {name:'核心全身', type:'力量', focusDim:'部位', focusTarget:'核心'}]
         },
         { 
             id: 'TPL_HYP_5', name: '五分化 (单部位)', goal: '增肌', freq: 5, level: 'All', slots: 5, status: '上架',
-            basicSlots: [{name:'胸部专项', type:'力量', dim:'部位', target:'胸部'}, {name:'背部专项', type:'力量', dim:'部位', target:'背部'}, {name:'肩部专项', type:'力量', dim:'部位', target:'肩部'}, {name:'手臂专项', type:'力量', dim:'部位', target:'手臂'}, {name:'臀腿专项', type:'力量', dim:'部位', target:'腿部'}]
+            basicSlots: [{name:'胸部专项', type:'力量', focusDim:'部位', focusTarget:'胸部'}, {name:'背部专项', type:'力量', focusDim:'部位', focusTarget:'背部'}, {name:'肩部专项', type:'力量', focusDim:'部位', focusTarget:'肩部'}, {name:'手臂专项', type:'力量', focusDim:'部位', focusTarget:'手臂'}, {name:'臀腿专项', type:'力量', focusDim:'部位', focusTarget:'腿部'}]
         },
         // Fat Loss Templates
         { 
             id: 'TPL_FAT_3', name: '减脂循环 (3天)', goal: '减脂', freq: 3, level: 'All', slots: 3, status: '上架',
             basicSlots: [
-                {name:'全身HIIT', type:'HIIT', dim:'部位', target:'全身'},
-                {name:'有氧耐力', type:'有氧', dim:'部位', target:'全身'},
-                {name:'核心强化', type:'力量', dim:'部位', target:'核心'}
+                {name:'全身HIIT', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
+                {name:'有氧耐力', type:'有氧', focusDim:'部位', focusTarget:'全身'},
+                {name:'核心强化', type:'力量', focusDim:'部位', focusTarget:'核心'}
             ]
         },
         { 
             id: 'TPL_FAT_5', name: '高频燃脂循环 (5天)', goal: '减脂', freq: 5, level: 'L3', slots: 5, status: '上架',
             basicSlots: [
-                {name:'全身HIIT', type:'HIIT', dim:'部位', target:'全身'},
-                {name:'上肢塑形', type:'力量', dim:'部位', target:'胸部'},
-                {name:'有氧耐力', type:'有氧', dim:'部位', target:'全身'},
-                {name:'下肢塑形', type:'力量', dim:'部位', target:'腿部'},
-                {name:'核心燃脂', type:'HIIT', dim:'部位', target:'核心'}
+                {name:'全身HIIT', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
+                {name:'上肢塑形', type:'力量', focusDim:'部位', focusTarget:'胸部'},
+                {name:'有氧耐力', type:'有氧', focusDim:'部位', focusTarget:'全身'},
+                {name:'下肢塑形', type:'力量', focusDim:'部位', focusTarget:'腿部'},
+                {name:'核心燃脂', type:'HIIT', focusDim:'部位', focusTarget:'核心'}
             ]
         },
         // Health / Wellness Templates (Renamed from Split)
         { 
             id: 'TPL_CAR_4', name: '心肺耐力循环 (4天)', goal: '健康', freq: 4, level: 'All', slots: 4, status: '上架',
             basicSlots: [
-                {name:'LISS有氧', type:'有氧', dim:'部位', target:'全身'},
-                {name:'HIIT燃脂', type:'HIIT', dim:'部位', target:'全身'},
-                {name:'核心强化', type:'力量', dim:'部位', target:'核心'},
-                {name:'LISS有氧', type:'有氧', dim:'部位', target:'全身'}
+                {name:'LISS有氧', type:'有氧', focusDim:'部位', focusTarget:'全身'},
+                {name:'HIIT燃脂', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
+                {name:'核心强化', type:'力量', focusDim:'部位', focusTarget:'核心'},
+                {name:'LISS有氧', type:'有氧', focusDim:'部位', focusTarget:'全身'}
             ]
         },
         { 
             id: 'TPL_POS_2', name: '体态矫正方案 (2天)', goal: '健康', freq: 2, level: 'L1', slots: 2, status: '上架',
             basicSlots: [
-                {name:'上肢体态', type:'力量', dim:'动作功能', target:'体态'},
-                {name:'下肢稳定', type:'力量', dim:'动作功能', target:'平衡'}
+                {name:'上肢体态', type:'力量', focusDim:'动作功能', focusTarget:'体态'},
+                {name:'下肢稳定', type:'力量', focusDim:'动作功能', focusTarget:'平衡'}
             ]
         },
         { 
             id: 'TPL_FLX_3', name: '柔韧与恢复方案 (3天)', goal: '健康', freq: 3, level: 'All', slots: 3, status: '上架',
             basicSlots: [
-                {name:'全身拉伸', type:'拉伸', dim:'动作功能', target:'柔韧'},
-                {name:'瑜伽流', type:'瑜伽', dim:'动作功能', target:'恢复'},
-                {name:'泡沫轴放松', type:'康复', dim:'动作功能', target:'恢复'}
+                {name:'全身拉伸', type:'拉伸', focusDim:'动作功能', focusTarget:'柔韧'},
+                {name:'瑜伽流', type:'瑜伽', focusDim:'动作功能', focusTarget:'恢复'},
+                {name:'泡沫轴放松', type:'康复', focusDim:'动作功能', focusTarget:'恢复'}
             ]
         },
         // Performance Templates
         { 
             id: 'TPL_POW_4', name: '爆发力专项分化 (4天)', goal: '增肌', freq: 4, level: 'L4', slots: 4, status: '上架',
             basicSlots: [
-                {name:'下肢爆发', type:'力量', dim:'动作功能', target:'爆发'},
-                {name:'上肢力量', type:'力量', dim:'动作模式', target:'水平推'},
-                {name:'全身爆发', type:'HIIT', dim:'动作功能', target:'爆发'},
-                {name:'核心稳定', type:'力量', dim:'动作模式', target:'核心稳定'}
+                {name:'下肢爆发', type:'力量', focusDim:'动作功能', focusTarget:'爆发'},
+                {name:'上肢力量', type:'力量', focusDim:'动作模式', focusTarget:'水平推'},
+                {name:'全身爆发', type:'HIIT', focusDim:'动作功能', focusTarget:'爆发'},
+                {name:'核心稳定', type:'力量', focusDim:'动作模式', focusTarget:'核心稳定'}
             ]
         }
     ]
@@ -427,41 +428,97 @@ const AI_CONFIG = {
         { target: '专项', level: 'All', sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐', diff: '标准' }
     ],
     templates: [
-        { key: '通用', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作构造',val:'复合动作',w:0.6}, {dim:'动作构造',val:'孤立动作',w:0.4}], sort: '体能分配' },
-        { key: '推力日', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'水平推',w:0.4}, {dim:'动作模式',val:'垂直推',w:0.4}, {dim:'主动肌',val:'肱三头肌',w:0.2}], sort: '体能分配' },
-        { key: '拉力日', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'垂直拉',w:0.4}, {dim:'动作模式',val:'水平拉',w:0.4}, {dim:'主动肌',val:'肱二头肌',w:0.2}], sort: '体能分配' },
-        { key: '腿部日', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'膝主导',w:0.4}, {dim:'动作模式',val:'髋主导',w:0.4}, {dim:'主动肌',val:'小腿',w:0.1}, {dim:'主动肌',val:'核心',w:0.1}], sort: '体能分配' },
-        { key: '上肢日', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'水平推',w:0.2}, {dim:'动作模式',val:'垂直推',w:0.2}, {dim:'动作模式',val:'水平拉',w:0.2}, {dim:'动作模式',val:'垂直拉',w:0.2}, {dim:'部位',val:'手臂',w:0.2}], sort: '体能分配' },
-        { key: '下肢日', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'膝主导',w:0.4}, {dim:'动作模式',val:'髋主导',w:0.4}, {dim:'动作模式',val:'弓步',w:0.1}, {dim:'部位',val:'核心',w:0.1}], sort: '体能分配' },
-        { key: '胸部_L1', levels: ['L1','L2'], gender: 'All', slots: [{dim:'主动肌',val:'胸大肌中束',w:0.4}, {dim:'主动肌',val:'胸大肌上束',w:0.4}, {dim:'主动肌',val:'胸大肌下束',w:0.1}, {dim:'主动肌',val:'胸大肌内侧',w:0.1}], sort: '体能分配' },
-        { key: '胸部_L5', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'水平推',w:0.6}, {dim:'动作模式',val:'夹胸',w:0.2}, {dim:'主动肌',val:'肱三头肌',w:0.2}], sort: '体能分配' },
-        { key: '臀部_女', levels: ['L1','L2','L3','L4','L5'], gender: '女', slots: [{dim:'动作模式',val:'髋主导',w:0.5}, {dim:'动作模式',val:'弓步',w:0.3}, {dim:'主动肌',val:'臀中肌',w:0.2}], sort: '体能分配' },
-        { key: '臀部_男', levels: ['L1','L2','L3','L4','L5'], gender: '男', slots: [{dim:'主动肌',val:'臀大肌',w:0.65}, {dim:'主动肌',val:'臀中肌',w:0.35}], sort: '体能分配' },
-        { key: '背部_L1', levels: ['L1','L2'], gender: 'All', slots: [{dim:'主动肌',val:'背阔肌',w:0.4}, {dim:'主动肌',val:'斜方肌',w:0.4}, {dim:'主动肌',val:'竖脊肌',w:0.2}], sort: '体能分配' },
-        { key: '背部_L5', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'垂直拉',w:0.5}, {dim:'动作模式',val:'水平拉',w:0.3}, {dim:'主动肌',val:'肱二头肌',w:0.2}], sort: '体能分配' },
-        { key: '肩部_L1', levels: ['L1','L2'], gender: 'All', slots: [{dim:'主动肌',val:'三角肌中束',w:0.5}, {dim:'主动肌',val:'三角肌前束',w:0.3}, {dim:'主动肌',val:'三角肌后束',w:0.2}], sort: '体能分配' },
-        { key: '肩部_L5', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'垂直推',w:0.4}, {dim:'主动肌',val:'三角肌中束',w:0.4}, {dim:'主动肌',val:'三角肌后束',w:0.2}], sort: '体能分配' },
-        { key: '手臂_L1', levels: ['L1','L2'], gender: 'All', slots: [{dim:'动作构造',val:'孤立动作',w:0.8}, {dim:'动作构造',val:'复合动作',w:0.2}], sort: '交替执行' },
-        { key: '手臂_L5', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'肱三头肌',w:0.6}, {dim:'主动肌',val:'肱二头肌',w:0.4}], sort: '超级组' },
-        { key: '腿部_L1', levels: ['L1','L2'], gender: 'All', slots: [{dim:'动作构造',val:'固定器械',w:0.5}, {dim:'动作模式',val:'膝主导',w:0.3}, {dim:'动作模式',val:'髋主导',w:0.2}], sort: '体能分配' },
-        { key: '腿部_L5', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'股四头肌',w:0.4}, {dim:'主动肌',val:'腘绳肌',w:0.4}, {dim:'主动肌',val:'内收肌',w:0.1}, {dim:'主动肌',val:'腓肠肌',w:0.1}], sort: '体能分配' },
-        { key: '核心_L1', levels: ['L1','L2'], gender: 'All', slots: [{dim:'动作模式',val:'核心稳定',w:0.6}, {dim:'动作模式',val:'旋转',w:0.4}], sort: '顺序执行' },
-        { key: '核心_L5', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'腹直肌',w:0.7}, {dim:'主动肌',val:'腹外斜肌',w:0.3}], sort: '顺序执行' },
-        { key: '腹部', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'腹直肌',w:0.5}, {dim:'主动肌',val:'腹外斜肌',w:0.3}], sort: '顺序执行' },
-        { key: '小腿', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'腓肠肌',w:0.6}, {dim:'主动肌',val:'比目鱼肌',w:0.4}], sort: '顺序执行' },
-        { key: '颈部', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'胸锁乳突肌',w:0.5}, {dim:'主动肌',val:'斜方肌上束',w:0.5}], sort: '顺序执行' },
-        { key: '前臂', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'主动肌',val:'前臂肌群',w:1.0}], sort: '顺序执行' },
-        { key: '减脂', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'心肺',w:0.6}, {dim:'动作构造',val:'复合动作',w:0.2}, {dim:'动作模式',val:'核心稳定',w:0.2}], sort: '交替执行' },
-        { key: 'HIIT燃脂', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'爆发',w:0.4}, {dim:'动作功能',val:'心肺',w:0.4}, {dim:'动作模式',val:'核心稳定',w:0.2}], sort: '顺序执行' },
-        { key: '柔韧', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'柔韧',w:0.8}, {dim:'动作功能',val:'体态',w:0.2}], sort: '顺序执行' },
-        { key: '平衡', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'平衡',w:0.5}, {dim:'动作模式',val:'核心稳定',w:0.3}, {dim:'动作功能',val:'协调',w:0.2}], sort: '顺序执行' },
-        { key: '核心激活', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'激活',w:0.6}, {dim:'动作模式',val:'核心稳定',w:0.4}], sort: '顺序执行' },
-        { key: '激活', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'激活',w:0.6}, {dim:'动作功能',val:'平衡',w:0.2}, {dim:'动作功能',val:'协调',w:0.2}], sort: '顺序执行' },
-        { key: '恢复', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'恢复',w:0.5}, {dim:'动作功能',val:'柔韧',w:0.3}, {dim:'动作功能',val:'激活',w:0.2}], sort: '顺序执行' },
-        { key: '体态', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作功能',val:'体态',w:0.6}, {dim:'动作功能',val:'柔韧',w:0.2}, {dim:'动作模式',val:'核心稳定',w:0.2}], sort: '顺序执行' },
-        { key: '肩部_L3_力量', levels: ['L3','L4'], gender: 'All', slots: [{dim:'动作模式',val:'垂直推',w:0.6}, {dim:'动作模式',val:'水平推',w:0.2}, {dim:'主动肌',val:'三角肌后束',w:0.2}], sort: '体能分配' },
-        { key: '腿部_L5_爆发', levels: ['L3','L4','L5'], gender: 'All', slots: [{dim:'动作模式',val:'膝主导',w:0.5}, {dim:'动作功能',val:'爆发',w:0.3}, {dim:'主动肌',val:'臀大肌',w:0.2}], sort: '体能分配' },
-        { key: '全身', levels: ['L1','L2','L3','L4','L5'], gender: 'All', slots: [{dim:'动作构造',val:'复合动作',w:0.6}, {dim:'动作构造',val:'孤立动作',w:0.4}], sort: '体能分配' }
+        // --- 热身 (Warmup) ---
+        { id: 'TPL_SEG_001', name: '热身_全身', dim: '部位', target: '全身', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.3}, {focusDim:'动作功能',focusTarget:'协调',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_002', name: '热身_上肢', dim: '部位', target: '上肢', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'肩部',w:0.3}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_003', name: '热身_下肢', dim: '部位', target: '下肢', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'腿部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_004', name: '热身_胸部', dim: '部位', target: '胸部', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_005', name: '热身_背部', dim: '部位', target: '背部', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'背部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_006', name: '热身_肩部', dim: '部位', target: '肩部', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_007', name: '热身_手臂', dim: '部位', target: '手臂', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'手臂',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_008', name: '热身_臀部', dim: '部位', target: '臀部', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'臀部',w:0.4}, {focusDim:'部位',focusTarget:'腿部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_009', name: '热身_腿部', dim: '部位', target: '腿部', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'腿部',w:0.3}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+        { id: 'TPL_SEG_010', name: '热身_核心', dim: '部位', target: '核心', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'核心',w:0.3}, {focusDim:'部位',focusTarget:'臀部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
+
+        // --- 放松 (Cooldown) ---
+        { id: 'TPL_SEG_011', name: '放松_全身', dim: '部位', target: '全身', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'恢复',w:0.6}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.4}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_012', name: '放松_上肢', dim: '部位', target: '上肢', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'背部',w:0.3}, {focusDim:'部位',focusTarget:'胸部',w:0.3}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_013', name: '放松_下肢', dim: '部位', target: '下肢', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'腿部',w:0.5}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'下背',w:0.2}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_014', name: '放松_胸部', dim: '部位', target: '胸部', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'胸部',w:0.6}, {focusDim:'部位',focusTarget:'肩部',w:0.4}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_015', name: '放松_背部', dim: '部位', target: '背部', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'背部',w:0.6}, {focusDim:'部位',focusTarget:'肩部',w:0.2}, {focusDim:'部位',focusTarget:'下背',w:0.2}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_016', name: '放松_肩部', dim: '部位', target: '肩部', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'肩部',w:0.7}, {focusDim:'部位',focusTarget:'颈部',w:0.3}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_017', name: '放松_手臂', dim: '部位', target: '手臂', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'手臂',w:0.7}, {focusDim:'部位',focusTarget:'肩部',w:0.3}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_018', name: '放松_臀部', dim: '部位', target: '臀部', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'臀部',w:0.7}, {focusDim:'部位',focusTarget:'下背',w:0.3}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_019', name: '放松_腿部', dim: '部位', target: '腿部', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'腿部',w:0.7}, {focusDim:'部位',focusTarget:'臀部',w:0.3}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+        { id: 'TPL_SEG_020', name: '放松_核心', dim: '部位', target: '核心', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'部位',focusTarget:'核心',w:0.5}, {focusDim:'部位',focusTarget:'下背',w:0.5}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] },
+
+        // --- 全身 (Full Body) ---
+        { id: 'TPL_SEG_021', name: '全身_初级', dim: '部位', target: '全身', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.5}, {focusDim:'动作构造',focusTarget:'复合动作',w:0.3}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_022', name: '全身_中级', dim: '部位', target: '全身', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.2}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.2}, {focusDim:'动作模式',focusTarget:'水平推',w:0.2}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.2}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_023', name: '全身_高级', dim: '部位', target: '全身', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直推',w:0.2}, {focusDim:'动作模式',focusTarget:'垂直拉',w:0.2}, {focusDim:'动作模式',focusTarget:'弓步',w:0.2}, {focusDim:'动作模式',focusTarget:'旋转',w:0.2}, {focusDim:'动作功能',focusTarget:'爆发',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // --- 上下肢分化 (Upper/Lower) ---
+        { id: 'TPL_SEG_030', name: '推力_中级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_031', name: '推力_高级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_032', name: '拉力_中级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_033', name: '拉力_高级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_034', name: 'PPL_腿部_中级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_035', name: 'PPL_腿部_高级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // --- 推拉腿 (PPL) ---
+        { id: 'TPL_SEG_030', name: '推力_中级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_031', name: '推力_高级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_032', name: '拉力_中级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_033', name: '拉力_高级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_034', name: 'PPL_腿部_中级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_035', name: 'PPL_腿部_高级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // --- 部位分化 (Body Parts) ---
+        // 胸部
+        { id: 'TPL_SEG_036', name: '胸部_初级', dim: '部位', target: '胸部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作构造',focusTarget:'孤立动作',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_037', name: '胸部_中级', dim: '部位', target: '胸部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.5}, {focusDim:'主动肌',focusTarget:'胸大肌上束',w:0.3}, {focusDim:'主动肌',focusTarget:'胸大肌内侧',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_038', name: '胸部_高级', dim: '部位', target: '胸部', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'主动肌',focusTarget:'胸大肌上束',w:0.3}, {focusDim:'主动肌',focusTarget:'胸大肌下束',w:0.2}, {focusDim:'主动肌',focusTarget:'胸大肌内侧',w:0.1}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        
+        // 背部
+        { id: 'TPL_SEG_039', name: '背部_初级', dim: '部位', target: '背部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_040', name: '背部_中级', dim: '部位', target: '背部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'竖脊肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_041', name: '背部_高级', dim: '部位', target: '背部', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.3}, {focusDim:'主动肌',focusTarget:'斜方肌',w:0.2}, {focusDim:'主动肌',focusTarget:'三角肌后束',w:0.1}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // 肩部
+        { id: 'TPL_SEG_042', name: '肩部_初级', dim: '部位', target: '肩部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'主动肌',focusTarget:'三角肌中束',w:0.6}, {focusDim:'主动肌',focusTarget:'三角肌前束',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_043', name: '肩部_中级', dim: '部位', target: '肩部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'三角肌中束',w:0.4}, {focusDim:'主动肌',focusTarget:'三角肌后束',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_044', name: '肩部_高级', dim: '部位', target: '肩部', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直推',w:0.3}, {focusDim:'主动肌',focusTarget:'三角肌中束',w:0.3}, {focusDim:'主动肌',focusTarget:'三角肌后束',w:0.2}, {focusDim:'主动肌',focusTarget:'肩袖肌群',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // 手臂
+        { id: 'TPL_SEG_045', name: '手臂_初级', dim: '部位', target: '手臂', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'孤立动作',w:1.0}], sort: [{dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_046', name: '手臂_中级', dim: '部位', target: '手臂', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'主动肌',focusTarget:'肱二头肌',w:0.5}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.5}], sort: [{dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_047', name: '手臂_高级', dim: '部位', target: '手臂', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'主动肌',focusTarget:'肱二头肌',w:0.5}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.5}], sort: [{dim:'推荐权重',order:'降序'}] },
+
+        // 臀部
+        { id: 'TPL_SEG_048', name: '臀部_初级', dim: '部位', target: '臀部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'髋主导',w:0.6}, {focusDim:'主动肌',focusTarget:'臀大肌',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_049', name: '臀部_中级', dim: '部位', target: '臀部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'髋主导',w:0.5}, {focusDim:'主动肌',focusTarget:'臀中肌',w:0.3}, {focusDim:'动作模式',focusTarget:'弓步',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_050', name: '臀部_高级', dim: '部位', target: '臀部', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'臀中肌',w:0.3}, {focusDim:'动作模式',focusTarget:'弓步',w:0.3}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // 腿部
+        { id: 'TPL_SEG_051', name: '腿部_初级', dim: '部位', target: '腿部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作模式',focusTarget:'膝主导',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_052', name: '腿部_中级', dim: '部位', target: '腿部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.3}, {focusDim:'动作模式',focusTarget:'弓步',w:0.2}, {focusDim:'部位',focusTarget:'核心',w:0.1}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_053', name: '腿部_高级', dim: '部位', target: '腿部', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.3}, {focusDim:'动作模式',focusTarget:'弓步',w:0.2}, {focusDim:'动作功能',focusTarget:'爆发',w:0.1}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+
+        // 核心
+        { id: 'TPL_SEG_054', name: '核心_初级', dim: '部位', target: '核心', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'核心稳定',w:0.7}, {focusDim:'动作模式',focusTarget:'旋转',w:0.3}], sort: [{dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_055', name: '核心_中级', dim: '部位', target: '核心', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'主动肌',focusTarget:'腹直肌',w:0.4}, {focusDim:'主动肌',focusTarget:'腹外斜肌',w:0.3}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.3}], sort: [{dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_056', name: '核心_高级', dim: '部位', target: '核心', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'主动肌',focusTarget:'腹直肌',w:0.4}, {focusDim:'主动肌',focusTarget:'腹外斜肌',w:0.3}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}, {focusDim:'动作功能',focusTarget:'爆发',w:0.1}], sort: [{dim:'推荐权重',order:'降序'}] },
+
+        // --- 功能性 (Functional) ---
+        { id: 'TPL_SEG_057', name: '减脂_初级', dim: '动作功能', target: '减脂', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'心肺',w:0.6}, {focusDim:'动作构造',focusTarget:'复合动作',w:0.4}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_058', name: '减脂_中级', dim: '动作功能', target: '减脂', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'心肺',w:0.5}, {focusDim:'动作构造',focusTarget:'复合动作',w:0.3}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_059', name: '减脂_高级', dim: '动作功能', target: '减脂', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'心肺',w:0.5}, {focusDim:'动作构造',focusTarget:'复合动作',w:0.3}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+        
+        { id: 'TPL_SEG_060', name: 'HIIT_初级', dim: '动作功能', target: '心肺', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'心肺',w:0.7}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.3}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_061', name: 'HIIT_中级', dim: '动作功能', target: '心肺', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'爆发',w:0.4}, {focusDim:'动作功能',focusTarget:'心肺',w:0.4}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_062', name: 'HIIT_高级', dim: '动作功能', target: '心肺', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'爆发',w:0.5}, {focusDim:'动作功能',focusTarget:'心肺',w:0.4}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.1}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+
+        { id: 'TPL_SEG_063', name: '体态_L1', dim: '动作功能', target: '体态', type: '主训', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'体态',w:0.6}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.2}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作难度',order:'升序'}] }
     ],
     structure: [
         { type: '热身', ratio: '15%', max: '5 min', count: '4 - 6' },
@@ -536,11 +593,20 @@ const SLOT_OPTS = {
 };
 
 const RULE_OPTS = {
-    '动作构造': ['复合动作', '孤立动作', '固定器械'],
+    '动作构造': ['复合动作', '孤立动作'],
     '动作模式': ['水平推', '垂直推', '水平拉', '垂直拉', '膝主导', '髋主导', '弓步', '旋转', '核心稳定', '步态'],
     '主动肌': ['胸大肌', '背阔肌', '斜方肌', '竖脊肌', '三角肌', '肱二头肌', '肱三头肌', '臀大肌', '股四头肌', '腘绳肌', '腹直肌'],
     '部位': ['胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心', '全身'],
     '动作功能': ['增肌', '力量', '耐力', '减脂', '心肺', '恢复', '柔韧', '协调', '体态', '激活', '平衡'],
+};
+
+const SORT_DIM_OPTS = {
+    ...RULE_OPTS,
+    '动作体位': ['站姿', '坐姿', '仰卧', '俯卧', '侧卧', '跪姿', '悬挂', '支撑'],
+    '动作难度': ['L1', 'L2', 'L3', 'L4', 'L5'],
+    'MET值': [],
+    '推荐权重': [],
+    '随机': []
 };
 
 const SCHEMA = {
@@ -981,6 +1047,88 @@ const RENDERERS = {
     `},
 
     // ============================================================
+    // 3.5 课程环节模板管理 (Course Segment Template Management)
+    // ============================================================
+    segment_list: () => `
+        ${BatchControls('环节模板')}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>环节模板ID</th>
+                    <th>环节模板名称</th>
+                    <th>动作配比</th>
+                    <th>环节维度</th>
+                    <th>环节目标</th>
+                    <th>环节类型</th>
+                    <th>适用等级</th>
+                    <th>适用性别</th>
+                    <th>动作槽位</th>
+                    <th>排序规则 (多级)</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${AI_CONFIG.templates.map((item, idx) => `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.name}</td>
+                    <td>${item.slots.map(s=>s.w).join(':')}</td>
+                    <td>${item.dim || '-'}</td>
+                    <td>${item.target || '-'}</td>
+                    <td><span class="status-badge">${item.type || '主训'}</span></td>
+                    <td>${(item.levels||[]).join(', ')}</td>
+                    <td>${item.gender}</td>
+                    <td>${(item.slots||[]).length}</td>
+                    <td>${Array.isArray(item.sort) ? item.sort.map(s=>s.dim).join(' > ') : item.sort}</td>
+                    <td>
+                        <button class="btn-text" onclick="app.toDetail(${idx})">编辑</button>
+                        <button class="btn-danger" onclick="app.deleteSegment(${idx})">删除</button>
+                    </td>
+                </tr>`).join('')}
+            </tbody>
+        </table>
+    `,
+    segment_detail: () => {
+        const id = app.state.id;
+        // id is index in AI_CONFIG.templates
+        const tpl = AI_CONFIG.templates[id];
+        if (!tpl) return '<div style="padding:20px;">模板不存在</div>';
+
+        const dimOpts = SLOT_OPTS.dims;
+        const targetOpts = SLOT_OPTS.targets[tpl.dim || '部位'] || [];
+
+        return `
+        <div class="form-section">
+            <div class="section-header">基础信息</div>
+            <div class="form-grid">
+                ${Field('环节模板ID', 'text', tpl.id, '自动生成', true)}
+                ${Field('环节模板名称', 'text', tpl.name, '必填').replace('input', `input onchange="app.updateSegmentField(${id}, 'name', this.value)"`)}
+                ${Field('环节维度', 'select', dimOpts, '必填').replace('select', `select onchange="app.updateSegmentDim(${id}, this.value)"`).replace(`>${tpl.dim}<`, ` selected>${tpl.dim}<`)}
+                ${Field('环节目标', 'select', targetOpts, '必填').replace('select', `select onchange="app.updateSegmentField(${id}, 'target', this.value)"`).replace(`>${tpl.target}<`, ` selected>${tpl.target}<`)}
+                ${Field('环节类型', 'select', ['热身','主训','放松'], '必填').replace('select', `select onchange="app.updateSegmentField(${id}, 'type', this.value)"`).replace(`>${tpl.type||'主训'}<`, ` selected>${tpl.type||'主训'}<`)}
+                <div class="form-group">
+                    <label>适用等级</label>
+                    ${renderMultiSelect(`seg-lvl-${id}`, ['L1','L2','L3','L4','L5'], tpl.levels||[], `app.updateSegmentLevel(${id}`)}
+                </div>
+                ${Field('适用性别', 'select', ['All','男','女'], '必填').replace('select', `select onchange="app.updateSegmentField(${id}, 'gender', this.value)"`).replace(`>${tpl.gender}<`, ` selected>${tpl.gender}<`)}
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="section-header">动作槽位</div>
+            <div style="padding:20px;">
+                ${SegmentSlotEditor(tpl.slots, id)}
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="section-header">排序策略 (多级排序规则)</div>
+            <div style="padding:20px;">
+                ${SegmentSortEditor(tpl.sort, id)}
+            </div>
+        </div>
+        `;
+    },
+
+    // ============================================================
     // 4. 阶段模板管理 (Phase Template Management)
     // ============================================================
     template_list: () => `
@@ -1192,12 +1340,6 @@ const RENDERERS = {
                     {label:'策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','波浪','计时']},
                     {label:'难度', key:'diff', type:'select', opts:['保守','标准','进阶','挑战']}
                 ])}
-            </div>
-        </div>
-        <div class="form-section">
-            <div class="section-header">1.2 课程环节模板配置</div>
-            <div style="padding:20px;">
-                ${TemplateConfigTable()}
             </div>
         </div>
         <div class="form-section">
@@ -1463,6 +1605,12 @@ const FIELD_DESCRIPTIONS = {
     '排序策略': '该模板生成课程时的动作排序逻辑。',
     '主动肌': '动作主要发力的肌肉。',
     '拮抗肌 (多选)': '与主动肌功能相反的肌肉集合。',
+    '环节模板ID': '环节模板的唯一标识符。',
+    '环节模板名称': '环节模板的显示名称。',
+    '环节维度': '该模板适用的匹配维度（如部位、动作模式）。',
+    '环节目标': '该模板适用的具体匹配目标（如胸部、水平推）。',
+    '动作槽位': '定义环节内动作的筛选规则与权重。',
+    '动作配比': '环节内各动作槽位的权重比例概览。',
     '示例': '该映射关系的具体动作示例。',
     '主训模式': '主训环节的动作模式分类。',
     '推荐热身功能 (主要部位)': '针对该主训模式推荐的热身功能和部位。',
@@ -1540,14 +1688,14 @@ function SlotTable(title, id, initialData = []) {
     const opts = (arr, selected) => arr.map(x => `<option ${x===selected?'selected':''}>${x}</option>`).join('');
     
     const renderRow = (data) => {
-        const dim = data.dim || '部位';
+        const dim = data.focusDim || '部位';
         const targetOpts = SLOT_OPTS.targets[dim] || [];
         return `
         <tr>
             <td><input type="text" value="${data.name||''}" placeholder="如: 上肢日"></td>
             <td><select>${opts(SLOT_OPTS.types, data.type)}</select></td>
             <td><select onchange="app.updateSlotTargets(this)">${opts(SLOT_OPTS.dims, dim)}</select></td>
-            <td><select>${opts(targetOpts, data.target)}</select></td>
+            <td><select>${opts(targetOpts, data.focusTarget)}</select></td>
             <td><button class="btn-danger" onclick="app.deleteSlotItem(this)">删除</button></td>
         </tr>`;
     };
@@ -1566,6 +1714,82 @@ function SlotTable(title, id, initialData = []) {
         </table>
     </div>
     `;
+}
+
+function SegmentSlotEditor(slots, tplIdx) {
+    const dims = Object.keys(RULE_OPTS);
+    const slotList = Array.isArray(slots) ? slots : [];
+
+    const rows = slotList.map((s, sIdx) => `
+        <div style="display:flex; gap:10px; align-items:center; background:#222; padding:8px; border-radius:4px; border:1px solid #444; margin-bottom:8px;">
+            <span style="color:#888; font-size:12px; width:20px;">${sIdx+1}.</span>
+            <select style="width:100px; padding:4px; background:#111; border:1px solid #444; color:#fff;" onchange="app.updateSegmentSlot(${tplIdx}, ${sIdx}, 'focusDim', this.value)">
+                ${dims.map(d => `<option ${d===s.focusDim?'selected':''}>${d}</option>`).join('')}
+            </select>
+            <select style="flex:1; padding:4px; background:#111; border:1px solid #444; color:#fff;" onchange="app.updateSegmentSlot(${tplIdx}, ${sIdx}, 'focusTarget', this.value)">
+                ${(RULE_OPTS[s.focusDim]||[]).map(o => `<option ${o===s.focusTarget?'selected':''}>${o}</option>`).join('')}
+            </select>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <span style="color:#666; font-size:11px;">权重</span>
+                <input type="number" value="${s.w}" step="0.1" style="width:50px; text-align:center; padding:4px; background:#111; border:1px solid #444; color:#fff;" onchange="app.updateSegmentSlot(${tplIdx}, ${sIdx}, 'w', this.value)">
+            </div>
+            <button class="btn-danger" onclick="app.removeSegmentSlot(${tplIdx}, ${sIdx})">删除</button>
+        </div>
+    `).join('');
+
+    return `<div>${rows}<button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="app.addSegmentSlot(${tplIdx})">+ 添加槽位</button></div>`;
+}
+
+function SegmentSortEditor(sorts, tplIdx) {
+    // Migration for old string format
+    if (typeof sorts === 'string') {
+        sorts = [{ dim: '默认', order: '默认', seq: sorts }]; // Placeholder migration
+    }
+    const sortList = Array.isArray(sorts) ? sorts : [];
+    const dims = ['动作构造', '动作模式', '主动肌', '主要配件', '力臂挡位', '动作体位', '动作难度', 'MET值', '推荐权重', '随机'];
+    const orders = ['升序', '降序', '自定义', '随机'];
+
+    const rows = sortList.map((s, sIdx) => {
+        const showSeq = s.order === '自定义';
+        const dimOpts = SORT_DIM_OPTS[s.dim] || [];
+        
+        let helperHtml = '';
+        if (showSeq && dimOpts.length > 0) {
+            helperHtml = `<div style="width:100%; margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; padding-top:8px; border-top:1px dashed #333;">
+                <span style="color:#666; font-size:10px; margin-right:4px;">点击添加:</span>
+                ${dimOpts.map(opt => `<span class="tag-exist" style="cursor:pointer; border:1px solid #444;" onclick="app.appendToSortSeq(${tplIdx}, ${sIdx}, '${opt}')">${opt}</span>`).join('')}
+                <span class="tag-new" style="cursor:pointer; border:1px solid var(--new-tag);" onclick="app.clearSortSeq(${tplIdx}, ${sIdx})">清空</span>
+            </div>`;
+        }
+
+        return `
+        <div style="display:flex; flex-direction:column; background:#222; padding:8px; border-radius:4px; border:1px solid #444; margin-bottom:8px;">
+            <div style="display:flex; gap:10px; align-items:center;">
+            <span style="color:#var(--primary); font-size:12px; font-weight:bold; width:60px;">第 ${sIdx+1} 级</span>
+            
+            <div style="display:flex; align-items:center; gap:4px;">
+                <span style="color:#666; font-size:11px;">维度</span>
+                <select style="width:100px; padding:4px; background:#111; border:1px solid #444; color:#fff;" onchange="app.updateSortRule(${tplIdx}, ${sIdx}, 'dim', this.value)">
+                    ${dims.map(d => `<option ${d===s.dim?'selected':''}>${d}</option>`).join('')}
+                </select>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:4px;">
+                <span style="color:#666; font-size:11px;">方式</span>
+                <select style="width:80px; padding:4px; background:#111; border:1px solid #444; color:#fff;" onchange="app.updateSortRule(${tplIdx}, ${sIdx}, 'order', this.value)">
+                    ${orders.map(o => `<option ${o===s.order?'selected':''}>${o}</option>`).join('')}
+                </select>
+            </div>
+
+            <input type="text" value="${s.seq||''}" placeholder="自定义序列 (如: 复合,孤立)" style="flex:1; display:${showSeq?'block':'none'}; background:#111; border:1px solid #444; color:#fff; padding:4px;" onchange="app.updateSortRule(${tplIdx}, ${sIdx}, 'seq', this.value)">
+            
+            <button class="btn-danger" onclick="app.removeSortRule(${tplIdx}, ${sIdx})">删除</button>
+            </div>
+            ${helperHtml}
+        </div>
+    `}).join('');
+
+    return `<div>${rows}<button class="btn btn-primary" style="margin-top:10px; width:100%;" onclick="app.addSortRule(${tplIdx})">+ 添加排序规则</button></div>`;
 }
 
 function TemplateConfigTable() {
@@ -1920,6 +2144,7 @@ const app = {
         const tbody = document.querySelector(`#${tableId} tbody`);
         const tr = document.createElement('tr');
         const opts = (arr) => arr.map(x => `<option>${x}</option>`).join('');
+        
         tr.innerHTML = `
             <td><input type="text" placeholder="如: 上肢日"></td>
             <td><select>${opts(SLOT_OPTS.types)}</select></td>
@@ -2376,6 +2601,7 @@ const app = {
         const titles = {
             'action': '动作管理',
             'course': '课程管理',
+            'segment': '课程环节模板管理',
             'plan': '计划管理',
             'template': '阶段模板管理',
             'mapping': '数据映射管理',
@@ -2396,6 +2622,102 @@ const app = {
              document.querySelectorAll('.sub-item').forEach(el => app.recalcSegment(el));
              // Init rest fields visibility
              document.querySelectorAll('select[onchange*="toggleRestFields"]').forEach(el => app.toggleRestFields(el));
+        }
+    },
+    
+    // Segment Template Helpers
+    updateSegmentField: (idx, field, val) => {
+        if (AI_CONFIG.templates[idx]) {
+            AI_CONFIG.templates[idx][field] = val;
+        }
+    },
+    updateSegmentDim: (idx, val) => {
+        if (AI_CONFIG.templates[idx]) {
+            AI_CONFIG.templates[idx].dim = val;
+            AI_CONFIG.templates[idx].target = (SLOT_OPTS.targets[val] || [])[0] || '';
+            app.render();
+        }
+    },
+    updateSegmentLevel: (idx, level, checked) => {
+        let levels = AI_CONFIG.templates[idx].levels || [];
+        if (checked) {
+            if (!levels.includes(level)) levels.push(level);
+        } else {
+            levels = levels.filter(l => l !== level);
+        }
+        const order = ['L1','L2','L3','L4','L5'];
+        levels.sort((a,b) => order.indexOf(a) - order.indexOf(b));
+        AI_CONFIG.templates[idx].levels = levels;
+        app.render();
+    },
+    updateSegmentSlot: (tplIdx, slotIdx, field, val) => {
+        const slot = AI_CONFIG.templates[tplIdx].slots[slotIdx];
+        slot[field] = val;
+        if (field === 'focusDim') {
+            slot.focusTarget = (RULE_OPTS[val] || [])[0] || '';
+        }
+        app.render();
+    },
+    addSegmentSlot: (tplIdx) => {
+        if (!AI_CONFIG.templates[tplIdx].slots) AI_CONFIG.templates[tplIdx].slots = [];
+        AI_CONFIG.templates[tplIdx].slots.push({focusDim:'动作构造', focusTarget:'复合动作', w:0.5});
+        app.render();
+    },
+    removeSegmentSlot: (tplIdx, slotIdx) => {
+        AI_CONFIG.templates[tplIdx].slots.splice(slotIdx, 1);
+        app.render();
+    },
+    // Sort Rule Helpers
+    updateSortRule: (tplIdx, sIdx, field, val) => {
+        const rule = AI_CONFIG.templates[tplIdx].sort[sIdx];
+        rule[field] = val;
+        app.render();
+    },
+    addSortRule: (tplIdx) => {
+        if (!Array.isArray(AI_CONFIG.templates[tplIdx].sort)) AI_CONFIG.templates[tplIdx].sort = [];
+        AI_CONFIG.templates[tplIdx].sort.push({dim:'动作难度', order:'降序', seq:''});
+        app.render();
+    },
+    removeSortRule: (tplIdx, sIdx) => {
+        AI_CONFIG.templates[tplIdx].sort.splice(sIdx, 1);
+        app.render();
+    },
+    appendToSortSeq: (tplIdx, sIdx, val) => {
+        const rule = AI_CONFIG.templates[tplIdx].sort[sIdx];
+        let current = rule.seq || '';
+        if (current) {
+            const arr = current.split(',').map(s=>s.trim());
+            if (!arr.includes(val)) current += ',' + val;
+        } else {
+            current = val;
+        }
+        rule.seq = current;
+        app.render();
+    },
+    clearSortSeq: (tplIdx, sIdx) => {
+        AI_CONFIG.templates[tplIdx].sort[sIdx].seq = '';
+        app.render();
+    },
+    deleteSegment: (idx) => {
+        if(confirm('确定删除此模板吗？')) {
+            AI_CONFIG.templates.splice(idx, 1);
+            app.render();
+        }
+    },
+    save: () => {
+        if (app.state.page === 'segment' && app.state.view === 'list') {
+            // Create new segment template
+            const newTpl = { id: `TPL_SEG_${Date.now()}`, name: 'New Template', dim: '部位', target: '全身', type: '主训', levels: [], gender: 'All', slots: [], sort: [{dim:'动作构造', order:'自定义', seq:'复合动作,孤立动作'}] };
+            AI_CONFIG.templates.push(newTpl);
+            app.toDetail(AI_CONFIG.templates.length - 1);
+            return;
+        }
+
+        if (app.state.view === 'list') {
+            app.toDetail('NEW');
+        } else {
+            alert('保存成功');
+            app.navigate(app.state.page);
         }
     }
 };

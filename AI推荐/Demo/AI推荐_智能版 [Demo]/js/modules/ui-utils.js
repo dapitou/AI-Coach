@@ -37,7 +37,7 @@ window.UIUtils = {
         document.getElementById('dialog-confirm').classList.remove('active');
     },
 
-    typeWriter: (element, text, speed = 30) => {
+    typeWriter: (element, text, speed = 30, callback) => {
         element.textContent = '';
         let i = 0;
         function type() {
@@ -45,6 +45,8 @@ window.UIUtils = {
                 element.textContent += text.charAt(i);
                 i++;
                 setTimeout(type, speed);
+            } else {
+                if (callback) callback();
             }
         }
         type();

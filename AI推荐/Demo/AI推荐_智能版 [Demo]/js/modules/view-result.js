@@ -20,7 +20,7 @@ window.ViewResult = {
         window.store.flow = 'custom';
         window.currentCtx = ctx;
         window.store.activePhaseIdx = 1; // Default to Main
-        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: false }; 
+        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' }; 
 
         App.showResult();
     },
@@ -51,7 +51,7 @@ window.ViewResult = {
             let ctx = window.currentCtx;
             if (flow === 'course') {
                 ctx = window.Logic.genCourse(inputs);
-                window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: true };
+                window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' };
                 window.currentCtx = ctx;
                 
                 const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
@@ -402,7 +402,7 @@ window.ViewResult = {
         const ctx = window.Logic.runPipeline(null, planContext);
         const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
         window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
-        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '恒定', smartRec: true };
+        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' };
         
         // Switch to Course View inside Result
         document.getElementById('view-result').classList.add('plan-mode');
@@ -417,12 +417,6 @@ window.ViewResult = {
         App.initResultScroll();
         document.getElementById('btn-close-result').style.display = 'none'; // Hide close, show back
         document.getElementById('btn-back-plan').style.display = 'block';
-    },
-
-    toggleSmartRec: () => {
-        window.store.courseSettings.smartRec = !window.store.courseSettings.smartRec;
-        App.recalculateLoadStrategy();
-        App.renderFineTuning(window.currentCtx);
     },
 
     recalculateLoadStrategy: () => {
@@ -473,7 +467,8 @@ window.ViewResult = {
 
         const flowTabs = `<div id="course-flow-tabs" class="plan-flow-container" style="padding:15px 24px 5px 24px; gap:4px;"></div>`;
         const phaseDesc = `<div id="course-phase-desc" style="padding: 0 24px 15px 24px;"></div>`;
-        const content = `<div id="res-phase-content" class="plan-scroll-area" style="padding:0 20px 20px 20px;"></div>`;
+        const phaseControls = `<div id="course-phase-controls" style="padding: 0 20px 10px 20px;"></div>`;
+        const content = `<div id="res-phase-content" class="plan-scroll-area" style="padding:0 20px 50vh 20px;"></div>`;
 
         const html = `
             <div class="plan-layout-container">
@@ -482,6 +477,7 @@ window.ViewResult = {
                     ${stats}
                     ${flowTabs}
                     ${phaseDesc}
+                    ${phaseControls}
                 </div>
                 ${content}
             </div>`;
@@ -492,10 +488,10 @@ window.ViewResult = {
     renderFineTuning: (ctx) => {
         App.recalculateDurations(ctx); // Recalculate before rendering
         const resContent = document.getElementById('res-phase-content');
+        const resControls = document.getElementById('course-phase-controls');
         const settings = window.store.courseSettings;
         const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
         const unit = window.store.unit || 'kg';
-        const isSmart = settings.smartRec;
 
         // Update Flow Tabs
         const tabsContainer = document.getElementById('course-flow-tabs');
@@ -532,55 +528,47 @@ window.ViewResult = {
         if (p) {
             let controlsHtml = '';
             
-            const smartRecHtml = `
-                <div class="control-group" style="margin-right:2px;">
-                    <span class="cg-label">智能推荐</span>
-                    <div class="smart-switch ${isSmart?'active':''}" onclick="App.toggleSmartRec()">
-                        <div class="smart-knob"></div>
-                    </div>
-                </div>`;
-
             // Unified Controls for ALL phases
             const rest = p.strategy?.rest || 0;
             const restRound = p.strategy?.restRound || 0;
-            const pLoadStrategy = p.strategy?.loadStrategy || '恒定';
+            const pLoadStrategy = p.strategy?.loadStrategy || '推荐';
             const pLoopMode = p.strategy?.loopMode || '常规组';
-            const disabledAttr = isSmart ? 'disabled style="opacity:0.5; pointer-events:none;"' : '';
+            const disabledAttr = ''; // Always enabled
             
             controlsHtml = `
             <div class="phase-controls-row">
-                ${smartRecHtml}
-                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                <div class="control-group">
                     <span class="cg-label">负荷</span>
                     <select class="phase-select" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'loadStrategy', this.value)">
                         ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, pLoadStrategy)}
                     </select>
                 </div>
-                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                <div class="control-group">
                     <span class="cg-label">模式</span>
                     <select class="phase-select" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, pLoopMode)}</select>
                 </div>
-                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                <div class="control-group">
                     <span class="cg-label">组间</span>
                     <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                 </div>
-                <div class="control-group" onclick="if(${isSmart}) window.App.showToast('请关闭智能推荐自定义编辑')">
+                <div class="control-group">
                     <span class="cg-label">轮间</span>
                     <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                 </div>
             </div>`;
 
-            html += `
+            if (resControls) {
+                resControls.innerHTML = `
             <div class="phase-header-row" style="justify-content:flex-end; margin-bottom:10px;">
                 <button class="ad-add-btn" onclick="App.addAction(${pIdx})" style="margin-top:0; width:auto; padding:6px 12px;">＋ 添加动作</button>
             </div>
+            ${controlsHtml}`;
+            }
             
-            ${controlsHtml}
-            
-            <div class="action-list">`;
+            let listHtml = `<div class="action-list">`;
             
             if (p.actions.length === 0) {
-                html += `<div style="text-align:center; padding:30px 0; color:#666; font-size:12px; border:1px dashed #333; border-radius:8px; margin-bottom:10px; cursor:pointer;" onclick="App.addAction(${pIdx})">点击添加动作</div>`;
+                listHtml += `<div style="text-align:center; padding:30px 0; color:#666; font-size:12px; border:1px dashed #333; border-radius:8px; margin-bottom:10px; cursor:pointer;" onclick="App.addAction(${pIdx})">点击添加动作</div>`;
             }
 
             p.actions.forEach((a, aIdx) => {
@@ -594,8 +582,9 @@ window.ViewResult = {
                 const isResistance = a.paradigm === '抗阻范式';
                 const isWarmup = p.type === '热身' || p.type === '放松';
                 const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
+                const hasPower = a.powerModule === '是';
                 const isMirror = a.mirror;
-                const repUnit = isTimeBased ? 's' : '';
+                const repUnit = isTimeBased ? 's' : '次';
 
                 const expanded = a.expanded ? 'block' : 'none';
                 const arrow = a.expanded ? '▲' : '▼';
@@ -606,7 +595,7 @@ window.ViewResult = {
                 if (a.setDetails && a.setDetails.length > 0) {
                     let vals = [];
                     let suffix = '';
-                    if (isResistance && !isWarmup && !isTimeBased) {
+                    if (isResistance && !isWarmup && !isTimeBased && hasPower) {
                         vals = a.setDetails.map(s => s.load);
                         suffix = unit;
                     } else {
@@ -620,7 +609,7 @@ window.ViewResult = {
                 }
 
                 let summary = '';
-                if (isResistance && !isWarmup && !isTimeBased) {
+                if (isResistance && !isWarmup && !isTimeBased && hasPower) {
                     summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 } else {
                     summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
@@ -628,14 +617,7 @@ window.ViewResult = {
 
                 let setsHtml = '';
                 a.setDetails.forEach((s, sIdx) => {
-                    let isDisabled = isSmart;
-                    if (!isSmart && !isWarmup && isResistance) {
-                        const strat = pLoadStrategy;
-                        if (strat === '递增' || strat === '递减') {
-                            if (sIdx > 0 && sIdx < a.setDetails.length - 1) isDisabled = true;
-                        }
-                    }
-                    const disabledStyle = isDisabled ? 'opacity:0.5; pointer-events:none;' : '';
+                    const disabledStyle = ''; // Always enabled
 
                     const stepperContent = (val, field) => {
                         let stepAttr = '';
@@ -650,13 +632,13 @@ window.ViewResult = {
                     `};
                     
                     const stepper = (val, field) => {
-                        return (isDisabled && isSmart) ? `<div onclick="window.App.showToast('请关闭智能推荐自定义编辑')">${stepperContent(val, field)}</div>` : stepperContent(val, field);
+                        return stepperContent(val, field);
                     };
 
                     const mirrorLabel = isMirror ? `<span style="font-size:10px; color:var(--primary); margin-left:4px; border:1px solid var(--primary); padding:0 2px; border-radius:2px;">镜像</span>` : '';
 
                     let inputs = '';
-                    if (isResistance && !isWarmup && !isTimeBased) {
+                    if (isResistance && !isWarmup && !isTimeBased && hasPower) {
                         inputs = `
                             ${stepper(s.load, 'load')} <span style="color:#666;font-size:10px;">${unit}</span>
                             <span style="color:#444; margin:0 5px;">x</span>
@@ -672,14 +654,14 @@ window.ViewResult = {
                         <div class="set-row">
                             <div class="set-idx">${sIdx+1}</div>
                             ${inputs}
-                            <div class="set-del" style="${isSmart?'opacity:0.3;pointer-events:none':''}" onclick="App.removeSet(${pIdx}, ${aIdx}, ${sIdx})">×</div>
+                            <div class="set-del" onclick="App.removeSet(${pIdx}, ${aIdx}, ${sIdx})">×</div>
                         </div>
                     `;
                 });
 
                 setsHtml += `<div class="add-set-btn" onclick="App.addSet(${pIdx}, ${aIdx})">+ 加一组</div>`;
                 
-                html += `
+                listHtml += `
                 <div class="action-card-pro">
                     <div class="ac-del-corner" onclick="event.stopPropagation(); App.deleteAction(${pIdx}, ${aIdx})">✕</div>
                     <div class="ac-header" onclick="App.toggleAction(${pIdx}, ${aIdx})">
@@ -708,6 +690,7 @@ window.ViewResult = {
                             <span>强度: ${(a.load > 0 && CONSTANTS.ENUMS.ONE_RM[a.part]) ? Math.round(a.load / CONSTANTS.ENUMS.ONE_RM[a.part] * 100) : '-'}%</span>
                             <span>RPE: ${a.rpe || 8}</span>
                             <span>组间: ${p.strategy?.rest || 60}s</span>
+                            <span style="margin-left:auto; color:var(--primary); cursor:pointer; font-weight:600;" onclick="App.resetActionParams(${pIdx}, ${aIdx})">↺ 重置</span>
                         </div>
                         <div class="ac-detail-link" onclick="App.openActionDetail('${a.id}', 'result')">
                             查看动作详情 >
@@ -715,11 +698,21 @@ window.ViewResult = {
                     </div>
                 </div>`;
             });
-            html += `</div>`;
+            listHtml += `</div>`;
+            
+            resContent.innerHTML = listHtml;
         }
-
-        resContent.innerHTML = html;
         App.updateStats();
+    },
+
+    resetActionParams: (pIdx, aIdx) => {
+        const action = window.currentCtx.phases[pIdx].actions[aIdx];
+        if (action.recommendedSetDetails) {
+            action.setDetails = JSON.parse(JSON.stringify(action.recommendedSetDetails));
+            action.sets = action.setDetails.length;
+            window.App.showToast('已重置为推荐参数');
+            App.renderFineTuning(window.currentCtx);
+        }
     },
 
     switchPhase: (idx) => {
@@ -738,12 +731,73 @@ window.ViewResult = {
             }
             
             if (key === 'loadStrategy') {
-                App.clearSetDetails(pIdx); // Force regenerate for this phase
-                App.recalculateLoadStrategy();
+                // FIX: 切换策略时，立即基于当前第1组数据应用新梯度，而不是清空重算
+                App.applyStrategyToPhase(pIdx, val);
+                window.App.showToast(`负荷策略切换为“${val}”`);
             } else {
                 App.renderFineTuning(window.currentCtx);
             }
         }
+    },
+
+    // 新增：基于当前数据应用新策略 (核心修复逻辑)
+    applyStrategyToPhase: (pIdx, strategy) => {
+        const phase = window.currentCtx.phases[pIdx];
+        if (!phase || !phase.actions) return;
+
+        phase.actions.forEach(a => {
+            if (!a.setDetails || a.setDetails.length === 0) return;
+            
+            // 0. 推荐模式：重置为 AI 推荐值
+            if (strategy === '推荐') {
+                if (a.recommendedSetDetails) {
+                    a.setDetails = JSON.parse(JSON.stringify(a.recommendedSetDetails));
+                    a.sets = a.setDetails.length;
+                    const loads = a.setDetails.map(s => parseFloat(s.load)||0);
+                    a.load = Math.max(...loads);
+                }
+                return;
+            }
+
+            // 1. 自定义模式：不做任何联动
+            if (strategy === '自定义') return;
+
+            // 1. 获取锚点：取当前所有组中的最大值作为目标负荷 (Peak Load)
+            // 这样可以确保无论从递增还是递减切换过来，都以用户设定的"最重一组"为基准
+            const currentLoads = a.setDetails.map(s => parseFloat(s.load) || 0);
+            const maxLoad = Math.max(...currentLoads, a.load || 0, 0);
+            const targetLoad = maxLoad > 0 ? maxLoad : 20;
+            
+            const base1RM = a.demoUser1RM || window.UserAbility.oneRM[a.part] || 20;
+            const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
+            const minStep = 0.5;
+            const step = Math.max(minStep, base1RM * 0.05);
+            const setsCnt = a.setDetails.length;
+
+            if (strategy === '恒定') {
+                // 恒定：所有组 = 目标重量
+                a.setDetails.forEach(s => {
+                    s.load = targetLoad;
+                    if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                });
+            } else if (strategy === '递增') {
+                // 递增：以目标负荷为终点 (End at Target)
+                a.setDetails.forEach((s, i) => {
+                    let val = targetLoad - (setsCnt - 1 - i) * step;
+                    s.load = Math.max(minStep, Math.round(val * 2) / 2);
+                    if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                });
+            } else if (strategy === '递减') {
+                // 递减：以目标负荷为起点 (Start at Target)
+                a.setDetails.forEach((s, i) => {
+                    let val = targetLoad - i * step;
+                    s.load = Math.max(minStep, Math.round(val * 2) / 2);
+                    if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                });
+            }
+            a.load = targetLoad; // Sync Peak Load
+        });
+        App.renderFineTuning(window.currentCtx);
     },
 
     recalculateDurations: (ctx) => {
@@ -823,32 +877,18 @@ window.ViewResult = {
         if (isNaN(numVal)) numVal = 0;
         
         if (action.setDetails && action.setDetails[sIdx]) {
-            let strat = phase.strategy.loadStrategy || '恒定';
-            const isSmart = window.store.courseSettings.smartRec;
+            let strat = phase.strategy.loadStrategy || '推荐';
             
+            // FIX: Auto-switch '推荐' to '递增' on manual edit
+            if (field === 'load' && strat === '推荐') {
+                strat = '递增';
+                phase.strategy.loadStrategy = '递增';
+                window.App.showToast('已切换为递增策略');
+            }
+
             action.setDetails[sIdx][field] = numVal;
             
-            if (!isSmart && field === 'load') {
-                // 1. Auto-detect Strategy Change based on First/Last Set
-                if (sIdx === 0 || sIdx === action.setDetails.length - 1) {
-                    const sets = action.setDetails.length;
-                    if (sets >= 2) {
-                        const firstVal = parseFloat(action.setDetails[0].load);
-                        const lastVal = parseFloat(action.setDetails[sets - 1].load);
-                        
-                        let newStrat = strat;
-                        if (firstVal === lastVal) newStrat = '恒定';
-                        else if (firstVal < lastVal) newStrat = '递增';
-                        else if (firstVal > lastVal) newStrat = '递减';
-                        
-                        if (newStrat !== strat) {
-                            phase.strategy.loadStrategy = newStrat;
-                            strat = newStrat;
-                            window.App.showToast(`策略已自动切换为: ${newStrat}`);
-                        }
-                    }
-                }
-
+            if (field === 'load') {
                 // 2. Apply Strategy Logic (Interpolation)
                 if (strat === '恒定') {
                     action.setDetails.forEach(s => s[field] = numVal);
@@ -880,7 +920,13 @@ window.ViewResult = {
                 }
             }
             
-            if (sIdx === 0) action[field] = numVal;
+            // FIX: Update action.load to Peak Load
+            if (field === 'load') {
+                const loads = action.setDetails.map(s => parseFloat(s.load)||0);
+                action.load = Math.max(...loads);
+            } else if (sIdx === 0) {
+                action[field] = numVal;
+            }
         }
         window.App.renderFineTuning(window.currentCtx);
     },
@@ -962,7 +1008,7 @@ window.ViewResult = {
         
         // Re-apply strategy when adding a set
         const strat = window.currentCtx.phases[pIdx].strategy.loadStrategy || '恒定';
-        if (!window.store.courseSettings.smartRec && (strat === '递增' || strat === '递减')) {
+        if (strat === '递增' || strat === '递减') {
              const sets = action.setDetails.length;
              if (sets > 2) {
                 const startVal = parseFloat(action.setDetails[0].load);
@@ -1090,8 +1136,8 @@ window.ViewResult = {
     },
 
     initResultScroll: () => {
-        const scrollArea = document.querySelector('.plan-scroll-area');
-        if (scrollArea) {
+        const scrollAreas = document.querySelectorAll('.plan-scroll-area');
+        scrollAreas.forEach(scrollArea => {
             let lastScrollTop = 0;
             scrollArea.onscroll = (e) => {
                 const st = e.target.scrollTop;
@@ -1099,7 +1145,7 @@ window.ViewResult = {
                 else if (st < lastScrollTop) App.expandHeader();
                 lastScrollTop = st <= 0 ? 0 : st;
             };
-        }
+        });
     },
 
     collapseHeader: () => {

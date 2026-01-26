@@ -1,4 +1,7 @@
+// d:\AEKE Projects\AI Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\modules\view-home.js
+
 window.ViewHome = {
+    // ... (Keep FIELD_DESCRIPTIONS)
     FIELD_DESCRIPTIONS: {
         gender: '生理特征，影响代谢公式',
         dob: '自动计算年龄并保持更新',
@@ -21,9 +24,8 @@ window.ViewHome = {
     },
 
     startSession: () => {
-        // 1. UI Update MUST happen immediately
         const btn = document.getElementById('home-start-btn');
-        if(btn) btn.style.display = 'none'; // Hide immediately
+        if(btn) btn.style.display = 'none';
         
         const content = document.getElementById('home-active-content');
         if(content) content.classList.remove('hidden');
@@ -31,24 +33,21 @@ window.ViewHome = {
         const profile = document.getElementById('profile-card');
         if(profile) profile.classList.remove('hidden');
 
-        // 2. Synchronous Voice Activation (Critical for iOS/Android Permissions)
         try {
             Voice.init();
-            Voice.startListening(); // Must be direct response to user gesture
-            
-            // Speak greeting after a tiny delay to allow mic to activate first
+            Voice.startListening();
             setTimeout(() => {
                 const greeting = TEXT_VARIANTS.greeting[Math.floor(Math.random() * TEXT_VARIANTS.greeting.length)];
                 Voice.speak(greeting);
             }, 500);
         } catch (e) {
             console.error("Voice Error:", e);
-            alert("语音服务启动异常，已切换至触控模式");
         }
     },
 
     openProfile: () => {
         document.getElementById('modal-profile').classList.add('active');
+        App.renderProfileForm(); // Ensure form is rendered when opened
     },
 
     saveProfile: () => {
@@ -74,17 +73,20 @@ window.ViewHome = {
         `;
         document.getElementById('profile-display').innerHTML = html;
         
-        // Update edit button dot
         const editBtn = document.querySelector('.edit-btn');
         if (editBtn) editBtn.innerHTML = `更新 >${redDot}`;
     },
     
     getFatigueInfo: (val) => {
-        if (val <= 2) return { label: '超量恢复', desc: '神经系统与肌糖原完全填充，适合冲击 PR (1RM) 或高强度爆发力训练。', color: '#32C48C' };
-        if (val <= 4) return { label: '完全恢复', desc: '身体机能处于基准水平，适合进行常规容量的抗阻或代谢训练。', color: '#32C48C' };
-        if (val <= 6) return { label: '功能性疲劳', desc: '存在轻微 DOMS 或神经疲劳，建议维持中等强度，避免力竭组。', color: '#FFC107' };
-        if (val <= 8) return { label: '非功能性疲劳', desc: '显著的肌肉酸痛或心率变异性 (HRV) 下降，建议执行减载周 (Deload) 或主动恢复。', color: '#FF9800' };
-        return { label: '过度训练', desc: '极度疲劳、免疫力下降或有伤痛风险，必须完全休息。', color: '#FF5252' };
+        // Use CONFIG.STATUS_CONFIG if available, else fallback
+        const status = CONFIG.STATUS_CONFIG.find(s => val * 10 >= s.range[0] && val * 10 <= s.range[1]);
+        if (status) {
+            let color = '#32C48C';
+            if (status.label.includes('疲劳')) color = '#FFC107';
+            if (status.label.includes('力竭')) color = '#FF5252';
+            return { label: status.label, desc: `强度系数:${status.intensity}, 容量系数:${status.volume}`, color: color };
+        }
+        return { label: '未知', desc: '', color: '#888' };
     },
     
     updateFatigueDisplay: (val) => {
@@ -97,7 +99,6 @@ window.ViewHome = {
         }
         if(descEl) descEl.innerText = info.desc;
         
-        // Update slider background gradient for visual feedback
         const slider = document.getElementById('in-fatigue');
         if(slider) {
             const percentage = ((val - 1) / 9) * 100;
@@ -122,7 +123,6 @@ window.ViewHome = {
             return `<label class="form-label">${text} <span class="help-icon" onclick="App.toggleTooltip(event, '${key}')">?<div class="field-tooltip" id="tooltip-${key}">${desc}</div></span></label>`;
         };
 
-        // Render Fatigue Section (Top Level)
         const fatigueHtml = `
             <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label" style="display:flex;justify-content:space-between;">
@@ -134,10 +134,8 @@ window.ViewHome = {
             </div>
         `;
         document.getElementById('profile-fatigue-container').innerHTML = fatigueHtml;
-        // Initialize slider color
         setTimeout(() => App.updateFatigueDisplay(u.fatigue), 0);
 
-        // Update Tabs with Red Dot
         const tabsContainer = document.querySelector('#modal-profile .tabs');
         if (tabsContainer) {
             const goalDot = hasRedDot ? '<div class="red-dot"></div>' : '';
@@ -163,24 +161,14 @@ window.ViewHome = {
             </div>
         `;
 
-        // Level Options Logic
-        const levelOpts = [
-            {v:'L1', t:'初级 (＜1年运动经验)'},
-            {v:'L3', t:'中级 (1-3年运动经验)'},
-            {v:'L5', t:'高级 (≥3年运动经验)'}
-        ];
-        let currLvlVal = 'L1';
-        if (['L3', 'L4'].includes(u.level)) currLvlVal = 'L3';
-        if (u.level === 'L5') currLvlVal = 'L5';
-        
         const prefHtml = `
             <div class="tab-content ${activeTab==='pref'?'active':''}" id="tab-pref">
-                <div class="form-group">${label('运动等级', 'level')}<select id="in-level" class="form-input" onchange="window.store.user.level=this.value; App.renderProfileForm()">${levelOpts.map(o=>`<option value="${o.v}" ${o.v===currLvlVal?'selected':''}>${o.t}</option>`).join('')}</select></div>
+                <div class="form-group">${label('运动等级', 'level')}<select id="in-level" class="form-input" onchange="window.store.user.level=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.LEVEL, u.level)}</select></div>
                 <div class="form-group">${label('每日运动时长 (min)', 'duration')}<input type="number" class="form-input" value="${u.duration}" onchange="window.store.user.duration=parseInt(this.value); App.renderProfileForm()"></div>
                 <div class="form-group">
                     ${label('每周训练日', 'days')}
                     <div class="options-grid" id="pref-days" style="gap:8px;">
-                        ${['周一','周二','周三','周四','周五','周六','周日'].map(d => {
+                        ${CONSTANTS.WEEKDAYS.map(d => {
                             const isSel = u.days.includes(d);
                             return `<div class="opt-chip ${isSel?'active':''}" onclick="App.toggleArrayItem('days', '${d}')" style="padding:8px;min-width:40px;flex-direction:column;gap:2px;height:auto;">
                                 <span>${d}</span>
@@ -221,8 +209,6 @@ window.ViewHome = {
     
     switchTab: (tabId) => {
         window.store.activeTab = tabId;
-        // Re-render form needs full implementation in renderProfileForm
-        // For now, let's assume App.renderProfileForm is available or we use ViewHome.renderProfileForm
         App.renderProfileForm(); 
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         const map = {'basic':0, 'pref':1, 'goal':2};
