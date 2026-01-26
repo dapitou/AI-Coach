@@ -12,7 +12,7 @@ window.ViewResult = {
             },
             phases: [
                 { type: '热身', duration: 0, actions: [], paradigm: '流式范式', strategy: { rest: 0, sets: 1, intensity: 0.4 } },
-                { type: '主训', duration: 0, actions: [], paradigm: '抗阻范式', strategy: { rest: 60, restRound: 90, sets: 3, intensity: 0.75 } },
+                { type: '主训', duration: 0, actions: [], paradigm: '抗阻范式', strategy: { rest: 60, restRound: 90, sets: 3, intensity: 0.75, loopMode: '常规' } },
                 { type: '放松', duration: 0, actions: [], paradigm: '流式范式', strategy: { rest: 0, sets: 1, intensity: 0.3 } }
             ]
         };
@@ -20,7 +20,7 @@ window.ViewResult = {
         window.store.flow = 'custom';
         window.currentCtx = ctx;
         window.store.activePhaseIdx = 1; // Default to Main
-        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' }; 
+        window.store.courseSettings = { loopMode: '常规', loadStrategy: '推荐' }; 
 
         App.showResult();
     },
@@ -50,9 +50,15 @@ window.ViewResult = {
 
             let ctx = window.currentCtx;
             if (flow === 'course') {
-                ctx = window.Logic.genCourse(inputs);
-                window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' };
-                window.currentCtx = ctx;
+                try {
+                    ctx = window.Logic.genCourse(inputs);
+                    window.store.courseSettings = { loopMode: '常规', loadStrategy: '推荐' };
+                    window.currentCtx = ctx;
+                } catch (e) {
+                    console.error("Course Generation Failed:", e);
+                    window.App.showToast("生成失败，请重试");
+                    return;
+                }
                 
                 const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
                 window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
@@ -532,7 +538,7 @@ window.ViewResult = {
             const rest = p.strategy?.rest || 0;
             const restRound = p.strategy?.restRound || 0;
             const pLoadStrategy = p.strategy?.loadStrategy || '推荐';
-            const pLoopMode = p.strategy?.loopMode || '常规组';
+            const pLoopMode = p.strategy?.loopMode || '常规';
             const disabledAttr = ''; // Always enabled
             
             controlsHtml = `
@@ -710,6 +716,8 @@ window.ViewResult = {
         if (action.recommendedSetDetails) {
             action.setDetails = JSON.parse(JSON.stringify(action.recommendedSetDetails));
             action.sets = action.setDetails.length;
+            const loads = action.setDetails.map(s => parseFloat(s.load)||0);
+            action.load = Math.max(...loads);
             window.App.showToast('已重置为推荐参数');
             App.renderFineTuning(window.currentCtx);
         }
@@ -744,6 +752,9 @@ window.ViewResult = {
     applyStrategyToPhase: (pIdx, strategy) => {
         const phase = window.currentCtx.phases[pIdx];
         if (!phase || !phase.actions) return;
+        
+        // 1. 自定义模式：不做任何联动
+        if (strategy === '自定义') return;
 
         phase.actions.forEach(a => {
             if (!a.setDetails || a.setDetails.length === 0) return;
@@ -759,43 +770,71 @@ window.ViewResult = {
                 return;
             }
 
-            // 1. 自定义模式：不做任何联动
-            if (strategy === '自定义') return;
+            const isPower = a.powerModule === '是';
+            const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
 
             // 1. 获取锚点：取当前所有组中的最大值作为目标负荷 (Peak Load)
             // 这样可以确保无论从递增还是递减切换过来，都以用户设定的"最重一组"为基准
-            const currentLoads = a.setDetails.map(s => parseFloat(s.load) || 0);
-            const maxLoad = Math.max(...currentLoads, a.load || 0, 0);
-            const targetLoad = maxLoad > 0 ? maxLoad : 20;
+            let targetVal = 0;
+            if (isPower) {
+                const currentLoads = a.setDetails.map(s => parseFloat(s.load) || 0);
+                targetVal = Math.max(...currentLoads, a.load || 0, 20);
+            } else {
+                const currentReps = a.setDetails.map(s => parseFloat(s.reps) || 0);
+                targetVal = Math.max(...currentReps, parseInt(a.reps) || 0, 1);
+            }
             
             const base1RM = a.demoUser1RM || window.UserAbility.oneRM[a.part] || 20;
-            const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
-            const minStep = 0.5;
-            const step = Math.max(minStep, base1RM * 0.05);
+            
+            let step = 0;
+            let minStep = 0;
+            
+            if (isPower) {
+                minStep = 0.5;
+                step = Math.max(minStep, base1RM * 0.05);
+            } else {
+                minStep = 1;
+                step = Math.max(1, Math.round(targetVal * 0.1)); // 10% step for reps/time
+            }
+            
             const setsCnt = a.setDetails.length;
 
             if (strategy === '恒定') {
                 // 恒定：所有组 = 目标重量
                 a.setDetails.forEach(s => {
-                    s.load = targetLoad;
-                    if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                    if (isPower) {
+                        s.load = targetVal;
+                        if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                    } else {
+                        s.reps = targetVal;
+                    }
                 });
             } else if (strategy === '递增') {
                 // 递增：以目标负荷为终点 (End at Target)
                 a.setDetails.forEach((s, i) => {
-                    let val = targetLoad - (setsCnt - 1 - i) * step;
-                    s.load = Math.max(minStep, Math.round(val * 2) / 2);
-                    if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                    let val = targetVal - (setsCnt - 1 - i) * step;
+                    if (isPower) {
+                        s.load = Math.max(minStep, Math.round(val * 2) / 2);
+                        if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                    } else {
+                        s.reps = Math.max(minStep, Math.round(val));
+                    }
                 });
             } else if (strategy === '递减') {
                 // 递减：以目标负荷为起点 (Start at Target)
                 a.setDetails.forEach((s, i) => {
-                    let val = targetLoad - i * step;
-                    s.load = Math.max(minStep, Math.round(val * 2) / 2);
-                    if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                    let val = targetVal - i * step;
+                    if (isPower) {
+                        s.load = Math.max(minStep, Math.round(val * 2) / 2);
+                        if (!isTimeBased) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
+                    } else {
+                        s.reps = Math.max(minStep, Math.round(val));
+                    }
                 });
             }
-            a.load = targetLoad; // Sync Peak Load
+            
+            if (isPower) a.load = targetVal; 
+            else a.reps = targetVal;
         });
         App.renderFineTuning(window.currentCtx);
     },
@@ -803,6 +842,8 @@ window.ViewResult = {
     recalculateDurations: (ctx) => {
         if (!ctx || !ctx.phases) return;
         
+        let totalSeconds = 0;
+
         ctx.phases.forEach(p => {
             let phaseSeconds = 0;
             const rest = p.strategy.rest || 0;
@@ -842,11 +883,17 @@ window.ViewResult = {
                 }
             });
             
-            p.duration = Math.ceil(phaseSeconds / 60);
+            // [FIX] Warmup/Relax: Perfect dynamic match (Round). Main: Looser (Ceil).
+            if (p.type === '主训') {
+                p.duration = Math.ceil(phaseSeconds / 60);
+            } else {
+                p.duration = Math.round(phaseSeconds / 60);
+            }
+            totalSeconds += phaseSeconds;
         });
         
         // Update meta duration
-        ctx.meta.duration = ctx.phases.reduce((acc, p) => acc + (p.duration || 0), 0);
+        ctx.meta.duration = Math.ceil(totalSeconds / 60);
     },
 
     adjustSetData: (pIdx, aIdx, sIdx, field, dir) => {
@@ -879,6 +926,17 @@ window.ViewResult = {
         if (action.setDetails && action.setDetails[sIdx]) {
             let strat = phase.strategy.loadStrategy || '推荐';
             
+            // 1. 自定义模式：不做任何联动
+            if (strat === '自定义') {
+                action.setDetails[sIdx][field] = numVal;
+                if (field === 'load') {
+                    const loads = action.setDetails.map(s => parseFloat(s.load)||0);
+                    action.load = Math.max(...loads);
+                }
+                window.App.renderFineTuning(window.currentCtx);
+                return;
+            }
+
             // FIX: Auto-switch '推荐' to '递增' on manual edit
             if (field === 'load' && strat === '推荐') {
                 strat = '递增';
@@ -1057,7 +1115,7 @@ window.ViewResult = {
         });
         
         // Recalculate duration for custom course
-        const totalDur = ctx.phases.reduce((acc, p) => acc + (p.duration || 0), 0);
+        const totalDur = ctx.meta.duration || ctx.phases.reduce((acc, p) => acc + (p.duration || 0), 0);
         
         document.getElementById('st-time').innerText = totalDur + 'min';
         document.getElementById('st-count').innerText = totalActions + '个';

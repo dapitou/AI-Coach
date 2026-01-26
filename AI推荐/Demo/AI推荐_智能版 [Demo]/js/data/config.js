@@ -1,64 +1,78 @@
 // d:\AEKE Projects\AI Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\data\config.js
 
-const CONFIG = {
+window.CONFIG = {
     // 1.1 策略矩阵 (Strategy Matrix) - 定义不同目标和等级的基准参数
     STRATEGY: [
-        { target: '增肌', level: ['L1','L2'], sets: 3, rest: 60, intensity: 0.65, mode: '常规组', strategy: '推荐', diff: '标准' },
-        { target: '增肌', level: ['L3','L4'], sets: 4, rest: 90, intensity: 0.75, mode: '常规组', strategy: '递增', diff: '进阶' },
-        { target: '增肌', level: ['L5'], sets: 5, rest: 90, intensity: 0.80, mode: '常规组', strategy: '递增', diff: '挑战' },
-        { target: '力量', level: ['L1','L2'], sets: 3, rest: 90, intensity: 0.75, mode: '常规组', strategy: '恒定', diff: '标准' },
-        { target: '力量', level: ['L3','L4'], sets: 5, rest: 120, intensity: 0.85, mode: '常规组', strategy: '恒定', diff: '进阶' },
-        { target: '力量', level: ['L5'], sets: 5, rest: 180, intensity: 0.90, mode: '常规组', strategy: '递增', diff: '挑战' },
-        { target: '减脂', level: ['L1','L2'], sets: 3, rest: 30, intensity: 0.55, mode: '循环组', strategy: '计时', diff: '保守' },
-        { target: '减脂', level: ['L3','L4'], sets: 4, rest: 30, intensity: 0.65, mode: '循环组', strategy: '计时', diff: '标准' },
-        { target: '减脂', level: ['L5'], sets: 5, rest: 20, intensity: 0.75, mode: '循环组', strategy: '计时', diff: '挑战' },
-        { target: '耐力', level: ['L1','L2'], sets: 3, rest: 45, intensity: 0.40, mode: '超级组', strategy: '计时', diff: '保守' },
-        { target: '耐力', level: ['L3','L4','L5'], sets: 4, rest: 30, intensity: 0.50, mode: '超级组', strategy: '计时', diff: '标准' },
-        { target: '爆发', level: ['L1','L2'], sets: 3, rest: 120, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '保守' },
-        { target: '爆发', level: ['L3','L4'], sets: 4, rest: 150, intensity: 0.70, mode: '常规组', strategy: '递增', diff: '进阶' },
-        { target: '爆发', level: ['L5'], sets: 5, rest: 180, intensity: 0.85, mode: '常规组', strategy: '递增', diff: '挑战' },
-        { target: '心肺', level: ['L1','L2'], sets: 3, rest: 30, intensity: 0.50, mode: '循环组', strategy: '计时', diff: '保守' },
-        { target: '心肺', level: ['L3','L4'], sets: 4, rest: 20, intensity: 0.65, mode: '循环组', strategy: '计时', diff: '标准' },
-        { target: '心肺', level: ['L5'], sets: 5, rest: 15, intensity: 0.80, mode: '循环组', strategy: '计时', diff: '挑战' },
-        { target: 'HIIT', level: ['All'], sets: 6, rest: 30, intensity: 0.75, mode: '循环组', strategy: '计时', diff: '标准' },
-        { target: '有氧', level: ['All'], sets: 4, rest: 15, intensity: 0.60, mode: '循环组', strategy: '计时', diff: '标准' },
-        { target: '瑜伽', level: ['All'], sets: 1, rest: 0, intensity: 0.40, mode: '常规组', strategy: '计时', diff: '标准' },
-        { target: '普拉提', level: ['All'], sets: 3, rest: 30, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准' },
-        { target: '拉伸', level: ['All'], sets: 1, rest: 0, intensity: 0.20, mode: '常规组', strategy: '计时', diff: '保守' },
-        { target: '恢复', level: ['All'], sets: 2, rest: 0, intensity: 0.30, mode: '常规组', strategy: '恒定', diff: '保守' },
-        { target: '柔韧', level: ['All'], sets: 2, rest: 0, intensity: 0.30, mode: '常规组', strategy: '计时', diff: '标准' },
-        { target: '协调', level: ['All'], sets: 3, rest: 60, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准' },
-        { target: '体态', level: ['All'], sets: 3, rest: 45, intensity: 0.50, mode: '常规组', strategy: '计时', diff: '标准' },
-        { target: '激活', level: ['All'], sets: 2, rest: 0, intensity: 0.40, mode: '常规组', strategy: '恒定', diff: '标准' },
-        { target: '平衡', level: ['All'], sets: 3, rest: 60, intensity: 0.50, mode: '常规组', strategy: '恒定', diff: '标准' },
-        { target: '专项', level: ['All'], sets: 3, rest: 90, intensity: 0.70, mode: '常规组', strategy: '推荐', diff: '标准' }
+        { target: '增肌', level: ['L1','L2'], sets: 3, rest: 60, intensity: 0.65, mode: '常规', strategy: '推荐', diff: '标准', rpe: 7 },
+        { target: '增肌', level: ['L3','L4'], sets: 4, rest: 90, intensity: 0.75, mode: '常规', strategy: '递增', diff: '进阶', rpe: 8 },
+        { target: '增肌', level: ['L5'], sets: 5, rest: 90, intensity: 0.80, mode: '常规', strategy: '递增', diff: '挑战', rpe: 9 },
+        { target: '力量', level: ['L1','L2'], sets: 3, rest: 90, intensity: 0.75, mode: '常规', strategy: '恒定', diff: '标准', rpe: 7 },
+        { target: '力量', level: ['L3','L4'], sets: 5, rest: 120, intensity: 0.85, mode: '常规', strategy: '恒定', diff: '进阶', rpe: 8 },
+        { target: '力量', level: ['L5'], sets: 5, rest: 180, intensity: 0.90, mode: '常规', strategy: '递增', diff: '挑战', rpe: 9 },
+        { target: '减脂', level: ['L1','L2'], sets: 3, rest: 30, intensity: 0.55, mode: '循环', strategy: '恒定', diff: '保守', rpe: 6 },
+        { target: '减脂', level: ['L3','L4'], sets: 4, rest: 30, intensity: 0.65, mode: '循环', strategy: '恒定', diff: '标准', rpe: 7 },
+        { target: '减脂', level: ['L5'], sets: 5, rest: 20, intensity: 0.75, mode: '循环', strategy: '恒定', diff: '挑战', rpe: 8 },
+        { target: '耐力', level: ['L1','L2'], sets: 3, rest: 45, intensity: 0.40, mode: '循环', strategy: '恒定', diff: '保守', rpe: 6 },
+        { target: '耐力', level: ['L3','L4','L5'], sets: 4, rest: 30, intensity: 0.50, mode: '循环', strategy: '恒定', diff: '标准', rpe: 7 },
+        { target: '爆发', level: ['L1','L2'], sets: 3, rest: 120, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '保守', rpe: 6 },
+        { target: '爆发', level: ['L3','L4'], sets: 4, rest: 150, intensity: 0.70, mode: '常规', strategy: '递增', diff: '进阶', rpe: 8 },
+        { target: '爆发', level: ['L5'], sets: 5, rest: 180, intensity: 0.85, mode: '常规', strategy: '递增', diff: '挑战', rpe: 9 },
+        { target: '心肺', level: ['L1','L2'], sets: 3, rest: 30, intensity: 0.50, mode: '循环', strategy: '恒定', diff: '保守', rpe: 6 },
+        { target: '心肺', level: ['L3','L4'], sets: 4, rest: 20, intensity: 0.65, mode: '循环', strategy: '恒定', diff: '标准', rpe: 7 },
+        { target: '心肺', level: ['L5'], sets: 5, rest: 15, intensity: 0.80, mode: '循环', strategy: '恒定', diff: '挑战', rpe: 8 },
+        { target: 'HIIT', level: ['All'], sets: 6, rest: 30, intensity: 0.75, mode: '循环', strategy: '恒定', diff: '标准', rpe: 8 },
+        { target: '有氧', level: ['All'], sets: 4, rest: 15, intensity: 0.60, mode: '循环', strategy: '恒定', diff: '标准', rpe: 6 },
+        { target: '瑜伽', level: ['All'], sets: 1, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定', diff: '标准', rpe: 4 },
+        { target: '普拉提', level: ['All'], sets: 3, rest: 30, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
+        { target: '拉伸', level: ['All'], sets: 1, rest: 0, intensity: 0.20, mode: '常规', strategy: '恒定', diff: '保守', rpe: 3 },
+        { target: '恢复', level: ['All'], sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定', diff: '保守', rpe: 3 },
+        { target: '柔韧', level: ['All'], sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定', diff: '标准', rpe: 4 },
+        { target: '协调', level: ['All'], sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
+        { target: '体态', level: ['All'], sets: 3, rest: 45, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
+        { target: '激活', level: ['All'], sets: 2, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定', diff: '标准', rpe: 4 },
+        { target: '平衡', level: ['All'], sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
+        { target: '专项', level: ['All'], sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐', diff: '标准', rpe: 8 }
     ],
 
     // 1.2 课程环节模板 (Segment Templates) - 定义单节课的微观配方
     SEGMENT_TEMPLATES: [
         // 热身
-        { id: 'TPL_SEG_001', name: '热身_全身', dim: '部位', target: '全身', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.3}, {focusDim:'动作功能',focusTarget:'协调',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
-        { id: 'TPL_SEG_002', name: '热身_上肢', dim: '部位', target: '上肢', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'肩部',w:0.3}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
-        { id: 'TPL_SEG_003', name: '热身_下肢', dim: '部位', target: '下肢', type: '热身', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'腿部',w:0.2}], sort: [{dim:'动作难度',order:'升序'}, {dim:'MET值',order:'升序'}] },
-        // 主训 - 全身
-        { id: 'TPL_SEG_021', name: '全身_初级', dim: '部位', target: '全身', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作构造',focusTarget:'孤立动作',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_022', name: '全身_中级', dim: '部位', target: '全身', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.2}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.2}, {focusDim:'动作模式',focusTarget:'水平推',w:0.2}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.2}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        // 主训 - 部位
-        { id: 'TPL_SEG_036', name: '胸部_初级', dim: '部位', target: '胸部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作构造',focusTarget:'孤立动作',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_037', name: '胸部_中级', dim: '部位', target: '胸部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.5}, {focusDim:'主动肌',focusTarget:'胸大肌上束',w:0.3}, {focusDim:'主动肌',focusTarget:'胸大肌内侧',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_039', name: '背部_初级', dim: '部位', target: '背部', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_040', name: '背部_中级', dim: '部位', target: '背部', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'竖脊肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        // 主训 - 功能
-        { id: 'TPL_SEG_060', name: 'HIIT_初级', dim: '动作功能', target: '心肺', type: '主训', levels: ['L1','L2'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'心肺',w:0.7}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.3}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
-        // 放松
-        { id: 'TPL_SEG_011', name: '放松_全身', dim: '部位', target: '全身', type: '放松', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'恢复',w:0.6}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.4}], sort: [{dim:'动作体位',order:'自定义',seq:'站姿,坐姿,跪姿,仰卧,俯卧'}, {dim:'MET值',order:'降序'}] }
-    ],
+        { id: 'TPL_SEG_001', name: '热身_全身', dim: '部位', target: '全身', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.3}, {focusDim:'动作功能',focusTarget:'协调',w:0.2}], sort: [{dim:'主动肌',order:'升序'}, {dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_002', name: '热身_上肢', dim: '部位', target: '上肢', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'肩部',w:0.3}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}, {dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_003', name: '热身_下肢', dim: '部位', target: '下肢', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'腿部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}, {dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        
+        // [NEW] 热身 - 精细化部位 (同步自运营后台)
+        { id: 'TPL_SEG_004', name: '热身_胸部', dim: '部位', target: '胸部', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_005', name: '热身_背部', dim: '部位', target: '背部', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'背部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_006', name: '热身_肩部', dim: '部位', target: '肩部', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'胸部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_007', name: '热身_手臂', dim: '部位', target: '手臂', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'手臂',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_008', name: '热身_臀部', dim: '部位', target: '臀部', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'臀部',w:0.4}, {focusDim:'部位',focusTarget:'腿部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_009', name: '热身_腿部', dim: '部位', target: '腿部', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.4}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'腿部',w:0.3}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_010', name: '热身_核心', dim: '部位', target: '核心', type: '热身', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'激活',w:0.5}, {focusDim:'部位',focusTarget:'核心',w:0.3}, {focusDim:'部位',focusTarget:'臀部',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
 
-    // 1.3 结构与组装配置
-    STRUCTURE: [
-        { type: '热身', ratio: 0.15, max: 5, count: 6 }, // ratio:占比, max:最大时长(min), count:最大动作数
-        { type: '主训', ratio: 0.70, max: 999, count: 99 },
-        { type: '放松', ratio: 0.15, max: 5, count: 5 }
+        // 主训 - 全身
+        { id: 'TPL_SEG_021', name: '全身_初级', dim: '部位', target: '全身', type: '主训', levels: ['L1','L2'], gender: 'All', count: 99, slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作构造',focusTarget:'孤立动作',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_022', name: '全身_中级', dim: '部位', target: '全身', type: '主训', levels: ['L3','L4'], gender: 'All', count: 99, slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.2}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.2}, {focusDim:'动作模式',focusTarget:'水平推',w:0.2}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.2}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        // 主训 - 部位
+        { id: 'TPL_SEG_036', name: '胸部_初级', dim: '部位', target: '胸部', type: '主训', levels: ['L1','L2'], gender: 'All', count: 99, slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作构造',focusTarget:'孤立动作',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_037', name: '胸部_中级', dim: '部位', target: '胸部', type: '主训', levels: ['L3','L4'], gender: 'All', count: 99, slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.5}, {focusDim:'主动肌',focusTarget:'胸大肌上束',w:0.3}, {focusDim:'主动肌',focusTarget:'胸大肌内侧',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_039', name: '背部_初级', dim: '部位', target: '背部', type: '主训', levels: ['L1','L2'], gender: 'All', count: 99, slots: [{focusDim:'动作构造',focusTarget:'复合动作',w:0.6}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_040', name: '背部_中级', dim: '部位', target: '背部', type: '主训', levels: ['L3','L4'], gender: 'All', count: 99, slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'竖脊肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        // 主训 - 功能
+        { id: 'TPL_SEG_060', name: 'HIIT_初级', dim: '动作功能', target: '心肺', type: '主训', levels: ['L1','L2'], gender: 'All', count: 99, slots: [{focusDim:'动作功能',focusTarget:'心肺',w:0.7}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.3}], sort: [{dim:'MET值',order:'降序'}, {dim:'推荐权重',order:'降序'}] },
+        // 放松
+        { id: 'TPL_SEG_011', name: '放松_全身', dim: '部位', target: '全身', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'动作功能',focusTarget:'恢复',w:0.6}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.4}], sort: [{dim:'主动肌',order:'升序'}, {dim:'推荐权重',order:'降序'}] },
+        
+        // [NEW] 放松 - 精细化部位 (同步自运营后台)
+        { id: 'TPL_SEG_012', name: '放松_上肢', dim: '部位', target: '上肢', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'肩部',w:0.4}, {focusDim:'部位',focusTarget:'背部',w:0.3}, {focusDim:'部位',focusTarget:'胸部',w:0.3}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_013', name: '放松_下肢', dim: '部位', target: '下肢', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'腿部',w:0.5}, {focusDim:'部位',focusTarget:'臀部',w:0.3}, {focusDim:'部位',focusTarget:'下背',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_014', name: '放松_胸部', dim: '部位', target: '胸部', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'胸部',w:0.6}, {focusDim:'部位',focusTarget:'肩部',w:0.4}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_015', name: '放松_背部', dim: '部位', target: '背部', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'背部',w:0.6}, {focusDim:'部位',focusTarget:'肩部',w:0.2}, {focusDim:'部位',focusTarget:'下背',w:0.2}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_016', name: '放松_肩部', dim: '部位', target: '肩部', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'肩部',w:0.7}, {focusDim:'部位',focusTarget:'颈部',w:0.3}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_017', name: '放松_手臂', dim: '部位', target: '手臂', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'手臂',w:0.7}, {focusDim:'部位',focusTarget:'肩部',w:0.3}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_018', name: '放松_臀部', dim: '部位', target: '臀部', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'臀部',w:0.7}, {focusDim:'部位',focusTarget:'下背',w:0.3}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_019', name: '放松_腿部', dim: '部位', target: '腿部', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'腿部',w:0.7}, {focusDim:'部位',focusTarget:'臀部',w:0.3}], sort: [{dim:'主动肌',order:'升序'}] },
+        { id: 'TPL_SEG_020', name: '放松_核心', dim: '部位', target: '核心', type: '放松', levels: ['All'], gender: 'All', count: 6, slots: [{focusDim:'部位',focusTarget:'核心',w:0.5}, {focusDim:'部位',focusTarget:'下背',w:0.5}], sort: [{dim:'主动肌',order:'升序'}] }
     ],
 
     // 1.4 等级强度系数 (Levels)

@@ -1,4 +1,4 @@
-// d:\AEKE Projects\AI Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\core\logic.js
+// e:\AI-Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\core\logic.js
 
 window.Logic = {
     createContext: (input, planContext = null) => {
@@ -6,6 +6,18 @@ window.Logic = {
         const bodyStatus = Math.max(0, 100 - (user.fatigue * 8));
         const rawTargets = input ? input.targets : null;
         const targets = (Array.isArray(rawTargets) && rawTargets.length > 0) ? rawTargets : (rawTargets ? [rawTargets] : ['全身']);
+
+        // Calculate BMI for Impact Risk
+        const bmi = user.weight / ((user.height / 100) ** 2);
+
+        // [SYNC] 1. Dynamic Equipment List (Source of Truth: CONSTANTS)
+        const allEquips = CONSTANTS.MAPPINGS.EQUIPMENT_LIST || ['自重'];
+        const availableEquip = allEquips.filter(e => !user.missing.includes(e));
+
+        // [SYNC] 2. Local Fatigue Analysis (Mocking part status based on global fatigue for now, ideally needs part-level data)
+        // In a real app, this would read from user.partFatigue
+        const exhaustedParts = bodyStatus < 30 ? targets : []; // Mock: if global is low, target is exhausted
+        const suggestedParts = bodyStatus > 85 ? ['全身'] : [];
 
         return {
             source: planContext ? 'Plan' : 'Single',
@@ -16,12 +28,16 @@ window.Logic = {
                 duration: planContext ? planContext.duration : (input ? (parseInt(input.duration) || 30) : 30),
                 level: user.level,
                 goal: user.goal,
+                funcGoal: user.funcGoal || user.goal,
                 gender: user.gender
             },
             constraints: { 
-                availableEquip: ['自重', '横杆', '手柄', '健身凳', '泡沫轴'].filter(e => !user.missing.includes(e)),
-                forbiddenParts: [...user.pain],
-                downgrade: bodyStatus < 55
+                availableEquip: availableEquip,
+                forbiddenParts: [...user.pain, ...exhaustedParts], // [SYNC] Include exhausted parts
+                downgrade: bodyStatus < 55,
+                bmi: bmi,
+                pain: user.pain,
+                suggestedParts: suggestedParts
             },
             phases: [],
             status: { fatigue: bodyStatus }
@@ -34,8 +50,8 @@ window.Logic = {
         const conflict = finalTargets.some(t => ctx.constraints.forbiddenParts.includes(t));
         
         if (conflict) {
-            if (ctx.source === 'Plan') finalTargets = ['全身']; 
-            else ctx.constraints.downgrade = true;
+            if (ctx.source === 'Plan') finalTargets = ['全身']; // Plan mode: Auto-switch
+            else ctx.constraints.downgrade = true; // Single mode: Downgrade
         }
 
         let levelStr = user.level;
@@ -55,19 +71,21 @@ window.Logic = {
         const { duration, type, goal, level } = ctx.meta;
         
         // 1. 查找策略矩阵 (Strategy Matrix Lookup)
-        // 优先匹配 Goal + Level
-        let strategy = CONFIG.STRATEGY.find(s => s.target === goal && s.level.includes(level));
-        // 兜底：匹配 Goal + All
-        if (!strategy) strategy = CONFIG.STRATEGY.find(s => s.target === goal && s.level.includes('All'));
-        // 最终兜底
-        if (!strategy) strategy = CONFIG.STRATEGY[0];
+        // Main Strategy
+        let mainStrategy = CONFIG.STRATEGY.find(s => s.target === goal && s.level.includes(level));
+        if (!mainStrategy) mainStrategy = CONFIG.STRATEGY.find(s => s.target === goal && s.level.includes('All'));
+        if (!mainStrategy) mainStrategy = CONFIG.STRATEGY[0];
 
-        // 2. 结构规划 (Structure Planning)
-        const structWarmup = CONFIG.STRUCTURE.find(s => s.type === '热身');
-        const structRelax = CONFIG.STRUCTURE.find(s => s.type === '放松');
+        // [SYNC] Warmup/Relax Strategy Lookup (Keys: '激活', '柔韧')
+        let wuStrategy = CONFIG.STRATEGY.find(s => s.target === '激活') || { intensity: 0.4, strategy: '恒定', mode: '常规' };
+        let cdStrategy = CONFIG.STRATEGY.find(s => s.target === '柔韧') || { intensity: 0.3, strategy: '恒定', mode: '常规' };
+
+        // 2. 结构规划 (Structure Planning) - T/10 Rule
+        const wuCount = Math.ceil(duration / 10);
+        const cdCount = Math.ceil(duration / 10);
         
-        const wuTime = Math.min(structWarmup.max, Math.ceil(duration * structWarmup.ratio));
-        const cdTime = Math.min(structRelax.max, Math.ceil(duration * structRelax.ratio));
+        let wuTime = wuCount * 0.5;
+        let cdTime = cdCount * 0.5;
         const mainTime = duration - wuTime - cdTime;
 
         // 3. 范式适配 (Paradigm Adaptation)
@@ -77,28 +95,54 @@ window.Logic = {
         // 4. 构建环节 (Build Phases)
         const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
         
-        // 主训参数修正
-        const mainSets = Math.round(strategy.sets * phaseCoeffs.volume);
-        const mainIntensity = strategy.intensity * phaseCoeffs.intensity;
+        const mainSets = Math.round(mainStrategy.sets * phaseCoeffs.volume);
+        const mainIntensity = mainStrategy.intensity * phaseCoeffs.intensity;
+
+        // [SYNC] Apply Paradigm Constraints (Flow Paradigm -> Sets=1, Rest=0)
+        const applyParadigmConstraints = (baseStrat, pType) => {
+            // Warmup/Relax are typically Flow Paradigm (流式范式)
+            // Main depends on type
+            let sets = baseStrat.sets || 1;
+            let rest = baseStrat.rest || 0;
+            
+            if (pType === '热身' || pType === '放松') {
+                sets = 1; // Force 1 set for warmup/relax
+                rest = 0;
+            }
+            return { ...baseStrat, sets, rest };
+        };
+
+        const wuStratFinal = applyParadigmConstraints(wuStrategy, '热身');
+        const cdStratFinal = applyParadigmConstraints(cdStrategy, '放松');
+
+        // Rest Rounds (Transition)
+        const wuRestRound = 0; 
+        const mainRestRound = 60;
+        const cdRestRound = 0;
 
         ctx.phases = [
             { 
                 type: '热身', 
                 duration: wuTime, 
                 paradigm: '流式范式', 
-                targetCount: Math.min(structWarmup.count, Math.ceil(wuTime / 1.0)), // 假设1min/动作
-                strategy: { sets: 1, rest: 0, intensity: 0.4, loadStrategy: '计时' } 
+                targetCount: wuCount, 
+                strategy: { 
+                    ...wuStratFinal, 
+                    restRound: wuRestRound, 
+                    loadStrategy: '恒定' 
+                } 
             },
             { 
                 type: '主训', 
                 duration: mainTime, 
                 paradigm: paradigmName, 
-                targetCount: 99, // 稍后计算
+                targetCount: 99, 
                 strategy: { 
-                    ...strategy, 
+                    ...mainStrategy, 
                     sets: mainSets, 
                     intensity: mainIntensity,
-                    loadStrategy: strategy.strategy // Map '推荐' etc.
+                    loadStrategy: mainStrategy.strategy,
+                    restRound: mainRestRound
                 },
                 coeffs: phaseCoeffs
             },
@@ -106,19 +150,23 @@ window.Logic = {
                 type: '放松', 
                 duration: cdTime, 
                 paradigm: '流式范式', 
-                targetCount: Math.min(structRelax.count, Math.ceil(cdTime / 1.0)),
-                strategy: { sets: 1, rest: 0, intensity: 0.3, loadStrategy: '计时' } 
+                targetCount: cdCount, 
+                strategy: { 
+                    ...cdStratFinal, 
+                    restRound: cdRestRound, 
+                    loadStrategy: '恒定' 
+                } 
             }
         ];
 
         // 5. 计算主训动作数量 (Capacity Calculation)
         const mainPhase = ctx.phases[1];
         let singleActionTime = 0;
-        if (paradigmName === '间歇范式') singleActionTime = 60 + (mainPhase.strategy.rest || 30);
-        else if (paradigmName === '流式范式') singleActionTime = 60;
-        else singleActionTime = (mainSets * 45) + ((mainSets - 1) * (mainPhase.strategy.rest || 60)); // 抗阻估算
+        if (paradigmName === '间歇范式') singleActionTime = 60 + (mainPhase.strategy.rest || 30) + mainRestRound;
+        else if (paradigmName === '流式范式') singleActionTime = 60 + mainRestRound;
+        else singleActionTime = (mainSets * 45) + ((mainSets - 1) * (mainPhase.strategy.rest || 60)) + mainRestRound; 
 
-        mainPhase.targetCount = Math.max(1, Math.floor((mainTime * 60) / singleActionTime));
+        mainPhase.targetCount = Math.max(1, Math.round((mainTime * 60) / singleActionTime));
 
         return ctx;
     },
@@ -127,13 +175,22 @@ window.Logic = {
         const { constraints, meta } = ctx;
         if (DB.length === 0) DB = FALLBACK_DB;
 
+        if (!meta.primaryEquip) {
+            const MAIN_EQUIPS = ['手柄', '横杆'];
+            const candidates = MAIN_EQUIPS.filter(e => constraints.availableEquip.includes(e));
+            if (candidates.length > 0) {
+                meta.primaryEquip = candidates[Math.floor(Math.random() * candidates.length)];
+            } else {
+                meta.primaryEquip = '自重';
+            }
+        }
+
         ctx.phases.forEach(p => {
-            // 1. 寻找环节模板 (Segment Template Lookup)
-            // 匹配优先级: [部位+等级] > [部位] > [功能+等级] > [功能]
+            // 1. 寻找环节模板
             let tpl = null;
-            const targetPart = meta.targets[0]; // 主要部位
+            const targetPart = meta.targets[0]; 
             
-            // 尝试匹配部位模板
+            // Exact Match
             tpl = CONFIG.SEGMENT_TEMPLATES.find(t => 
                 t.type === p.type && 
                 t.dim === '部位' && 
@@ -141,81 +198,148 @@ window.Logic = {
                 (t.levels.includes(meta.level) || t.levels.includes('All'))
             );
 
-            // 尝试匹配功能模板 (如HIIT)
+            // Region Fallback
+            if (!tpl && p.type !== '主训') {
+                const regionMap = CONSTANTS.MAPPINGS.ANATOMY;
+                let region = null;
+                for (const rKey in regionMap) {
+                    if (regionMap[rKey].includes(targetPart)) {
+                        region = rKey;
+                        break;
+                    }
+                }
+                if (region) {
+                    tpl = CONFIG.SEGMENT_TEMPLATES.find(t => 
+                        t.type === p.type && 
+                        t.dim === '部位' && 
+                        t.target === region && 
+                        (t.levels.includes(meta.level) || t.levels.includes('All'))
+                    );
+                }
+            }
+
+            // Functional Fallback
             if (!tpl && p.type === '主训') {
                 tpl = CONFIG.SEGMENT_TEMPLATES.find(t => 
                     t.type === '主训' && 
                     t.dim === '动作功能' && 
-                    t.target === meta.goal && // e.g. 减脂 -> 心肺
+                    t.target === meta.funcGoal && 
                     (t.levels.includes(meta.level) || t.levels.includes('All'))
                 );
             }
 
-            // 兜底模板
+            // Hard Fallback
             if (!tpl) {
-                // 构造通用模板
-                if (p.type === '热身') tpl = CONFIG.SEGMENT_TEMPLATES.find(t => t.id === 'TPL_SEG_001'); // 全身热身
-                else if (p.type === '放松') tpl = CONFIG.SEGMENT_TEMPLATES.find(t => t.id === 'TPL_SEG_011'); // 全身放松
-                else tpl = CONFIG.SEGMENT_TEMPLATES.find(t => t.id === 'TPL_SEG_021'); // 全身初级主训
+                if (p.type === '热身') tpl = CONFIG.SEGMENT_TEMPLATES.find(t => t.id === 'TPL_SEG_001'); 
+                else if (p.type === '放松') tpl = CONFIG.SEGMENT_TEMPLATES.find(t => t.id === 'TPL_SEG_011'); 
+                else tpl = CONFIG.SEGMENT_TEMPLATES.find(t => t.id === 'TPL_SEG_021'); 
             }
 
-            p.template = tpl; // 保存引用
+            p.template = tpl; 
+            
+            if (tpl && tpl.count !== undefined) {
+                p.targetCount = Math.min(p.targetCount, tpl.count);
+            }
 
-            // 2. 槽位填充 (Slot Filling)
+            // 2. 动作池准备
+            const isHighImpactRisk = (constraints.bmi >= 28) || constraints.pain.some(pt => ['膝盖', '脚踝'].includes(pt));
+            
+            let pool = DB.filter(a => {
+                if (a.equip && a.equip.some(e => !constraints.availableEquip.includes(e))) return false;
+                if (a.pain && a.pain.some(pt => constraints.forbiddenParts.includes(pt))) return false;
+                if (a.impact === '高冲击' && isHighImpactRisk) return false;
+                return true;
+            });
+
+            // 3. 动作粗选
+            pool = pool.filter(a => {
+                if (p.type === '热身') {
+                    if (!a.func.includes('激活')) return false;
+                }
+                if (p.type === '放松') {
+                    const isRelaxFunc = a.func.includes('放松') || a.func.includes('恢复');
+                    const isRelaxType = a.courseType === '瑜伽' || a.courseType === '冥想';
+                    if (!isRelaxFunc && !isRelaxType) return false;
+                    if (a.func.includes('激活')) return false;
+                }
+                
+                if (p.type === '热身' || p.type === '放松') {
+                    if (!meta.targets.includes('全身')) {
+                        const allowedParts = new Set(['全身', '核心']);
+                        meta.targets.forEach(t => {
+                            allowedParts.add(t);
+                            const related = CONSTANTS.MAPPINGS.RELATED_PARTS[t];
+                            if (related) related.forEach(r => allowedParts.add(r));
+                        });
+                        // [FIX] Stricter filtering: Main part must be allowed OR Sub part must be TARGET
+                        const mainPartAllowed = allowedParts.has(a.part);
+                        const subPartAllowed = (a.subPart || []).some(sp => meta.targets.includes(sp));
+                        if (!mainPartAllowed && !subPartAllowed) return false;
+                    }
+                }
+                
+                if (p.type === '主训') {
+                    if (targetPart !== '全身' && a.part !== targetPart && !(a.subPart || []).includes(targetPart)) return false;
+                }
+                return true;
+            });
+
+            // 4. 动作打分
+            pool.forEach(a => {
+                a.score = window.Logic.calculateScore(a, ctx);
+                if (p.type === '热身' || p.type === '放松') {
+                    let isRelated = false;
+                    meta.targets.forEach(t => {
+                        const related = CONSTANTS.MAPPINGS.RELATED_PARTS[t];
+                        if (related && related.includes(a.part)) isRelated = true;
+                    });
+                    if (isRelated) a.score += 10; 
+                    if (a.part === '全身' || a.part === '核心') a.score += 5; 
+                }
+            });
+            pool.sort((a, b) => b.score - a.score);
+
+            // 5. 槽位填充
             let selected = [];
             const usedIds = new Set();
             const totalSlots = p.targetCount;
-            
-            // 分配槽位数量
             const slotsConfig = tpl ? tpl.slots : [{focusDim:'动作构造', focusTarget:'复合动作', w:1.0}];
             
-            slotsConfig.forEach(slot => {
-                const count = Math.round(totalSlots * slot.w);
-                if (count <= 0) return;
-
-                // 筛选候选池
-                let candidates = DB.filter(a => {
-                    // 硬性风控
-                    if (a.equip && a.equip.some(e => !constraints.availableEquip.includes(e))) return false;
-                    if (a.pain && a.pain.some(pt => constraints.forbiddenParts.includes(pt))) return false;
-                    if (constraints.downgrade && a.impact === '高冲击') return false;
-                    if (usedIds.has(a.id)) return false;
-
-                    // 槽位匹配
-                    if (slot.focusDim === '部位' && a.part !== slot.focusTarget) return false;
-                    if (slot.focusDim === '动作模式' && a.mode !== slot.focusTarget) return false;
-                    if (slot.focusDim === '动作功能' && (!a.func || !a.func.includes(slot.focusTarget))) return false;
-                    if (slot.focusDim === '动作构造' && a.construct !== slot.focusTarget) return false;
-                    if (slot.focusDim === '主动肌' && a.muscle !== slot.focusTarget) return false;
-
-                    // 环节类型匹配 (热身只选热身动作)
-                    // if (p.type === '热身' && !a.func.includes('激活')) return false; // 宽松一点
-
-                    return true;
-                });
-
-                // 评分排序
-                candidates.forEach(a => {
-                    a.score = 100 + Math.random() * 20;
-                    if (a.difficulty === meta.level) a.score += 30;
-                });
-                candidates.sort((a,b) => b.score - a.score);
-
-                // 选取
-                for(let i=0; i<count && i<candidates.length; i++) {
-                    selected.push(candidates[i]);
-                    usedIds.add(candidates[i].id);
+            const pickFuzzy = (candidates, count) => {
+                const picks = [];
+                const fuzzyRange = 10; 
+                let available = [...candidates];
+                while (picks.length < count && available.length > 0) {
+                    const windowSize = Math.min(fuzzyRange, available.length);
+                    const idx = Math.floor(Math.random() * windowSize);
+                    picks.push(available[idx]);
+                    available.splice(idx, 1);
                 }
+                return picks;
+            };
+
+            slotsConfig.forEach(slot => {
+                const count = Math.max(1, Math.round(totalSlots * slot.w));
+                const candidates = pool.filter(a => {
+                    if (usedIds.has(a.id)) return false;
+                    if (slot.focusDim === '部位' && a.part === slot.focusTarget) return true;
+                    if (slot.focusDim === '动作模式' && a.mode === slot.focusTarget) return true;
+                    if (slot.focusDim === '动作功能' && a.func && a.func.includes(slot.focusTarget)) return true;
+                    if (slot.focusDim === '动作构造' && a.construct === slot.focusTarget) return true;
+                    if (slot.focusDim === '主动肌' && a.muscle === slot.focusTarget) return true;
+                    return false;
+                });
+                const picked = pickFuzzy(candidates, count);
+                picked.forEach(a => { selected.push(a); usedIds.add(a.id); });
             });
 
-            // 3. 补齐 (Fill Gaps)
             if (selected.length < totalSlots) {
-                const needed = totalSlots - selected.length;
-                const leftovers = DB.filter(a => !usedIds.has(a.id) && a.part === targetPart).slice(0, needed);
-                selected = selected.concat(leftovers);
+                const remainingCount = totalSlots - selected.length;
+                const leftovers = pool.filter(a => !usedIds.has(a.id));
+                const picked = pickFuzzy(leftovers, remainingCount);
+                picked.forEach(a => { selected.push(a); usedIds.add(a.id); });
             }
 
-            // 4. 排序 (Sorting)
             if (tpl && tpl.sort) {
                 selected.sort((a, b) => {
                     for (const rule of tpl.sort) {
@@ -229,6 +353,34 @@ window.Logic = {
             p.actions = selected;
         });
         return ctx;
+    },
+
+    calculateScore: (action, ctx) => {
+        let score = 100;
+        const factors = CONFIG.FACTORS || [];
+        const evalRule = (rule, act) => {
+            if (rule.includes('是否收藏 = True') && act.isFav) return true;
+            if (rule.includes('未练天数 > 7')) {
+                const days = (new Date() - new Date(act.lastTrained)) / (1000 * 3600 * 24);
+                return days > 7;
+            }
+            if (rule.includes('历史训练次数 == 0') && !act.lastTrained) return true; 
+            return false;
+        };
+
+        factors.forEach(f => {
+            if (evalRule(f.rule, action)) score += f.weight;
+        });
+
+        const MAIN_EQUIPS = ['手柄', '横杆'];
+        const primary = ctx.meta.primaryEquip;
+        if (primary && MAIN_EQUIPS.includes(primary)) {
+            const hasConflict = action.equip && action.equip.some(e => MAIN_EQUIPS.includes(e) && e !== primary);
+            if (hasConflict) score -= 500;
+        }
+
+        if (ctx.meta.targets.includes(action.part)) score += 10;
+        return score;
     },
 
     compareActions: (a, b, rule) => {
@@ -254,7 +406,9 @@ window.Logic = {
             const sequence = seq ? seq.split(',').map(s => s.trim()) : [];
             const idxA = sequence.indexOf(valA);
             const idxB = sequence.indexOf(valB);
-            return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+            const safeIdxA = idxA === -1 ? 999 : idxA;
+            const safeIdxB = idxB === -1 ? 999 : idxB;
+            return safeIdxA - safeIdxB;
         }
         return 0;
     },
@@ -268,26 +422,33 @@ window.Logic = {
             phase.actions = phase.actions.map(a => {
                 const actionParadigm = CONSTANTS.COURSE_TYPES[a.courseType] || '抗阻范式';
                 const isLoadPriority = actionParadigm === '抗阻范式' && a.measure !== '计时';
+                // [SYNC] Level Adaptation
+                const level = ctx.meta.level || 'L3';
+                const intensityConfig = CONSTANTS.MAPPINGS.INTENSITY[level] || CONSTANTS.MAPPINGS.INTENSITY['L3'];
 
                 let sets = Math.round(strategy.sets * vCoeff) || 3;
                 let intensity = strategy.intensity * iCoeff;
                 let load = 0;
-                let reps = '12';
+                let reps = isLoadPriority ? '12' : (intensityConfig.time || '30');
                 let base1RM = 20;
 
                 if (isLoadPriority) {
                     if (a.powerModule === '是') {
                         base1RM = a.demoUser1RM || window.UserAbility.oneRM[a.part] || 20;
                         load = Math.round(base1RM * intensity);
-                        // 简单RM反推
-                        if (intensity >= 0.85) reps = '6';
-                        else if (intensity >= 0.75) reps = '10';
-                        else reps = '12';
+                        
+                        // [SYNC] RPE-based Reps Calculation (Pixel-perfect with PRD)
+                        // Formula: Recommended Reps = Theoretical Max Reps - (10 - Target RPE)
+                        const targetRPE = strategy.rpe || 8; // Default RPE 8 (2 reps in reserve)
+                        const maxReps = window.Logic.getMaxReps(intensity);
+                        
+                        const rpeBuffer = 10 - targetRPE; // e.g. 10 - 8 = 2 reps in reserve
+                        reps = Math.max(1, maxReps - rpeBuffer).toString();
                     } else {
-                        reps = '12';
+                        // Non-power module resistance action (e.g. bodyweight)
+                        // Use intensity mapping for reps
+                        reps = intensityConfig.reps.toString();
                     }
-                } else {
-                    reps = (phase.paradigm === '间歇范式') ? '60' : '30';
                 }
 
                 // 生成组序列
@@ -297,13 +458,22 @@ window.Logic = {
 
                 for(let i=0; i<sets; i++) {
                     let sLoad = load;
-                    // 查找对应组的策略配置
+                    let sReps = parseInt(reps);
                     const rule = stratConfig.find(s => s.index === (i+1).toString()) || stratConfig.find(s => s.index === '3+' || s.index === 'All');
                     
-                    if (rule && isLoadPriority) {
-                        sLoad = Math.round(load * rule.coeff * 2) / 2;
+                    if (rule) {
+                        if (isLoadPriority && a.powerModule === '是') {
+                            // Vary Load
+                            sLoad = Math.round(load * rule.coeff * 2) / 2;
+                            // Recalculate reps based on new load
+                            sReps = window.Logic.calcRepsFromLoad(sLoad, base1RM);
+                        } else {
+                            // Vary Reps/Time (Non-power module or Time-based)
+                            // Use coeff to vary intensity (e.g. 0.85 * reps for easier sets)
+                            sReps = Math.round(parseInt(reps) * rule.coeff);
+                        }
                     }
-                    algoSetDetails.push({ load: sLoad, reps: parseInt(reps) });
+                    algoSetDetails.push({ load: sLoad, reps: sReps });
                 }
 
                 return {
@@ -339,14 +509,12 @@ window.Logic = {
         const userDays = input.days || [];
         const freq = Math.min(Math.max(userDays.length, 1), 7);
         
-        // 1. 匹配计划模板 (Plan Template)
         let template = CONFIG.PLAN_TEMPLATES.find(t => 
             t.freq === freq && 
             t.goal === window.store.user.goal
         );
         if (!template) template = CONFIG.PLAN_TEMPLATES[0];
 
-        // 2. 周期策略 (Phase Strategy)
         let cycleKey = '>4周';
         if (weeks <= 4) cycleKey = weeks + '周';
         const phaseStrat = CONFIG.PHASE_STRATEGIES.find(s => s.cycle === cycleKey) || CONFIG.PHASE_STRATEGIES[3];
@@ -354,12 +522,10 @@ window.Logic = {
         const schedule = [];
         let currentWeek = 1;
 
-        // 3. 生成日程
         phaseStrat.structure.forEach((pName, pIdx) => {
             const allocRatio = phaseStrat.alloc[pIdx];
             const pWeeks = Math.max(1, Math.round(weeks * allocRatio));
             
-            // 查找阶段系数 (Mock: 简单映射)
             let pIntensity = 1.0, pVolume = 1.0;
             if (pName === '适应期') { pIntensity=0.8; pVolume=0.8; }
             else if (pName === '突破期') { pIntensity=1.1; pVolume=0.9; }
@@ -374,20 +540,17 @@ window.Logic = {
                     days: []
                 };
 
-                // 填充每日
-                const dayMap = {'周一':1, '周二':2, '周三':3, '周四':4, '周五':5, '周六':6, '周日':7};
                 for(let d=1; d<=7; d++) {
                     const dayName = CONSTANTS.WEEKDAYS[d-1];
                     const isTrainingDay = userDays.includes(dayName);
                     
                     if (isTrainingDay) {
-                        // 简单轮询槽位
                         const slotIdx = (d - 1) % template.basicSlots.length;
                         const slot = template.basicSlots[slotIdx];
                         weekData.days.push({ 
                             dayName, 
                             isTraining: true, 
-                            targets: [slot.focusTarget], // 简化：直接取目标
+                            targets: [slot.focusTarget], 
                             title: slot.name 
                         });
                     } else {
@@ -403,9 +566,21 @@ window.Logic = {
     },
 
     completeTraining: (ctx) => {
-        // Mock Feedback
         window.store.user.fatigue = Math.min(10, window.store.user.fatigue + 2);
         return { prCount: 0 };
+    },
+
+    // [SYNC] Helper: Theoretical Max Reps based on Intensity %
+    getMaxReps: (intensity) => {
+        if (intensity >= 1.0) return 1;
+        if (intensity >= 0.95) return 2;
+        if (intensity >= 0.90) return 4;
+        if (intensity >= 0.85) return 6;
+        if (intensity >= 0.80) return 8;
+        if (intensity >= 0.75) return 10;
+        if (intensity >= 0.70) return 12;
+        if (intensity >= 0.65) return 15;
+        return 20;
     },
 
     calcRepsFromLoad: (load, oneRM) => {

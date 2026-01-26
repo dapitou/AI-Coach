@@ -33,6 +33,8 @@ window.ViewHome = {
         const profile = document.getElementById('profile-card');
         if(profile) profile.classList.remove('hidden');
 
+        App.renderProfile();
+
         try {
             Voice.init();
             Voice.startListening();
@@ -57,29 +59,35 @@ window.ViewHome = {
 
     renderProfile: () => {
         const u = window.store.user;
-        const fInfo = App.getFatigueInfo(u.fatigue);
-        
-        let levelText = '初级';
-        if (['L3', 'L4'].includes(u.level)) levelText = '中级';
-        if (u.level === 'L5') levelText = '高级';
+        try {
+            const fInfo = App.getFatigueInfo(u.fatigue);
+            
+            let levelText = '初级';
+            if (['L3', 'L4'].includes(u.level)) levelText = '中级';
+            if (u.level === 'L5') levelText = '高级';
 
-        const redDot = !u.funcGoal ? '<div class="red-dot"></div>' : '';
+            const redDot = !u.funcGoal ? '<div class="red-dot"></div>' : '';
 
-        const html = `
-            <div class="info-item"><div class="info-label">主要目标</div><div class="info-val">${u.goal}</div></div>
-            <div class="info-item"><div class="info-label">运动等级</div><div class="info-val">${levelText}</div></div>
-            <div class="info-item"><div class="info-label">当前体重</div><div class="info-val">${u.weight} kg</div></div>
-            <div class="info-item"><div class="info-label">主观疲劳度</div><div class="info-val">${u.fatigue} - ${fInfo.label}</div></div>
-        `;
-        document.getElementById('profile-display').innerHTML = html;
-        
-        const editBtn = document.querySelector('.edit-btn');
-        if (editBtn) editBtn.innerHTML = `更新 >${redDot}`;
+            const html = `
+                <div class="info-item"><div class="info-label">主要目标</div><div class="info-val">${u.goal}</div></div>
+                <div class="info-item"><div class="info-label">运动等级</div><div class="info-val">${levelText}</div></div>
+                <div class="info-item"><div class="info-label">当前体重</div><div class="info-val">${u.weight} kg</div></div>
+                <div class="info-item"><div class="info-label">主观疲劳度</div><div class="info-val">${u.fatigue} - ${fInfo.label}</div></div>
+            `;
+            const display = document.getElementById('profile-display');
+            if (display) display.innerHTML = html;
+            
+            const editBtn = document.querySelector('.edit-btn');
+            if (editBtn) editBtn.innerHTML = `更新 >${redDot}`;
+        } catch (e) {
+            console.error("Render Profile Error:", e);
+        }
     },
     
     getFatigueInfo: (val) => {
         // Use CONFIG.STATUS_CONFIG if available, else fallback
-        const status = CONFIG.STATUS_CONFIG.find(s => val * 10 >= s.range[0] && val * 10 <= s.range[1]);
+        const config = CONFIG.STATUS_CONFIG || [];
+        const status = config.find(s => val * 10 >= s.range[0] && val * 10 <= s.range[1]);
         if (status) {
             let color = '#32C48C';
             if (status.label.includes('疲劳')) color = '#FFC107';
