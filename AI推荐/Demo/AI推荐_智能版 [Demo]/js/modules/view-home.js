@@ -162,9 +162,9 @@ window.ViewHome = {
                 <div class="form-group">${label('体重 (kg)', 'weight')}<input type="number" id="in-weight" class="form-input" value="${u.weight}" onchange="window.store.user.weight=parseFloat(this.value); App.renderProfileForm()"></div>
                 
                 <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; background:rgba(255,255,255,0.05); padding:10px; border-radius:8px;">
-                    <div>${label('BMI', 'bmi')}<div style="font-weight:700; color:${bmi>24?'var(--danger)':'#fff'}">${bmi}</div></div>
-                    <div>${label('静息心率', 'rhr')}<div style="font-weight:700;">${u.rhr||60}</div></div>
-                    <div>${label('最大心率', 'mhr')}<div style="font-weight:700;">${mhr}</div></div>
+                    <div>${label('BMI', 'bmi')}<div id="d-bmi" style="font-weight:700; color:${bmi>24?'var(--danger)':'#fff'}">${bmi}</div></div>
+                    <div>${label('静息心率', 'rhr')}<div id="in-rhr" style="font-weight:700;">${u.rhr||60}</div></div>
+                    <div>${label('最大心率', 'mhr')}<div id="d-mhr" style="font-weight:700;">${mhr}</div></div>
                 </div>
             </div>
         `;
@@ -172,7 +172,7 @@ window.ViewHome = {
         const prefHtml = `
             <div class="tab-content ${activeTab==='pref'?'active':''}" id="tab-pref">
                 <div class="form-group">${label('运动等级', 'level')}<select id="in-level" class="form-input" onchange="window.store.user.level=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.LEVEL, u.level)}</select></div>
-                <div class="form-group">${label('每日运动时长 (min)', 'duration')}<input type="number" class="form-input" value="${u.duration}" onchange="window.store.user.duration=parseInt(this.value); App.renderProfileForm()"></div>
+                <div class="form-group">${label('每日运动时长 (min)', 'duration')}<input type="number" id="in-duration" class="form-input" value="${u.duration}" onchange="window.store.user.duration=parseInt(this.value); App.renderProfileForm()"></div>
                 <div class="form-group">
                     ${label('每周训练日', 'days')}
                     <div class="options-grid" id="pref-days" style="gap:8px;">
@@ -197,7 +197,7 @@ window.ViewHome = {
                         ${CONSTANTS.ENUMS.MISSING_ACCESSORIES.map(m => `<div class="opt-chip ${u.missing.includes(m)?'active':''}" onclick="App.toggleArrayItem('missing', '${m}')" style="padding:8px;min-width:40px;">${m}</div>`).join('')}
                     </div>
                 </div>
-                <div class="form-group">${label('喜欢的训练风格', 'style')}<select class="form-input" onchange="window.store.user.style=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.STYLE, u.style)}</select></div>
+                <div class="form-group">${label('喜欢的训练风格', 'style')}<select id="in-style" class="form-input" onchange="window.store.user.style=this.value; App.renderProfileForm()">${opts(CONSTANTS.ENUMS.STYLE, u.style)}</select></div>
             </div>
         `;
         

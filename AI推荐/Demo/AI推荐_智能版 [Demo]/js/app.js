@@ -1,5 +1,3 @@
-// e:\AI-Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\app.js
-
 const App = {
     // Mixin all modules
     ...window.UIUtils,
@@ -10,19 +8,6 @@ const App = {
     ...window.ViewLibrary,
 
     init: () => {
-        // [NEW] Load Dynamic Config from Ops Backend
-        try {
-            const dynamicConfig = localStorage.getItem('AEKE_AI_CONFIG');
-            if (dynamicConfig) {
-                const parsed = JSON.parse(dynamicConfig);
-                // Deep merge or overwrite CONFIG
-                Object.assign(window.CONFIG, parsed);
-                console.log('[App] Loaded dynamic AI configuration from Ops Backend.');
-            }
-        } catch (e) {
-            console.warn('[App] Failed to load dynamic config:', e);
-        }
-
         window.UserAbility.init();
         App.renderProfile();
         // Ensure renderProfileForm is available from ViewHome
@@ -36,6 +21,16 @@ const App = {
         // Global click to close tooltips
         document.addEventListener('click', (e) => {
             if(App.closeTooltips) App.closeTooltips();
+        });
+
+        // Screenshot Shortcut (S)
+        window.addEventListener('keydown', (e) => {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+            if (e.key.toLowerCase() === 's') {
+                console.log('Shortcut S triggered');
+                if (App.captureScreenshot) App.captureScreenshot();
+                else if (window.UIUtils && window.UIUtils.captureScreenshot) window.UIUtils.captureScreenshot();
+            }
         });
     },
     

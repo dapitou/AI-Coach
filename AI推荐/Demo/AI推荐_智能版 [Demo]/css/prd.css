@@ -72,12 +72,17 @@
     }
 }
 
-/* PRD Toggle Button */
-#prd-toggle-btn {
+/* Top Right Tools */
+.top-right-tools {
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 10000;
+    display: flex;
+    gap: 10px;
+}
+
+.tool-btn {
     background: #333;
     color: #888;
     padding: 8px 16px;
@@ -87,6 +92,14 @@
     border: 1px solid #444;
     transition: 0.2s;
 }
+.tool-btn:hover {
+    background: #444;
+    color: #fff;
+}
+.tool-btn:active {
+    transform: scale(0.95);
+}
+
 #prd-toggle-btn.active {
     background: var(--primary);
     color: #000;

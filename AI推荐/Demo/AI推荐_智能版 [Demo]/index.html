@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AEKE AI Coach - Smart Edition V27.0</title>
+    <title>AEKE AI Coach - Smart Edition V28.0</title>
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/prd.css">
     <link rel="stylesheet" href="css/components.css">
@@ -12,11 +12,15 @@
     <link rel="stylesheet" href="css/modules/result.css">
     <link rel="stylesheet" href="css/modules/library.css">
     <link rel="stylesheet" href="css/modules/workout.css">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
-<!-- PRD TOGGLE (Fixed Top Right) -->
-<div id="prd-toggle-btn" onclick="window.PRD.toggle()">PRD 引注: OFF</div>
+<!-- TOP RIGHT TOOLS -->
+<div class="top-right-tools">
+    <div class="tool-btn" onclick="window.App.captureScreenshot()">截图 (S)</div>
+    <div id="prd-toggle-btn" class="tool-btn" onclick="window.PRD.toggle()">PRD 引注: OFF</div>
+</div>
 
 <div id="app">
     
@@ -37,7 +41,7 @@
         <i style="font-size:40px; font-style:normal; display:block; margin-bottom:10px; filter:grayscale(1);">🎙️</i>
         <div style="font-size:16px; font-weight:600; color:var(--primary);">点击开启麦克风权限</div>
         <div style="font-size:12px; color:#666; margin-top:5px;">激活 AI 智能教练</div>
-        <div style="font-size:10px; color:#444; margin-top:10px; font-family:monospace;">V27.0</div>
+        <div style="font-size:10px; color:#444; margin-top:10px; font-family:monospace;">V28.0</div>
     </div>
 
     <!-- VIEW 1: HOME -->
@@ -332,6 +336,22 @@
 <script src="js/modules/view-workout.js"></script>
 <script src="js/app.js"></script>
 <script src="js/modules/prd-annotations.js"></script>
+
+<script>
+    // [NEW] Data Consistency Check
+    window.addEventListener('load', () => {
+        const configStr = localStorage.getItem('AEKE_AI_CONFIG');
+        if (configStr) {
+            try {
+                const config = JSON.parse(configStr);
+                // Check if Strategy Matrix is in new format (no 'level' key)
+                if (config.STRATEGY && config.STRATEGY[0] && config.STRATEGY[0].level) {
+                    alert('⚠️ 检测到旧版配置数据！\n\nPRD已更新：策略矩阵已解耦等级维度。\n请前往【AI运营后台】点击 "同步至演示环境" 以更新数据结构，否则Demo将无法正常运行。');
+                }
+            } catch (e) { console.error('Config check failed', e); }
+        }
+    });
+</script>
 
 </body>
 </html>

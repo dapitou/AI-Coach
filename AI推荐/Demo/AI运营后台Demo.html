@@ -400,35 +400,24 @@ const MAPPING_DATA = {
 
 const AI_CONFIG = {
     strategy: [
-        { target: '增肌', level: 'L1,L2', sets: 3, rest: 60, intensity: 0.65, mode: '常规', strategy: '推荐', diff: '标准' },
-        { target: '增肌', level: 'L3,L4', sets: 4, rest: 90, intensity: 0.75, mode: '常规', strategy: '递增', diff: '进阶' },
-        { target: '增肌', level: 'L5', sets: 5, rest: 90, intensity: 0.80, mode: '常规', strategy: '递增', diff: '挑战' },
-        { target: '力量', level: 'L1,L2', sets: 3, rest: 90, intensity: 0.75, mode: '常规', strategy: '恒定', diff: '标准' },
-        { target: '力量', level: 'L3,L4', sets: 5, rest: 120, intensity: 0.85, mode: '常规', strategy: '恒定', diff: '进阶' },
-        { target: '力量', level: 'L5', sets: 5, rest: 180, intensity: 0.90, mode: '常规', strategy: '递增', diff: '挑战' },
-        { target: '减脂', level: 'L1,L2', sets: 3, rest: 30, intensity: 0.55, mode: '循环', strategy: '计时', diff: '保守' },
-        { target: '减脂', level: 'L3,L4', sets: 4, rest: 30, intensity: 0.65, mode: '循环', strategy: '计时', diff: '标准' },
-        { target: '减脂', level: 'L5', sets: 5, rest: 20, intensity: 0.75, mode: '循环', strategy: '计时', diff: '挑战' },
-        { target: '耐力', level: 'L1,L2', sets: 3, rest: 45, intensity: 0.40, mode: '超级', strategy: '计时', diff: '保守' },
-        { target: '耐力', level: 'L3,L4,L5', sets: 4, rest: 30, intensity: 0.50, mode: '超级', strategy: '计时', diff: '标准' },
-        { target: '爆发', level: 'L1,L2', sets: 3, rest: 120, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '保守' },
-        { target: '爆发', level: 'L3,L4', sets: 4, rest: 150, intensity: 0.70, mode: '常规', strategy: '递增', diff: '进阶' },
-        { target: '爆发', level: 'L5', sets: 5, rest: 180, intensity: 0.85, mode: '常规', strategy: '递增', diff: '挑战' },
-        { target: '心肺', level: 'L1,L2', sets: 3, rest: 30, intensity: 0.50, mode: '循环', strategy: '计时', diff: '保守' },
-        { target: '心肺', level: 'L3,L4', sets: 4, rest: 20, intensity: 0.65, mode: '循环', strategy: '计时', diff: '标准' },
-        { target: '心肺', level: 'L5', sets: 5, rest: 15, intensity: 0.80, mode: '循环', strategy: '计时', diff: '挑战' },
-        { target: 'HIIT', level: 'All', sets: 6, rest: 30, intensity: 0.75, mode: '循环', strategy: '计时', diff: '标准' },
-        { target: '有氧', level: 'All', sets: 4, rest: 15, intensity: 0.60, mode: '循环', strategy: '计时', diff: '标准' },
-        { target: '瑜伽', level: 'All', sets: 1, rest: 0, intensity: 0.40, mode: '常规', strategy: '计时', diff: '标准' },
-        { target: '普拉提', level: 'All', sets: 3, rest: 30, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准' },
-        { target: '拉伸', level: 'All', sets: 1, rest: 0, intensity: 0.20, mode: '常规', strategy: '计时', diff: '保守' },
-        { target: '恢复', level: 'All', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定', diff: '保守' },
-        { target: '柔韧', level: 'All', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '计时', diff: '标准' },
-        { target: '协调', level: 'All', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准' },
-        { target: '体态', level: 'All', sets: 3, rest: 45, intensity: 0.50, mode: '常规', strategy: '计时', diff: '标准' },
-        { target: '激活', level: 'All', sets: 2, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定', diff: '标准' },
-        { target: '平衡', level: 'All', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准' },
-        { target: '专项', level: 'All', sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐', diff: '标准' }
+        { target: '增肌', sets: 4, rest: 90, intensity: 0.75, mode: '常规', strategy: '递增' },
+        { target: '力量', sets: 5, rest: 120, intensity: 0.85, mode: '常规', strategy: '恒定' },
+        { target: '减脂', sets: 4, rest: 30, intensity: 0.65, mode: '循环', strategy: '计时' },
+        { target: '耐力', sets: 4, rest: 30, intensity: 0.50, mode: '超级', strategy: '计时' },
+        { target: '爆发', sets: 4, rest: 150, intensity: 0.70, mode: '常规', strategy: '递增' },
+        { target: '心肺', sets: 4, rest: 20, intensity: 0.65, mode: '循环', strategy: '计时' },
+        { target: 'HIIT', sets: 6, rest: 30, intensity: 0.75, mode: '循环', strategy: '计时' },
+        { target: '有氧', sets: 4, rest: 15, intensity: 0.60, mode: '循环', strategy: '计时' },
+        { target: '瑜伽', sets: 1, rest: 0, intensity: 0.40, mode: '常规', strategy: '计时' },
+        { target: '普拉提', sets: 3, rest: 30, intensity: 0.50, mode: '常规', strategy: '恒定' },
+        { target: '拉伸', sets: 1, rest: 0, intensity: 0.20, mode: '常规', strategy: '计时' },
+        { target: '恢复', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定' },
+        { target: '柔韧', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '计时' },
+        { target: '协调', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定' },
+        { target: '体态', sets: 3, rest: 45, intensity: 0.50, mode: '常规', strategy: '计时' },
+        { target: '激活', sets: 2, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定' },
+        { target: '平衡', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定' },
+        { target: '专项', sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐' }
     ],
     templates: [
         // --- 热身 (Warmup) ---
@@ -461,20 +450,18 @@ const AI_CONFIG = {
         { id: 'TPL_SEG_023', name: '全身_高级', dim: '部位', target: '全身', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直推',w:0.2}, {focusDim:'动作模式',focusTarget:'垂直拉',w:0.2}, {focusDim:'动作模式',focusTarget:'弓步',w:0.2}, {focusDim:'动作模式',focusTarget:'旋转',w:0.2}, {focusDim:'动作功能',focusTarget:'爆发',w:0.2}], sort: [{dim:'主动肌',order:'升序'}, {dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
 
         // --- 上下肢分化 (Upper/Lower) ---
-        { id: 'TPL_SEG_030', name: '推力_中级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_031', name: '推力_高级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_032', name: '拉力_中级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_033', name: '拉力_高级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_034', name: 'PPL_腿部_中级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_035', name: 'PPL_腿部_高级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_024', name: '上肢日_中级', dim: '部位', target: '上肢', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.2}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.2}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.2}, {focusDim:'动作模式',focusTarget:'垂直拉',w:0.2}, {focusDim:'部位',focusTarget:'手臂',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_025', name: '上肢日_高级', dim: '部位', target: '上肢', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.2}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.2}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.2}, {focusDim:'动作模式',focusTarget:'垂直拉',w:0.2}, {focusDim:'部位',focusTarget:'手臂',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_026', name: '下肢日_中级', dim: '部位', target: '下肢', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'动作模式',focusTarget:'弓步',w:0.1}, {focusDim:'部位',focusTarget:'核心',w:0.1}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_027', name: '下肢日_高级', dim: '部位', target: '下肢', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'动作模式',focusTarget:'弓步',w:0.1}, {focusDim:'部位',focusTarget:'核心',w:0.1}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
 
         // --- 推拉腿 (PPL) ---
-        { id: 'TPL_SEG_030', name: '推力_中级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_031', name: '推力_高级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_032', name: '拉力_中级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_033', name: '拉力_高级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_034', name: 'PPL_腿部_中级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
-        { id: 'TPL_SEG_035', name: 'PPL_腿部_高级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_030', name: '推力日_中级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_031', name: '推力日_高级', dim: '动作模式', target: '水平推', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'水平推',w:0.4}, {focusDim:'动作模式',focusTarget:'垂直推',w:0.4}, {focusDim:'主动肌',focusTarget:'肱三头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_032', name: '拉力日_中级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_033', name: '拉力日_高级', dim: '动作模式', target: '垂直拉', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'垂直拉',w:0.4}, {focusDim:'动作模式',focusTarget:'水平拉',w:0.4}, {focusDim:'主动肌',focusTarget:'肱二头肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_034', name: '腿部日_中级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L3','L4'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
+        { id: 'TPL_SEG_035', name: '腿部日_高级', dim: '动作模式', target: '膝主导', type: '主训', levels: ['L5'], gender: 'All', slots: [{focusDim:'动作模式',focusTarget:'膝主导',w:0.4}, {focusDim:'动作模式',focusTarget:'髋主导',w:0.4}, {focusDim:'主动肌',focusTarget:'腓肠肌',w:0.2}], sort: [{dim:'动作构造',order:'自定义',seq:'复合动作,孤立动作'}, {dim:'推荐权重',order:'降序'}] },
 
         // --- 部位分化 (Body Parts) ---
         // 胸部
@@ -523,30 +510,17 @@ const AI_CONFIG = {
 
         { id: 'TPL_SEG_063', name: '体态_L1', dim: '动作功能', target: '体态', type: '主训', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'体态',w:0.6}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.2}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作难度',order:'升序'}] }
     ],
-    structure: [
-        { type: '热身', ratio: '15%', max: '5 min', count: '4 - 6' },
-        { type: '主训', ratio: '70% - 80%', max: '-', count: '-' },
-        { type: '放松', ratio: '15%', max: '5 min', count: '3 - 5' }
-    ],
     levels: [
-        { level: 'L1 (入门)', coeff: 0.5 },
-        { level: 'L2 (初级)', coeff: 0.8 },
-        { level: 'L3 (中级)', coeff: 1.0 },
-        { level: 'L4 (进阶)', coeff: 1.2 },
-        { level: 'L5 (专业)', coeff: 1.5 }
+        { level: 'L1 (入门)', coeff: 0.5, desc: '需降低门槛，建立信心' },
+        { level: 'L2 (初级)', coeff: 0.8, desc: '低于标准，关注动作质量' },
+        { level: 'L3 (中级)', coeff: 1.0, desc: '标准负荷' },
+        { level: 'L4 (进阶)', coeff: 1.2, desc: '增加负荷挑战' },
+        { level: 'L5 (专业)', coeff: 1.5, desc: '接近极限' }
     ],
     paradigms: [
-        { name: '抗阻范式', types: '力量, 康复, 高尔夫', feature: '关注负荷(Weight/Reps)', sets: '3-5', strategy: '推荐' },
-        { name: '间歇范式', types: 'HIIT, 有氧, 搏击', feature: '关注心率/工休比', sets: '3-5', strategy: '计时' },
+        { name: '抗阻范式', types: '力量, 康复, 高尔夫', feature: '关注负荷(Weight/Reps)', sets: '-', strategy: '推荐' },
+        { name: '间歇范式', types: 'HIIT, 有氧, 搏击', feature: '关注心率/工休比', sets: '-', strategy: '计时' },
         { name: '流式范式', types: '瑜伽, 普拉提, 拉伸, 冥想, 气功', feature: '关注体位流动', sets: '1', strategy: '计时' }
-    ],
-    load: [
-        { name: '恒定', index: 'All', coeff: 1.0, inc: 0, desc: '保持基准' },
-        { name: '递增', index: '1', coeff: 0.85, inc: '+2', desc: '正金字塔' },
-        { name: '递增', index: '2', coeff: 0.90, inc: '+1', desc: '-' },
-        { name: '递增', index: '3+', coeff: 1.00, inc: 0, desc: '-' },
-        { name: '递减', index: '1', coeff: 1.0, inc: 0, desc: '倒金字塔' },
-        { name: '计时', index: 'All', coeff: '-', inc: '-', desc: 'AMRAP' }
     ],
     diff: [
         { name: '保守 (L1)', range: '[0, 2]', prob: '{0: 60, 1: 30, 2: 10}' },
@@ -562,32 +536,20 @@ const AI_CONFIG = {
         { cycle: '> 4周', structure: '适应期 -> 进阶期 -> 突破期 -> 减载期', alloc: '25%:40%:25%:10%' }
     ],
     factors: [
-        { key: '新鲜奖励', weight: 60, rule: '未练天数 > 7' },
-        { key: '收藏奖励', weight: 50, rule: '是否收藏 = True' },
-        { key: '探索奖励', weight: 30, rule: '历史训练次数 == 0' },
-        { key: '厌倦惩罚', weight: -80, rule: '连续出现次数 ≥ 3' },
-        { key: '冷宫惩罚', weight: -50, rule: '移除日期 ≤ 30天' },
-        { key: '疲劳惩罚', weight: -50, rule: '辅助肌状态 < 55' },
-        { key: '完赛信心奖励', weight: 20, rule: '连续缺勤天数 > 7 && 历史平均完成度 > 0.95' }
+        { key: 'FRESH_REWARD', weight: 40, metric: 'LAST_TRAIN_GAP', op: 'GT', val: '7' },
+        { key: 'FAV_REWARD', weight: 50, metric: 'IS_FAV', op: 'EQ', val: 'TRUE' },
+        { key: 'EXPLORE_REWARD', weight: 30, metric: 'HISTORY_COUNT', op: 'EQ', val: '0' },
+        { key: 'BORED_PENALTY', weight: -80, metric: 'CONSECUTIVE_USE', op: 'GTE', val: '3' },
+        { key: 'REPLACE_PENALTY', weight: -50, metric: 'LAST_REPLACE_GAP', op: 'LTE', val: '30' },
+        { key: 'DELETE_PENALTY', weight: -100, metric: 'LAST_DELETE_GAP', op: 'LTE', val: '30' },
+        { key: 'FATIGUE_PENALTY', weight: -50, metric: 'MUSCLE_FATIGUE', op: 'LT', val: '55' },
+        { key: 'CONFIDENCE_REWARD', weight: 20, metric: 'ABSENCE_DAYS', op: 'GT', val: '7' }
     ],
     status: [
         { range: '[85, 100]', label: '已恢复', intensity: 1.0, volume: 1.0, constraint: '-' },
         { range: '[55, 84]', label: '恢复中', intensity: 0.9, volume: 1.0, constraint: '-' },
         { range: '[30, 54]', label: '疲劳中', intensity: 0.8, volume: 0.8, constraint: '剔除高冲击' },
         { range: '[0, 29]', label: '已力竭', intensity: '-', volume: '-', constraint: '推荐主动恢复' }
-    ],
-    phaseDefs: [
-        { name: '适应期', intensity: 0.8, volume: 0.8, desc: '解剖适应，低强度' },
-        { name: '进阶期', intensity: 1.0, volume: 1.0, desc: '渐进超负荷' },
-        { name: '突破期', intensity: 1.1, volume: 0.9, desc: '强度突破，容量略降' },
-        { name: '减载期', intensity: 0.6, volume: 0.6, desc: '主动恢复' }
-    ],
-    feedback: [
-        { cond: '平台期判定次数', action: '3', desc: '连续 3 次负荷未提升' },
-        { cond: '有效训练完成度', action: '0.90', desc: '判定平台期时，要求课程完成度 > 90%' },
-        { cond: '厌恶判定次数', action: '3', desc: '主动替换同一动作 > 3 次' },
-        { cond: '平台期干预策略', action: '负荷策略="波浪"', desc: '通过波动强度打破适应' },
-        { cond: '平台期干预策略', action: '动作组数*1.2', desc: '增加容量积累代谢压力' }
     ]
 };
 
@@ -1326,90 +1288,18 @@ const RENDERERS = {
     // 6. AI推荐管理 (AI Config)
     // ============================================================
     ai_list: () => {
-        const tab = app.state.tab || 'global';
+        const tab = app.state.tab || 'macro';
         return `
         ${Tabs([
-            {key:'global', label:'1. 全局基准配置'},
-            {key:'strategy', label:'2. 策略定义配置'},
-            {key:'rec', label:'3. 推荐与筛选'},
-            {key:'status', label:'4. 状态与反馈'}
+            {key:'macro', label:'1. 宏观规划配置'},
+            {key:'meso', label:'2. 中观课程配置'},
+            {key:'micro', label:'3. 微观适配配置'},
+            {key:'algo', label:'4. 推荐算法配置'}
         ], tab, 'app.setTab')}
 
-        ${tab === 'global' ? `
+        ${tab === 'macro' ? `
         <div class="form-section">
-            <div class="section-header">1.1 策略矩阵配置 (Strategy Matrix)</div>
-            <div class="section-header">1.1 策略矩阵配置</div>
-            <div style="padding:20px; overflow-x:auto;">
-                ${ConfigTable('strategy', [
-                    {label:'目标', key:'target', type:'select', opts:['增肌','力量','减脂','HIIT','耐力','爆发','心肺','有氧','瑜伽','普拉提','拉伸','恢复','柔韧','协调','体态','激活','平衡','专项']},
-                    {label:'等级 (多选)', key:'level', type:'multiselect', opts:['L1','L2','L3','L4','L5']},
-                    {label:'组数', key:'sets', type:'number', suffix:'组'},
-                    {label:'间歇', key:'rest', type:'number', suffix:'s'},
-                    {label:'强度', key:'intensity', type:'number', step:0.05},
-                    {label:'模式', key:'mode', type:'select', opts:['常规','循环']},
-                    {label:'策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','自定义']},
-                    {label:'难度', key:'diff', type:'select', opts:['保守','标准','进阶','挑战']}
-                ])}
-            </div>
-        </div>
-        <div class="form-section">
-            <div class="section-header">1.3 结构与组装配置</div>
-            <div style="padding:20px;">
-                ${ConfigTable('structure', [
-                    {label:'环节类型', key:'type', type:'select', opts:['热身','主训','放松']},
-                    {label:'推荐占比', key:'ratio', type:'number', suffix:'%'},
-                    {label:'最大时长(Cap)', key:'max', type:'number', suffix:'min'},
-                    {label:'动作数量限制', key:'count', type:'number', suffix:'个'}
-                ])}
-            </div>
-        </div>
-        <div class="form-section">
-            <div class="section-header">1.4 等级强度系数配置</div>
-            <div style="padding:20px;">
-                ${ConfigTable('levels', [
-                    {label:'运动等级', key:'level', type:'text'},
-                    {label:'强度系数', key:'coeff', type:'number', step:0.1}
-                ])}
-            </div>
-        </div>
-        <div class="form-section">
-            <div class="section-header">1.5 训练范式配置</div>
-            <div style="padding:20px;">
-                ${ConfigTable('paradigms', [
-                    {label:'训练范式', key:'name', type:'select', opts:['抗阻范式','间歇范式','流式范式']},
-                    {label:'包含类型 (多选)', key:'types', type:'multiselect', opts:['力量','HIIT','有氧','瑜伽','普拉提','拉伸','康复','冥想','高尔夫','搏击']},
-                    {label:'默认组数', key:'sets', type:'text'},
-                    {label:'负荷策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','自定义']},
-                    {label:'核心特征 (选填)', key:'feature', type:'textarea'}
-                ])}
-            </div>
-        </div>` : ''}
-
-        ${tab === 'strategy' ? `
-        <div class="form-section">
-            <div class="section-header">2.1 负荷与组间策略配置</div>
-            <div style="padding:20px;">
-                ${ConfigTable('load', [
-                    {label:'策略名称', key:'name', type:'select', opts:['恒定','递增','递减','自定义']},
-                    {label:'组序号', key:'index', type:'text'},
-                    {label:'负荷系数', key:'coeff', type:'text'},
-                    {label:'次数增量', key:'inc', type:'text'},
-                    {label:'说明', key:'desc', type:'text'}
-                ])}
-            </div>
-        </div>
-        <div class="form-section">
-            <div class="section-header">2.2 难度兼容策略配置</div>
-            <div style="padding:20px;">
-                ${ConfigTable('diff', [
-                    {label:'策略名称', key:'name', type:'text'},
-                    {label:'范围偏移', key:'range', type:'text'},
-                    {label:'概率分布 (偏移:权重)', key:'prob', width:'300px', type:'text'}
-                ])}
-            </div>
-        </div>
-        <div class="form-section">
-            <div class="section-header">2.3 阶段周期分配配置</div>
+            <div class="section-header">1.1 阶段周期分配配置</div>
             <div style="padding:20px;">
                 ${ConfigTable('phase', [
                     {label:'计划周期', key:'cycle', type:'select', opts:['1周','2周','3周','4周','>4周']},
@@ -1419,32 +1309,70 @@ const RENDERERS = {
             </div>
         </div>
         <div class="form-section">
-            <div class="section-header">2.4 阶段属性定义 (Phase Definitions)</div>
+            <div class="section-header">1.2 计划阶段模板配置</div>
+            <div style="padding:20px; color:#888; font-size:12px;">
+                此配置项已独立为“计划阶段模板管理”模块。
+                <button class="btn btn-primary" style="margin-left:10px;" onclick="app.navigate('template')">前往管理</button>
+            </div>
+        </div>` : ''}
+
+        ${tab === 'meso' ? `
+        <div class="form-section">
+            <div class="section-header">2.1 训练范式配置</div>
             <div style="padding:20px;">
-                ${ConfigTable('phaseDefs', [
-                    {label:'阶段名称', key:'name', type:'text'},
-                    {label:'强度系数', key:'intensity', type:'number', step:0.1},
-                    {label:'容量系数', key:'volume', type:'number', step:0.1},
+                ${ConfigTable('paradigms', [
+                    {label:'训练范式', key:'name', type:'select', opts:['抗阻范式','间歇范式','流式范式']},
+                    {label:'包含类型 (多选)', key:'types', type:'multiselect', opts:['力量','HIIT','有氧','瑜伽','普拉提','拉伸','康复','冥想','高尔夫','搏击']},
+                    {label:'强制组数', key:'sets', type:'text'},
+                    {label:'负荷策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','自定义']},
+                    {label:'核心特征 (选填)', key:'feature', type:'textarea'}
+                ])}
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="section-header">2.2 策略矩阵配置</div>
+            <div style="padding:20px; overflow-x:auto;">
+                ${ConfigTable('strategy', [
+                    {label:'目标', key:'target', type:'select', opts:['增肌','力量','减脂','HIIT','耐力','爆发','心肺','有氧','瑜伽','普拉提','拉伸','恢复','柔韧','协调','体态','激活','平衡','专项']},
+                    {label:'组数', key:'sets', type:'number', suffix:'组'},
+                    {label:'间歇', key:'rest', type:'number', suffix:'s'},
+                    {label:'强度', key:'intensity', type:'number', step:0.05},
+                    {label:'模式', key:'mode', type:'select', opts:['常规','循环']},
+                    {label:'策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','自定义']}
+                ])}
+            </div>
+        </div>
+        <div class="form-section">
+            <div class="section-header">2.3 课程环节模板配置</div>
+            <div style="padding:20px; color:#888; font-size:12px;">
+                此配置项已独立为“课程环节模板管理”模块。
+                <button class="btn btn-primary" style="margin-left:10px;" onclick="app.navigate('segment')">前往管理</button>
+            </div>
+        </div>` : ''}
+
+        ${tab === 'micro' ? `
+        <div class="form-section">
+            <div class="section-header">3.1 等级强度系数配置</div>
+            <div style="padding:20px;">
+                ${ConfigTable('levels', [
+                    {label:'运动等级', key:'level', type:'text'},
+                    {label:'等级系数', key:'coeff', type:'number', step:0.1},
                     {label:'说明', key:'desc', type:'text'}
                 ])}
             </div>
-        </div>` : ''}
-
-        ${tab === 'rec' ? `
+        </div>
         <div class="form-section">
-            <div class="section-header">3.1 推荐影响因子配置</div>
+            <div class="section-header">3.2 难度兼容策略配置</div>
             <div style="padding:20px;">
-                ${ConfigTable('factors', [
-                    {label:'因子键', key:'key', type:'select', opts:['新鲜奖励','收藏奖励','探索奖励','厌倦惩罚','冷宫惩罚','疲劳惩罚','完赛信心奖励']},
-                    {label:'权重/分值', key:'weight', type:'number', suffix:'分'},
-                    {label:'触发规则', key:'rule', width:'300px', type:'text'}
+                ${ConfigTable('diff', [
+                    {label:'策略名称', key:'name', type:'text'},
+                    {label:'范围偏移', key:'range', type:'text'},
+                    {label:'概率分布 (偏移:权重)', key:'prob', width:'300px', type:'text'}
                 ])}
             </div>
-        </div>` : ''}
-
-        ${tab === 'status' ? `
+        </div>
         <div class="form-section">
-            <div class="section-header">4.1 状态适配配置 (疲劳干预)</div>
+            <div class="section-header">3.3 状态适配配置</div>
             <div style="padding:20px;">
                 ${ConfigTable('status', [
                     {label:'状态值区间', key:'range', type:'text'},
@@ -1454,14 +1382,18 @@ const RENDERERS = {
                     {label:'强制约束', key:'constraint', type:'text'}
                 ])}
             </div>
-        </div>
+        </div>` : ''}
+
+        ${tab === 'algo' ? `
         <div class="form-section">
-            <div class="section-header">4.2 反馈与自适应配置</div>
+            <div class="section-header">4.1 推荐影响因子配置</div>
             <div style="padding:20px;">
-                ${ConfigTable('feedback', [
-                    {label:'参数/条件', key:'cond', type:'text'},
-                    {label:'阈值/动作', key:'action', type:'text'},
-                    {label:'说明', key:'desc', width:'300px', type:'text'}
+                ${ConfigTable('factors', [
+                    {label:'因子键 (Key)', key:'key', type:'text'},
+                    {label:'权重/分值', key:'weight', type:'number', suffix:'分'},
+                    {label:'判定指标 (Metric)', key:'metric', type:'text'},
+                    {label:'算子 (Op)', key:'op', type:'select', opts:['GT','LT','EQ','GTE','LTE'], width:'80px'},
+                    {label:'阈值 (Value)', key:'val', type:'text', width:'80px'}
                 ])}
             </div>
         </div>` : ''}
@@ -2770,10 +2702,11 @@ const app = {
             const config = {
                 STRATEGY: AI_CONFIG.strategy.map(s => ({
                     ...s,
-                    level: Array.isArray(s.level) ? s.level : s.level.split(',').map(l=>l.trim())
+                    // Level removed from strategy matrix
                 })),
                 SEGMENT_TEMPLATES: AI_CONFIG.templates.map(t => ({
                     ...t,
+                    key: t.name.split('_')[0], // [NEW] Generate Key for PRD 2.3 matching (e.g. "推力日_中级" -> "推力日")
                     count: parseInt(t.count) || 99,
                     slots: t.slots.map(s => ({
                         focusDim: s.dim, // 映射 dim -> focusDim
@@ -2786,15 +2719,15 @@ const app = {
                     level: cleanLevel(l.level),
                     coeff: parseFloat(l.coeff)
                 })),
-                PLAN_TEMPLATES: MOCK_DATA.templates, // 结构基本一致
+                PLAN_TEMPLATES: MOCK_DATA.templates.map(t => ({
+                    ...t,
+                    // [NEW] Transform basicSlots objects to simple Keys to match PRD 1.2
+                    // e.g. [{name:'推力日', ...}] -> ['推力日']
+                    basicSlots: (t.basicSlots || []).map(s => s.name)
+                })),
                 PARADIGMS: AI_CONFIG.paradigms.map(p => ({
                     ...p,
                     types: cleanArr(p.types)
-                })),
-                LOAD_STRATEGIES: AI_CONFIG.load.map(l => ({
-                    ...l,
-                    coeff: l.coeff === '-' ? 1.0 : parseFloat(l.coeff),
-                    inc: l.inc === '-' ? 0 : parseFloat(l.inc)
                 })),
                 PHASE_STRATEGIES: AI_CONFIG.phase.map(p => ({
                     cycle: p.cycle,
@@ -2812,7 +2745,6 @@ const app = {
                     antagonist: MAPPING_DATA.antagonist,
                     intensity: MAPPING_DATA.intensity
                 },
-                PHASE_DEFS: AI_CONFIG.phaseDefs,
                 FACTORS: AI_CONFIG.factors,
                 STATUS_CONFIG: AI_CONFIG.status.map(s => ({
                     ...s,

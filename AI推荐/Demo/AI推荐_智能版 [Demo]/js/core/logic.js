@@ -1,6 +1,7 @@
-// e:\AI-Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\core\logic.js
+// d:\AEKE Projects\AI Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\core\logic.js
 
 window.Logic = {
+    // ... (保持 createContext, confirmCourse, planPhases 不变) ...
     createContext: (input, planContext = null) => {
         const user = window.store.user;
         const bodyStatus = Math.max(0, 100 - (user.fatigue * 8));
@@ -29,7 +30,8 @@ window.Logic = {
                 level: user.level,
                 goal: user.goal,
                 funcGoal: user.funcGoal || user.goal,
-                gender: user.gender
+                gender: user.gender,
+                primaryEquip: input ? input.primaryEquip : null
             },
             constraints: { 
                 availableEquip: availableEquip,
@@ -117,7 +119,14 @@ window.Logic = {
 
         // Rest Rounds (Transition)
         const wuRestRound = 0; 
-        const mainRestRound = 60;
+        
+        // [FIX] Dynamic Main Rest Round Calculation
+        // Regular Mode (Strength/Hypertrophy): Transition time >= Set Rest time
+        // Circuit Mode (HIIT): Round Rest > Station Rest (usually double)
+        let mainRestRound = 60;
+        if (mainStrategy.mode === '循环') mainRestRound = Math.max(60, (mainStrategy.rest || 30) * 2);
+        else mainRestRound = mainStrategy.rest || 60;
+
         const cdRestRound = 0;
 
         ctx.phases = [
@@ -175,11 +184,39 @@ window.Logic = {
         const { constraints, meta } = ctx;
         if (DB.length === 0) DB = FALLBACK_DB;
 
+        // [FIX 4] 优化主配件确认逻辑 (移至动作粗选前)
+        // 逻辑：单部位按区域随机，多部位默认手柄
         if (!meta.primaryEquip) {
-            const MAIN_EQUIPS = ['手柄', '横杆'];
-            const candidates = MAIN_EQUIPS.filter(e => constraints.availableEquip.includes(e));
-            if (candidates.length > 0) {
-                meta.primaryEquip = candidates[Math.floor(Math.random() * candidates.length)];
+            const target = meta.targets[0];
+            const isMulti = meta.targets.length > 1 || target === '全身';
+            const available = constraints.availableEquip;
+            
+            let candidates = [];
+            
+            if (isMulti) {
+                candidates = ['手柄'];
+            } else {
+                const anatomy = CONSTANTS.MAPPINGS.ANATOMY;
+                let region = '全身';
+                for (const [r, parts] of Object.entries(anatomy)) {
+                    if (parts.includes(target)) {
+                        region = r;
+                        break;
+                    }
+                }
+                
+                if (region === '上肢') candidates = ['手柄', '横杆'];
+                else if (region === '下肢') candidates = ['手柄', '横杆', '踝带'];
+                else if (region === '核心') candidates = ['手柄'];
+                else candidates = ['手柄'];
+            }
+            
+            // Intersect with user's available equipment
+            const validCandidates = candidates.filter(e => available.includes(e));
+            
+            // Random selection
+            if (validCandidates.length > 0) {
+                meta.primaryEquip = validCandidates[Math.floor(Math.random() * validCandidates.length)];
             } else {
                 meta.primaryEquip = '自重';
             }
@@ -271,15 +308,27 @@ window.Logic = {
                             const related = CONSTANTS.MAPPINGS.RELATED_PARTS[t];
                             if (related) related.forEach(r => allowedParts.add(r));
                         });
-                        // [FIX] Stricter filtering: Main part must be allowed OR Sub part must be TARGET
+                        // [FIX 3] Stricter filtering: Main part must be allowed OR Sub part must be TARGET
                         const mainPartAllowed = allowedParts.has(a.part);
                         const subPartAllowed = (a.subPart || []).some(sp => meta.targets.includes(sp));
                         if (!mainPartAllowed && !subPartAllowed) return false;
                     }
                 }
                 
+                // [NEW] 主配件一致性过滤 (Hard Filter)
+                // 互斥配件列表：手柄、横杆、踝带 (自重、哑铃等通用配件不互斥)
+                const conflictEquips = ['手柄', '横杆', '踝带'];
+                const actionEquips = a.equip || [];
+                // 如果动作包含“互斥配件”中的任意一个，必须与 primaryEquip 一致
+                const hasConflict = actionEquips.some(e => conflictEquips.includes(e) && e !== meta.primaryEquip);
+                if (hasConflict) return false;
+
                 if (p.type === '主训') {
-                    if (targetPart !== '全身' && a.part !== targetPart && !(a.subPart || []).includes(targetPart)) return false;
+                    // [FIX 3] 主训环节严格匹配部位，防止练肩出现练胸动作
+                    if (meta.targets[0] !== '全身') {
+                        // 支持多部位选择 (如胸+背)，只要动作部位在目标列表中即可
+                        if (!meta.targets.includes(a.part)) return false;
+                    }
                 }
                 return true;
             });
@@ -302,6 +351,7 @@ window.Logic = {
             // 5. 槽位填充
             let selected = [];
             const usedIds = new Set();
+            const usedNames = new Set(); // [FIX 1] 名称去重集合
             const totalSlots = p.targetCount;
             const slotsConfig = tpl ? tpl.slots : [{focusDim:'动作构造', focusTarget:'复合动作', w:1.0}];
             
@@ -312,7 +362,17 @@ window.Logic = {
                 while (picks.length < count && available.length > 0) {
                     const windowSize = Math.min(fuzzyRange, available.length);
                     const idx = Math.floor(Math.random() * windowSize);
-                    picks.push(available[idx]);
+                    const pick = available[idx];
+                    
+                    // [FIX 1] 智能名称去重：提取核心词 (如 "哑铃卧推" -> "卧推")
+                    // 避免同类动作刷屏 (如 3个不同角度的卧推)
+                    const coreName = pick.name.split('(')[0].replace(/杠铃|哑铃|绳索|器械|自重|坐姿|站姿/g, '').trim();
+                    
+                    if (!usedNames.has(coreName)) {
+                        picks.push(pick);
+                        usedNames.add(coreName);
+                    }
+                    // 无论是否选中，都从available中移除，避免死循环
                     available.splice(idx, 1);
                 }
                 return picks;
@@ -340,6 +400,9 @@ window.Logic = {
                 picked.forEach(a => { selected.push(a); usedIds.add(a.id); });
             }
 
+            // [FIX 2] 启用全局重排逻辑
+            // 必须启用，否则动作顺序仅由 Slot 填充顺序决定，无法实现 "主动肌升序" 等精细排序
+            // 模板配置 (config.js) 中的 sort 字段决定了最终顺序
             if (tpl && tpl.sort) {
                 selected.sort((a, b) => {
                     for (const rule of tpl.sort) {
@@ -372,17 +435,18 @@ window.Logic = {
             if (evalRule(f.rule, action)) score += f.weight;
         });
 
-        const MAIN_EQUIPS = ['手柄', '横杆'];
-        const primary = ctx.meta.primaryEquip;
-        if (primary && MAIN_EQUIPS.includes(primary)) {
-            const hasConflict = action.equip && action.equip.some(e => MAIN_EQUIPS.includes(e) && e !== primary);
-            if (hasConflict) score -= 500;
+        // [FIX] 主配件权重倾斜 (Priority Boost)
+        // 如果动作使用了当前锁定的主配件，给予极高权重加成，确保其排在自重动作之前
+        // 解决 "锁定了横杆，但出来的全是俯卧撑" 的问题
+        if (ctx.meta.primaryEquip && action.equip && action.equip.includes(ctx.meta.primaryEquip)) {
+            score += 500;
         }
 
         if (ctx.meta.targets.includes(action.part)) score += 10;
         return score;
     },
 
+    // ... (保持 compareActions, instantiate, runPipeline, genCourse, genPlan, completeTraining, getMaxReps, calcRepsFromLoad 不变) ...
     compareActions: (a, b, rule) => {
         const { dim, order, seq } = rule;
         const getVal = (action, dimension) => {
