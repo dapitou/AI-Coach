@@ -3,35 +3,24 @@
 window.CONFIG = {
     // 1.1 策略矩阵 (Strategy Matrix) - 定义不同目标和等级的基准参数
     STRATEGY: [
-        { target: '增肌', level: ['L1','L2'], sets: 3, rest: 60, intensity: 0.65, mode: '常规', strategy: '推荐', diff: '标准', rpe: 7 },
-        { target: '增肌', level: ['L3','L4'], sets: 4, rest: 90, intensity: 0.75, mode: '常规', strategy: '递增', diff: '进阶', rpe: 8 },
-        { target: '增肌', level: ['L5'], sets: 5, rest: 90, intensity: 0.80, mode: '常规', strategy: '递增', diff: '挑战', rpe: 9 },
-        { target: '力量', level: ['L1','L2'], sets: 3, rest: 90, intensity: 0.75, mode: '常规', strategy: '恒定', diff: '标准', rpe: 7 },
-        { target: '力量', level: ['L3','L4'], sets: 5, rest: 120, intensity: 0.85, mode: '常规', strategy: '恒定', diff: '进阶', rpe: 8 },
-        { target: '力量', level: ['L5'], sets: 5, rest: 180, intensity: 0.90, mode: '常规', strategy: '递增', diff: '挑战', rpe: 9 },
-        { target: '减脂', level: ['L1','L2'], sets: 3, rest: 30, intensity: 0.55, mode: '循环', strategy: '恒定', diff: '保守', rpe: 6 },
-        { target: '减脂', level: ['L3','L4'], sets: 4, rest: 30, intensity: 0.65, mode: '循环', strategy: '恒定', diff: '标准', rpe: 7 },
-        { target: '减脂', level: ['L5'], sets: 5, rest: 20, intensity: 0.75, mode: '循环', strategy: '恒定', diff: '挑战', rpe: 8 },
-        { target: '耐力', level: ['L1','L2'], sets: 3, rest: 45, intensity: 0.40, mode: '循环', strategy: '恒定', diff: '保守', rpe: 6 },
-        { target: '耐力', level: ['L3','L4','L5'], sets: 4, rest: 30, intensity: 0.50, mode: '循环', strategy: '恒定', diff: '标准', rpe: 7 },
-        { target: '爆发', level: ['L1','L2'], sets: 3, rest: 120, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '保守', rpe: 6 },
-        { target: '爆发', level: ['L3','L4'], sets: 4, rest: 150, intensity: 0.70, mode: '常规', strategy: '递增', diff: '进阶', rpe: 8 },
-        { target: '爆发', level: ['L5'], sets: 5, rest: 180, intensity: 0.85, mode: '常规', strategy: '递增', diff: '挑战', rpe: 9 },
-        { target: '心肺', level: ['L1','L2'], sets: 3, rest: 30, intensity: 0.50, mode: '循环', strategy: '恒定', diff: '保守', rpe: 6 },
-        { target: '心肺', level: ['L3','L4'], sets: 4, rest: 20, intensity: 0.65, mode: '循环', strategy: '恒定', diff: '标准', rpe: 7 },
-        { target: '心肺', level: ['L5'], sets: 5, rest: 15, intensity: 0.80, mode: '循环', strategy: '恒定', diff: '挑战', rpe: 8 },
-        { target: 'HIIT', level: ['All'], sets: 6, rest: 30, intensity: 0.75, mode: '循环', strategy: '恒定', diff: '标准', rpe: 8 },
-        { target: '有氧', level: ['All'], sets: 4, rest: 15, intensity: 0.60, mode: '循环', strategy: '恒定', diff: '标准', rpe: 6 },
-        { target: '瑜伽', level: ['All'], sets: 1, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定', diff: '标准', rpe: 4 },
-        { target: '普拉提', level: ['All'], sets: 3, rest: 30, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
-        { target: '拉伸', level: ['All'], sets: 1, rest: 0, intensity: 0.20, mode: '常规', strategy: '恒定', diff: '保守', rpe: 3 },
-        { target: '恢复', level: ['All'], sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定', diff: '保守', rpe: 3 },
-        { target: '柔韧', level: ['All'], sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定', diff: '标准', rpe: 4 },
-        { target: '协调', level: ['All'], sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
-        { target: '体态', level: ['All'], sets: 3, rest: 45, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
-        { target: '激活', level: ['All'], sets: 2, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定', diff: '标准', rpe: 4 },
-        { target: '平衡', level: ['All'], sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', diff: '标准', rpe: 5 },
-        { target: '专项', level: ['All'], sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐', diff: '标准', rpe: 8 }
+        { target: '增肌', sets: 4, rest: 90, intensity: 0.75, mode: '常规', strategy: '递增', rpe: 8 },
+        { target: '力量', sets: 5, rest: 120, intensity: 0.85, mode: '常规', strategy: '恒定', rpe: 8 },
+        { target: '减脂', sets: 4, rest: 30, intensity: 0.65, mode: '循环', strategy: '计时', rpe: 7 },
+        { target: '耐力', sets: 4, rest: 30, intensity: 0.50, mode: '超级', strategy: '计时', rpe: 7 },
+        { target: '爆发', sets: 4, rest: 150, intensity: 0.70, mode: '常规', strategy: '递增', rpe: 8 },
+        { target: '心肺', sets: 4, rest: 20, intensity: 0.65, mode: '循环', strategy: '计时', rpe: 7 },
+        { target: 'HIIT', sets: 6, rest: 30, intensity: 0.75, mode: '循环', strategy: '计时', rpe: 8 },
+        { target: '有氧', sets: 4, rest: 15, intensity: 0.60, mode: '循环', strategy: '计时', rpe: 6 },
+        { target: '瑜伽', sets: 1, rest: 0, intensity: 0.40, mode: '常规', strategy: '计时', rpe: 4 },
+        { target: '普拉提', sets: 3, rest: 30, intensity: 0.50, mode: '常规', strategy: '恒定', rpe: 5 },
+        { target: '拉伸', sets: 1, rest: 0, intensity: 0.20, mode: '常规', strategy: '计时', rpe: 3 },
+        { target: '恢复', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定', rpe: 3 },
+        { target: '柔韧', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '计时', rpe: 4 },
+        { target: '协调', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', rpe: 5 },
+        { target: '体态', sets: 3, rest: 45, intensity: 0.50, mode: '常规', strategy: '计时', rpe: 5 },
+        { target: '激活', sets: 2, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定', rpe: 4 },
+        { target: '平衡', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定', rpe: 5 },
+        { target: '专项', sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐', rpe: 8 }
     ],
 
     // 1.2 课程环节模板 (Segment Templates) - 定义单节课的微观配方
@@ -82,6 +71,15 @@ window.CONFIG = {
         { level: 'L3', coeff: 1.0 },
         { level: 'L4', coeff: 1.2 },
         { level: 'L5', coeff: 1.5 }
+    ],
+
+    // 3.2 难度分布 (Difficulty Distribution)
+    DIFF: [
+        { level: 'L1', l1: 0.8, l2: 0.2, l3: 0, l4: 0, l5: 0 },
+        { level: 'L2', l1: 0.3, l2: 0.6, l3: 0.1, l4: 0, l5: 0 },
+        { level: 'L3', l1: 0.1, l2: 0.2, l3: 0.6, l4: 0.1, l5: 0 },
+        { level: 'L4', l1: 0, l2: 0.1, l3: 0.3, l4: 0.5, l5: 0.1 },
+        { level: 'L5', l1: 0, l2: 0, l3: 0.2, l4: 0.3, l5: 0.5 }
     ],
 
     // 1.5 计划模板 (Plan Templates) - 定义周排课逻辑

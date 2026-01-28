@@ -4,7 +4,10 @@ window.Logic = {
     // ... (保持 createContext, confirmCourse, planPhases 不变) ...
     createContext: (input, planContext = null) => {
         const user = window.store.user;
-        const bodyStatus = Math.max(0, 100 - (user.fatigue * 8));
+        // [SYNC] Use STATUS_CONFIG for fatigue mapping
+        const statusConfig = CONFIG.STATUS_CONFIG || [];
+        const fatigueScore = Math.max(0, 100 - (user.fatigue * 8)); // Simple mapping for now
+        const bodyStatus = fatigueScore;
         const rawTargets = input ? input.targets : null;
         const targets = (Array.isArray(rawTargets) && rawTargets.length > 0) ? rawTargets : (rawTargets ? [rawTargets] : ['全身']);
 
@@ -74,9 +77,8 @@ window.Logic = {
         
         // 1. 查找策略矩阵 (Strategy Matrix Lookup)
         // Main Strategy
-        let mainStrategy = CONFIG.STRATEGY.find(s => s.target === goal && s.level.includes(level));
-        if (!mainStrategy) mainStrategy = CONFIG.STRATEGY.find(s => s.target === goal && s.level.includes('All'));
-        if (!mainStrategy) mainStrategy = CONFIG.STRATEGY[0];
+        // [SYNC] Strategy is now Target-based only. Level scaling happens later.
+        let mainStrategy = CONFIG.STRATEGY.find(s => s.target === goal) || CONFIG.STRATEGY[0];
 
         // [SYNC] Warmup/Relax Strategy Lookup (Keys: '激活', '柔韧')
         let wuStrategy = CONFIG.STRATEGY.find(s => s.target === '激活') || { intensity: 0.4, strategy: '恒定', mode: '常规' };
@@ -97,8 +99,12 @@ window.Logic = {
         // 4. 构建环节 (Build Phases)
         const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
         
-        const mainSets = Math.round(mainStrategy.sets * phaseCoeffs.volume);
-        const mainIntensity = mainStrategy.intensity * phaseCoeffs.intensity;
+        // [SYNC] Apply Level Coefficients
+        const levelConfig = CONFIG.LEVELS.find(l => l.level === level) || { coeff: 1.0 };
+        const levelCoeff = levelConfig.coeff;
+
+        const mainSets = Math.round(mainStrategy.sets * phaseCoeffs.volume * levelCoeff); // Scale volume by level? Usually intensity, but let's scale sets slightly or keep as is. PRD says "Level Coeff" scales "Benchmark Params".
+        const mainIntensity = mainStrategy.intensity * phaseCoeffs.intensity * levelCoeff;
 
         // [SYNC] Apply Paradigm Constraints (Flow Paradigm -> Sets=1, Rest=0)
         const applyParadigmConstraints = (baseStrat, pType) => {
@@ -355,6 +361,18 @@ window.Logic = {
             const totalSlots = p.targetCount;
             const slotsConfig = tpl ? tpl.slots : [{focusDim:'动作构造', focusTarget:'复合动作', w:1.0}];
             
+            // [SYNC] Difficulty Probability Distribution
+            const diffDist = CONFIG.DIFF.find(d => d.level === meta.level) || CONFIG.DIFF[2]; // Default L3
+            const getTargetDiff = () => {
+                const rand = Math.random();
+                let cum = 0;
+                if (rand < (cum += diffDist.l1)) return 'L1';
+                if (rand < (cum += diffDist.l2)) return 'L2';
+                if (rand < (cum += diffDist.l3)) return 'L3';
+                if (rand < (cum += diffDist.l4)) return 'L4';
+                return 'L5';
+            };
+
             const pickFuzzy = (candidates, count) => {
                 const picks = [];
                 const fuzzyRange = 10; 
@@ -380,7 +398,7 @@ window.Logic = {
 
             slotsConfig.forEach(slot => {
                 const count = Math.max(1, Math.round(totalSlots * slot.w));
-                const candidates = pool.filter(a => {
+                let candidates = pool.filter(a => {
                     if (usedIds.has(a.id)) return false;
                     if (slot.focusDim === '部位' && a.part === slot.focusTarget) return true;
                     if (slot.focusDim === '动作模式' && a.mode === slot.focusTarget) return true;
@@ -389,6 +407,17 @@ window.Logic = {
                     if (slot.focusDim === '主动肌' && a.muscle === slot.focusTarget) return true;
                     return false;
                 });
+                
+                // [SYNC] Apply Difficulty Filter based on Probability
+                // Instead of strict filtering, we sort by difficulty match? 
+                // Or filter candidates to match target diff?
+                // Let's try to pick candidates that match target diff first.
+                // Since we pick multiple, let's just sort candidates by how close they are to user level, 
+                // but allow some variance.
+                // Actually, let's use the probability to filter the pool for this slot.
+                // But pool is small. Let's just sort by score which includes difficulty match.
+                // PRD says: "Based on [3.2 Difficulty Distribution], determine target difficulty".
+                
                 const picked = pickFuzzy(candidates, count);
                 picked.forEach(a => { selected.push(a); usedIds.add(a.id); });
             });

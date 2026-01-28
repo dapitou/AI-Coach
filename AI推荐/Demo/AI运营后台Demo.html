@@ -268,7 +268,7 @@ const MOCK_DATA = {
         // Hypertrophy / Strength Templates
         { 
             id: 'TPL_HYP_1', name: '一分化 (全身综合)', goal: '增肌', freq: 1, level: 'All', slots: 1, status: '上架',
-            basicSlots: [{name:'全身综合', type:'力量', focusDim:'部位', focusTarget:'全身'}]
+            basicSlots: [{name:'全身', type:'力量', focusDim:'部位', focusTarget:'全身'}]
         },
         { 
             id: 'TPL_HYP_2', name: '二分化 (上下肢)', goal: '增肌', freq: 2, level: 'All', slots: 2, status: '上架',
@@ -290,6 +290,9 @@ const MOCK_DATA = {
         { 
             id: 'TPL_FAT_3', name: '减脂循环 (3天)', goal: '减脂', freq: 3, level: 'All', slots: 3, status: '上架',
             basicSlots: [
+                {name:'HIIT燃脂', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
+                {name:'减脂', type:'有氧', focusDim:'部位', focusTarget:'全身'},
+                {name:'核心', type:'力量', focusDim:'部位', focusTarget:'核心'},
                 {name:'全身HIIT', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
                 {name:'有氧耐力', type:'有氧', focusDim:'部位', focusTarget:'全身'},
                 {name:'核心强化', type:'力量', focusDim:'部位', focusTarget:'核心'}
@@ -298,10 +301,13 @@ const MOCK_DATA = {
         { 
             id: 'TPL_FAT_5', name: '高频燃脂循环 (5天)', goal: '减脂', freq: 5, level: 'L3', slots: 5, status: '上架',
             basicSlots: [
+                {name:'HIIT燃脂', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
                 {name:'全身HIIT', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
                 {name:'上肢塑形', type:'力量', focusDim:'部位', focusTarget:'胸部'},
+                {name:'减脂', type:'有氧', focusDim:'部位', focusTarget:'全身'},
                 {name:'有氧耐力', type:'有氧', focusDim:'部位', focusTarget:'全身'},
                 {name:'下肢塑形', type:'力量', focusDim:'部位', focusTarget:'腿部'},
+                {name:'核心', type:'HIIT', focusDim:'部位', focusTarget:'核心'},
                 {name:'核心燃脂', type:'HIIT', focusDim:'部位', focusTarget:'核心'}
             ]
         },
@@ -309,8 +315,11 @@ const MOCK_DATA = {
         { 
             id: 'TPL_CAR_4', name: '心肺耐力循环 (4天)', goal: '健康', freq: 4, level: 'All', slots: 4, status: '上架',
             basicSlots: [
+                {name:'减脂', type:'有氧', focusDim:'部位', focusTarget:'全身'},
                 {name:'LISS有氧', type:'有氧', focusDim:'部位', focusTarget:'全身'},
                 {name:'HIIT燃脂', type:'HIIT', focusDim:'部位', focusTarget:'全身'},
+                {name:'核心', type:'力量', focusDim:'部位', focusTarget:'核心'},
+                {name:'减脂', type:'有氧', focusDim:'部位', focusTarget:'全身'},
                 {name:'核心强化', type:'力量', focusDim:'部位', focusTarget:'核心'},
                 {name:'LISS有氧', type:'有氧', focusDim:'部位', focusTarget:'全身'}
             ]
@@ -318,6 +327,8 @@ const MOCK_DATA = {
         { 
             id: 'TPL_POS_2', name: '体态矫正方案 (2天)', goal: '健康', freq: 2, level: 'L1', slots: 2, status: '上架',
             basicSlots: [
+                {name:'体态', type:'力量', focusDim:'动作功能', focusTarget:'体态'},
+                {name:'平衡', type:'力量', focusDim:'动作功能', focusTarget:'平衡'},
                 {name:'上肢体态', type:'力量', focusDim:'动作功能', focusTarget:'体态'},
                 {name:'下肢稳定', type:'力量', focusDim:'动作功能', focusTarget:'平衡'}
             ]
@@ -325,6 +336,9 @@ const MOCK_DATA = {
         { 
             id: 'TPL_FLX_3', name: '柔韧与恢复方案 (3天)', goal: '健康', freq: 3, level: 'All', slots: 3, status: '上架',
             basicSlots: [
+                {name:'柔韧', type:'拉伸', focusDim:'动作功能', focusTarget:'柔韧'},
+                {name:'恢复', type:'瑜伽', focusDim:'动作功能', focusTarget:'恢复'},
+                {name:'恢复', type:'康复', focusDim:'动作功能', focusTarget:'恢复'},
                 {name:'全身拉伸', type:'拉伸', focusDim:'动作功能', focusTarget:'柔韧'},
                 {name:'瑜伽流', type:'瑜伽', focusDim:'动作功能', focusTarget:'恢复'},
                 {name:'泡沫轴放松', type:'康复', focusDim:'动作功能', focusTarget:'恢复'}
@@ -334,6 +348,10 @@ const MOCK_DATA = {
         { 
             id: 'TPL_POW_4', name: '爆发力专项分化 (4天)', goal: '增肌', freq: 4, level: 'L4', slots: 4, status: '上架',
             basicSlots: [
+                {name:'腿部', type:'力量', focusDim:'动作功能', focusTarget:'爆发'},
+                {name:'上肢日', type:'力量', focusDim:'动作模式', focusTarget:'水平推'},
+                {name:'HIIT燃脂', type:'HIIT', focusDim:'动作功能', focusTarget:'爆发'},
+                {name:'核心', type:'力量', focusDim:'动作模式', focusTarget:'核心稳定'},
                 {name:'下肢爆发', type:'力量', focusDim:'动作功能', focusTarget:'爆发'},
                 {name:'上肢力量', type:'力量', focusDim:'动作模式', focusTarget:'水平推'},
                 {name:'全身爆发', type:'HIIT', focusDim:'动作功能', focusTarget:'爆发'},
@@ -400,24 +418,24 @@ const MAPPING_DATA = {
 
 const AI_CONFIG = {
     strategy: [
-        { target: '增肌', sets: 4, rest: 90, intensity: 0.75, mode: '常规', strategy: '递增' },
-        { target: '力量', sets: 5, rest: 120, intensity: 0.85, mode: '常规', strategy: '恒定' },
-        { target: '减脂', sets: 4, rest: 30, intensity: 0.65, mode: '循环', strategy: '计时' },
-        { target: '耐力', sets: 4, rest: 30, intensity: 0.50, mode: '超级', strategy: '计时' },
-        { target: '爆发', sets: 4, rest: 150, intensity: 0.70, mode: '常规', strategy: '递增' },
-        { target: '心肺', sets: 4, rest: 20, intensity: 0.65, mode: '循环', strategy: '计时' },
-        { target: 'HIIT', sets: 6, rest: 30, intensity: 0.75, mode: '循环', strategy: '计时' },
-        { target: '有氧', sets: 4, rest: 15, intensity: 0.60, mode: '循环', strategy: '计时' },
-        { target: '瑜伽', sets: 1, rest: 0, intensity: 0.40, mode: '常规', strategy: '计时' },
-        { target: '普拉提', sets: 3, rest: 30, intensity: 0.50, mode: '常规', strategy: '恒定' },
-        { target: '拉伸', sets: 1, rest: 0, intensity: 0.20, mode: '常规', strategy: '计时' },
-        { target: '恢复', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '恒定' },
-        { target: '柔韧', sets: 2, rest: 0, intensity: 0.30, mode: '常规', strategy: '计时' },
-        { target: '协调', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定' },
-        { target: '体态', sets: 3, rest: 45, intensity: 0.50, mode: '常规', strategy: '计时' },
-        { target: '激活', sets: 2, rest: 0, intensity: 0.40, mode: '常规', strategy: '恒定' },
-        { target: '平衡', sets: 3, rest: 60, intensity: 0.50, mode: '常规', strategy: '恒定' },
-        { target: '专项', sets: 3, rest: 90, intensity: 0.70, mode: '常规', strategy: '推荐' }
+        { target: '增肌', sets: 4, restConfig: '休息', rest: 90, roundRest: 0, intensity: 0.75, mode: '常规组', strategy: '递增' },
+        { target: '力量', sets: 5, restConfig: '休息', rest: 120, roundRest: 0, intensity: 0.85, mode: '常规组', strategy: '恒定' },
+        { target: '减脂', sets: 4, restConfig: '休息', rest: 30, roundRest: 60, intensity: 0.65, mode: '循环组', strategy: '计时' },
+        { target: '耐力', sets: 4, restConfig: '休息', rest: 15, roundRest: 45, intensity: 0.50, mode: '超级组', strategy: '计时' },
+        { target: '爆发', sets: 4, restConfig: '休息', rest: 150, roundRest: 0, intensity: 0.70, mode: '常规组', strategy: '递增' },
+        { target: '心肺', sets: 4, restConfig: '休息', rest: 20, roundRest: 45, intensity: 0.65, mode: '循环组', strategy: '计时' },
+        { target: 'HIIT', sets: 6, restConfig: '休息', rest: 30, roundRest: 60, intensity: 0.75, mode: '循环组', strategy: '计时' },
+        { target: '有氧', sets: 4, restConfig: '休息', rest: 15, roundRest: 30, intensity: 0.60, mode: '循环组', strategy: '计时' },
+        { target: '瑜伽', sets: 1, restConfig: '不休息', rest: 0, roundRest: 0, intensity: 0.40, mode: '常规组', strategy: '计时' },
+        { target: '普拉提', sets: 3, restConfig: '休息', rest: 30, roundRest: 0, intensity: 0.50, mode: '常规组', strategy: '恒定' },
+        { target: '拉伸', sets: 1, restConfig: '不休息', rest: 0, roundRest: 0, intensity: 0.20, mode: '常规组', strategy: '计时' },
+        { target: '恢复', sets: 2, restConfig: '不休息', rest: 0, roundRest: 0, intensity: 0.30, mode: '常规组', strategy: '恒定' },
+        { target: '柔韧', sets: 2, restConfig: '不休息', rest: 0, roundRest: 0, intensity: 0.30, mode: '常规组', strategy: '计时' },
+        { target: '协调', sets: 3, restConfig: '休息', rest: 60, roundRest: 0, intensity: 0.50, mode: '常规组', strategy: '恒定' },
+        { target: '体态', sets: 3, restConfig: '休息', rest: 45, roundRest: 0, intensity: 0.50, mode: '常规组', strategy: '计时' },
+        { target: '激活', sets: 2, restConfig: '不休息', rest: 0, roundRest: 0, intensity: 0.40, mode: '常规组', strategy: '恒定' },
+        { target: '平衡', sets: 3, restConfig: '休息', rest: 60, roundRest: 0, intensity: 0.50, mode: '常规组', strategy: '恒定' },
+        { target: '专项', sets: 3, restConfig: '休息', rest: 90, roundRest: 0, intensity: 0.70, mode: '常规组', strategy: '推荐' }
     ],
     templates: [
         // --- 热身 (Warmup) ---
@@ -511,22 +529,26 @@ const AI_CONFIG = {
         { id: 'TPL_SEG_063', name: '体态_L1', dim: '动作功能', target: '体态', type: '主训', levels: ['All'], gender: 'All', slots: [{focusDim:'动作功能',focusTarget:'体态',w:0.6}, {focusDim:'动作功能',focusTarget:'柔韧',w:0.2}, {focusDim:'动作模式',focusTarget:'核心稳定',w:0.2}], sort: [{dim:'动作难度',order:'升序'}] }
     ],
     levels: [
-        { level: 'L1 (入门)', coeff: 0.5, desc: '需降低门槛，建立信心' },
-        { level: 'L2 (初级)', coeff: 0.8, desc: '低于标准，关注动作质量' },
-        { level: 'L3 (中级)', coeff: 1.0, desc: '标准负荷' },
-        { level: 'L4 (进阶)', coeff: 1.2, desc: '增加负荷挑战' },
-        { level: 'L5 (专业)', coeff: 1.5, desc: '接近极限' }
+        { level: 'L1', map: '初级', coeff: 0.5, desc: '需降低门槛，建立信心' },
+        { level: 'L2', map: '初级', coeff: 0.8, desc: '低于标准，关注动作质量' },
+        { level: 'L3', map: '中级', coeff: 1.0, desc: '标准负荷' },
+        { level: 'L4', map: '中级', coeff: 1.2, desc: '增加负荷挑战' },
+        { level: 'L5', map: '高级', coeff: 1.5, desc: '接近极限' },
     ],
     paradigms: [
+        { name: '抗阻范式', types: '力量, 康复, 高尔夫', sets: '-', strategy: '推荐', mode: '常规组', rest: '是' },
+        { name: '间歇范式', types: 'HIIT, 有氧, 搏击', sets: '-', strategy: '计时', mode: '循环组', rest: '是' },
+        { name: '流式范式', types: '瑜伽, 普拉提, 拉伸, 冥想, 气功', sets: '1', strategy: '计时', mode: '常规组', rest: '否' },
         { name: '抗阻范式', types: '力量, 康复, 高尔夫', feature: '关注负荷(Weight/Reps)', sets: '-', strategy: '推荐' },
         { name: '间歇范式', types: 'HIIT, 有氧, 搏击', feature: '关注心率/工休比', sets: '-', strategy: '计时' },
         { name: '流式范式', types: '瑜伽, 普拉提, 拉伸, 冥想, 气功', feature: '关注体位流动', sets: '1', strategy: '计时' }
     ],
     diff: [
-        { name: '保守 (L1)', range: '[0, 2]', prob: '{0: 60, 1: 30, 2: 10}' },
-        { name: '标准 (L2/3)', range: '[-1, 1]', prob: '{0: 60, -1: 20, 1: 20}' },
-        { name: '进阶 (L4)', range: '[-1, 1]', prob: '{0: 40, -1: 30, 1: 30}' },
-        { name: '挑战 (L5)', range: '[-2, 0]', prob: '{0: 30, -1: 40, -2: 30}' }
+        { level: 'L1', l1: 0.8, l2: 0.2, l3: 0, l4: 0, l5: 0, desc: '绝大多数基础动作' },
+        { level: 'L2', l1: 0.3, l2: 0.6, l3: 0.1, l4: 0, l5: 0, desc: '巩固基础，适度进阶' },
+        { level: 'L3', l1: 0.1, l2: 0.2, l3: 0.6, l4: 0.1, l5: 0, desc: '标准正态分布' },
+        { level: 'L4', l1: 0, l2: 0.1, l3: 0.3, l4: 0.5, l5: 0.1, desc: '挑战高难度' },
+        { level: 'L5', l1: 0, l2: 0, l3: 0.2, l4: 0.3, l5: 0.5, desc: '极限挑战与回归基础' },
     ],
     phase: [
         { cycle: '1周', structure: '进阶期', alloc: '100%' },
@@ -543,13 +565,21 @@ const AI_CONFIG = {
         { key: 'REPLACE_PENALTY', weight: -50, metric: 'LAST_REPLACE_GAP', op: 'LTE', val: '30' },
         { key: 'DELETE_PENALTY', weight: -100, metric: 'LAST_DELETE_GAP', op: 'LTE', val: '30' },
         { key: 'FATIGUE_PENALTY', weight: -50, metric: 'MUSCLE_FATIGUE', op: 'LT', val: '55' },
-        { key: 'CONFIDENCE_REWARD', weight: 20, metric: 'ABSENCE_DAYS', op: 'GT', val: '7' }
+        { key: 'CONFIDENCE_REWARD', weight: 20, metric: 'ABSENCE_DAYS', op: 'GT', val: '7' },
+        { key: '收藏奖励', type: '偏好', weight: 50, metric: '是否收藏', op: '=', val: '是' },
+        { key: '新鲜奖励', type: '行为', weight: 40, metric: '距今天数', op: '>', val: '7 (天)' },
+        { key: '探索奖励', type: '行为', weight: 30, metric: '历史次数', op: '=', val: '0' },
+        { key: '厌倦惩罚', type: '行为', weight: -80, metric: '连续次数', op: '>=', val: '3' },
+        { key: '冷宫惩罚', type: '行为', weight: -50, metric: '替换间隔', op: '<=', val: '30 (天)' },
+        { key: '不喜欢惩罚', type: '行为', weight: -100, metric: '删除间隔', op: '<=', val: '30 (天)' },
+        { key: '完赛信心奖励', type: '激励', weight: 20, metric: '缺勤天数', op: '>', val: '7 (天)' },
+        { key: '疲劳惩罚', type: '状态', weight: -50, metric: '疲劳度', op: '<', val: '55' }
     ],
     status: [
-        { range: '[85, 100]', label: '已恢复', intensity: 1.0, volume: 1.0, constraint: '-' },
-        { range: '[55, 84]', label: '恢复中', intensity: 0.9, volume: 1.0, constraint: '-' },
-        { range: '[30, 54]', label: '疲劳中', intensity: 0.8, volume: 0.8, constraint: '剔除高冲击' },
-        { range: '[0, 29]', label: '已力竭', intensity: '-', volume: '-', constraint: '推荐主动恢复' }
+        { label: '已恢复', range: '[85, 100]', intensity: 1.0, volume: 1.0 },
+        { label: '恢复中', range: '[55, 84]', intensity: 0.9, volume: 1.0 },
+        { label: '疲劳中', range: '[30, 54]', intensity: 0.8, volume: 0.8 },
+        { label: '已力竭', range: '[0, 29]', intensity: '-', volume: '-' },
     ]
 };
 
@@ -1322,10 +1352,11 @@ const RENDERERS = {
             <div style="padding:20px;">
                 ${ConfigTable('paradigms', [
                     {label:'训练范式', key:'name', type:'select', opts:['抗阻范式','间歇范式','流式范式']},
-                    {label:'包含类型 (多选)', key:'types', type:'multiselect', opts:['力量','HIIT','有氧','瑜伽','普拉提','拉伸','康复','冥想','高尔夫','搏击']},
-                    {label:'强制组数', key:'sets', type:'text'},
+                    {label:'课程类型映射 (多选)', key:'types', type:'multiselect', opts:['力量','HIIT','有氧','瑜伽','普拉提','拉伸','康复','冥想','高尔夫','搏击']},
+                    {label:'循环模式', key:'mode', type:'select', opts:['常规组','循环组']},
                     {label:'负荷策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','自定义']},
-                    {label:'核心特征 (选填)', key:'feature', type:'textarea'}
+                    {label:'休息配置', key:'rest', type:'select', opts:['是','否']},
+                    {label:'强制组数', key:'sets', type:'text'}
                 ])}
             </div>
         </div>
@@ -1336,6 +1367,10 @@ const RENDERERS = {
                     {label:'目标', key:'target', type:'select', opts:['增肌','力量','减脂','HIIT','耐力','爆发','心肺','有氧','瑜伽','普拉提','拉伸','恢复','柔韧','协调','体态','激活','平衡','专项']},
                     {label:'组数', key:'sets', type:'number', suffix:'组'},
                     {label:'间歇', key:'rest', type:'number', suffix:'s'},
+                    {label:'动作组数', key:'sets', type:'number', suffix:'组'},
+                    {label:'休息配置', key:'restConfig', type:'select', opts:['休息','不休息']},
+                    {label:'组间休息', key:'rest', type:'text', suffix:'s'},
+                    {label:'轮间休息', key:'roundRest', type:'text', suffix:'s'},
                     {label:'强度', key:'intensity', type:'number', step:0.05},
                     {label:'模式', key:'mode', type:'select', opts:['常规','循环']},
                     {label:'策略', key:'strategy', type:'select', opts:['推荐','恒定','递增','递减','自定义']}
@@ -1356,30 +1391,34 @@ const RENDERERS = {
             <div style="padding:20px;">
                 ${ConfigTable('levels', [
                     {label:'运动等级', key:'level', type:'text'},
+                    {label:'水平映射', key:'map', type:'select', opts:['初级','中级','高级']},
                     {label:'等级系数', key:'coeff', type:'number', step:0.1},
                     {label:'说明', key:'desc', type:'text'}
                 ])}
             </div>
         </div>
         <div class="form-section">
-            <div class="section-header">3.2 难度兼容策略配置</div>
+            <div class="section-header">3.2 难度分布配置 (概率)</div>
             <div style="padding:20px;">
                 ${ConfigTable('diff', [
-                    {label:'策略名称', key:'name', type:'text'},
-                    {label:'范围偏移', key:'range', type:'text'},
-                    {label:'概率分布 (偏移:权重)', key:'prob', width:'300px', type:'text'}
+                    {label:'用户等级', key:'level', type:'text'},
+                    {label:'L1概率', key:'l1', type:'number', step:0.1},
+                    {label:'L2概率', key:'l2', type:'number', step:0.1},
+                    {label:'L3概率', key:'l3', type:'number', step:0.1},
+                    {label:'L4概率', key:'l4', type:'number', step:0.1},
+                    {label:'L5概率', key:'l5', type:'number', step:0.1},
+                    {label:'说明', key:'desc', type:'text', width:'200px'}
                 ])}
             </div>
         </div>
         <div class="form-section">
-            <div class="section-header">3.3 状态适配配置</div>
+            <div class="section-header">3.3 状态适配配置 (疲劳)</div>
             <div style="padding:20px;">
                 ${ConfigTable('status', [
+                    {label:'状态', key:'label', type:'select', opts:['已恢复','恢复中','疲劳中','已力竭']},
                     {label:'状态值区间', key:'range', type:'text'},
-                    {label:'标签', key:'label', type:'select', opts:['已恢复','恢复中','疲劳中','已力竭']},
                     {label:'强度系数', key:'intensity', type:'text'},
                     {label:'容量系数', key:'volume', type:'text'},
-                    {label:'强制约束', key:'constraint', type:'text'}
                 ])}
             </div>
         </div>` : ''}
@@ -1390,10 +1429,11 @@ const RENDERERS = {
             <div style="padding:20px;">
                 ${ConfigTable('factors', [
                     {label:'因子键 (Key)', key:'key', type:'text'},
+                    {label:'分类', key:'type', type:'select', opts:['偏好','行为','激励','状态']},
                     {label:'权重/分值', key:'weight', type:'number', suffix:'分'},
                     {label:'判定指标 (Metric)', key:'metric', type:'text'},
                     {label:'算子 (Op)', key:'op', type:'select', opts:['GT','LT','EQ','GTE','LTE'], width:'80px'},
-                    {label:'阈值 (Value)', key:'val', type:'text', width:'80px'}
+                    {label:'阈值 (Value)', key:'val', type:'text', width:'80px'},
                 ])}
             </div>
         </div>` : ''}
@@ -2717,6 +2757,7 @@ const app = {
                 })),
                 LEVELS: AI_CONFIG.levels.map(l => ({
                     level: cleanLevel(l.level),
+                    map: l.map,
                     coeff: parseFloat(l.coeff)
                 })),
                 PLAN_TEMPLATES: MOCK_DATA.templates.map(t => ({
@@ -2749,7 +2790,7 @@ const app = {
                 STATUS_CONFIG: AI_CONFIG.status.map(s => ({
                     ...s,
                     range: JSON.parse(s.range),
-                    intensity: s.intensity === '-' ? 0.5 : parseFloat(s.intensity),
+                    intensity: s.intensity === '-' ? 0.5 : parseFloat(s.intensity), // Fallback for '已力竭'
                     volume: s.volume === '-' ? 0.5 : parseFloat(s.volume)
                 }))
             };
