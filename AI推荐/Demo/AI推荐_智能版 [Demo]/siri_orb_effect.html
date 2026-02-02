@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Coach Siri Orb Effect</title>
+    <style>
+        :root {
+            --primary: #32C48C;
+            --accent: #0a84ff;
+            --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        body {
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* --- SIRI CONTAINER --- */
+        .siri-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.8s var(--ease-out);
+        }
+
+        /* --- BLOB GROUPS (Seamless Transition Layer) --- */
+        .blob-group {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0;
+            transition: opacity 0.8s var(--ease-out);
+            pointer-events: none;
+        }
+        
+        /* Active State Visibility Logic */
+        /* Default: Idle visible */
+        .blob-group.group-idle { opacity: 1; }
+        /* When container has a state, hide idle, show specific state */
+        .siri-container.listening .blob-group.group-idle,
+        .siri-container.thinking .blob-group.group-idle,
+        .siri-container.speaking .blob-group.group-idle { opacity: 0; }
+
+        .siri-container.listening .blob-group.group-listening { opacity: 1; }
+        .siri-container.thinking .blob-group.group-thinking { opacity: 1; }
+        .siri-container.speaking .blob-group.group-speaking { opacity: 1; }
+
+        /* BLOBS BASE */
+        .siri-blob {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            filter: blur(20px);
+            opacity: 0.6;
+            mix-blend-mode: screen;
+        }
+        
+        /* Blob Colors & Offsets (Shared across groups) */
+        .siri-blob:nth-child(1) { background: var(--primary); }
+        .siri-blob:nth-child(2) {
+            width: 90%; height: 90%;
+            background: #00ffcc;
+            filter: blur(25px);
+            left: 5%; top: 5%;
+        }
+        .siri-blob:nth-child(3) {
+            width: 70%; height: 70%;
+            background: #0a84ff;
+            filter: blur(15px);
+            opacity: 0.5;
+            left: 15%; top: 15%;
+        }
+
+        /* ORBIT RINGS */
+        .orbit-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.05);
+            pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform-style: preserve-3d;
+            opacity: 0.3;
+        }
+        .orbit-dot {
+            position: absolute;
+            top: 0; left: 50%;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px #fff;
+            transition: all 0.5s;
+        }
+
+        /* Ring Sizes & Animations */
+        .orbit-ring.r1 { width: 100px; height: 100px; animation: orbit-1 20s linear infinite; }
+        .orbit-ring.r1 .orbit-dot { width: 3px; height: 3px; }
+        
+        .orbit-ring.r2 { width: 160px; height: 160px; animation: orbit-2 25s linear infinite; }
+        .orbit-ring.r2 .orbit-dot { width: 5px; height: 5px; }
+        
+        .orbit-ring.r3 { width: 220px; height: 220px; animation: orbit-3 18s linear infinite; }
+        .orbit-ring.r3 .orbit-dot { width: 4px; height: 4px; }
+
+        /* KEYFRAMES */
+        @keyframes orbit-1 { from { transform: translate(-50%, -50%) rotate3d(1, 1, 1, 0deg); } to { transform: translate(-50%, -50%) rotate3d(1, 1, 1, 360deg); } }
+        @keyframes orbit-2 { from { transform: translate(-50%, -50%) rotate3d(1, -1, 0, 0deg); } to { transform: translate(-50%, -50%) rotate3d(1, -1, 0, 360deg); } }
+        @keyframes orbit-3 { from { transform: translate(-50%, -50%) rotate3d(0, 1, -1, 0deg); } to { transform: translate(-50%, -50%) rotate3d(0, 1, -1, 360deg); } }
+        
+        /* --- ANIMATIONS PER STATE --- */
+
+        /* 1. Idle State */
+        .group-idle .siri-blob:nth-child(1) { animation: pulse 4s infinite ease-in-out; }
+        .group-idle .siri-blob:nth-child(2) { animation: pulse 5s infinite ease-in-out -1s; }
+        .group-idle .siri-blob:nth-child(3) { animation: pulse 3s infinite ease-in-out -2s; }
+
+        @keyframes pulse { 
+            0%, 100% { transform: scale(0.8) translate(0,0); opacity: 0.5; } 
+            33% { transform: scale(1.1) translate(10px, -10px); opacity: 0.7; } 
+            66% { transform: scale(0.9) translate(-10px, 10px); opacity: 0.6; } 
+        }
+
+        /* 2. Listening State */
+        .siri-container.listening .orbit-ring { border-color: rgba(50, 196, 140, 0.2); opacity: 0.8; }
+        .siri-container.listening .orbit-ring.r1 { animation-duration: 8s; width: 140px; height: 140px; }
+        .siri-container.listening .orbit-ring.r2 { animation-duration: 10s; width: 200px; height: 200px; }
+        .siri-container.listening .orbit-ring.r3 { animation-duration: 12s; width: 260px; height: 260px; }
+        .siri-container.listening .orbit-dot { background: var(--primary); box-shadow: 0 0 10px var(--primary); transform: translate(-50%, -50%) scale(1.2); }
+        
+        .group-listening .siri-blob { animation: pulse-listen 0.8s infinite alternate; background: var(--accent) !important; opacity: 0.8; }
+        @keyframes pulse-listen { 0% { transform: scale(0.9); opacity: 0.6; } 100% { transform: scale(1.1); opacity: 0.9; } }
+
+        /* 3. Speaking State */
+        .siri-container.speaking .orbit-ring { border-color: rgba(50, 196, 140, 0.4); opacity: 1; }
+        .siri-container.speaking .orbit-ring.r1 { animation-duration: 4s; width: 160px; height: 160px; }
+        .siri-container.speaking .orbit-ring.r2 { animation-duration: 5s; width: 220px; height: 220px; }
+        .siri-container.speaking .orbit-ring.r3 { animation-duration: 6s; width: 280px; height: 280px; }
+        .siri-container.speaking .orbit-dot { background: #fff; box-shadow: 0 0 15px #fff; transform: translate(-50%, -50%) scale(1.5); }
+        
+        .group-speaking .siri-blob { animation: pulse-speak 1.5s infinite ease-in-out; background: var(--primary); opacity: 0.9; transform: scale(1.2); }
+        @keyframes pulse-speak { 0% { transform: scale(0.8); } 50% { transform: scale(1.3); } 100% { transform: scale(0.8); } }
+
+        /* 4. Thinking State */
+        .group-thinking .siri-blob { animation: pulse-think 1.5s infinite ease-in-out; background: var(--accent) !important; opacity: 0.8; }
+        .siri-container.thinking .orbit-ring { border-color: rgba(41, 121, 255, 0.3); animation-duration: 2s; }
+        @keyframes pulse-think { 0%, 100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.9; } }
+
+        /* --- CONTROLS --- */
+        .controls {
+            position: absolute;
+            bottom: 50px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        button {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        button:hover { background: rgba(255,255,255,0.2); }
+        button.active { background: var(--primary); color: #000; border-color: var(--primary); font-weight: bold; }
+        
+        .status-label {
+            position: absolute;
+            top: 20%;
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="status-label" id="status-text">Idle</div>
+
+    <div class="siri-container" id="orb">
+        <!-- Group: Idle -->
+        <div class="blob-group group-idle">
+            <div class="siri-blob"></div><div class="siri-blob"></div><div class="siri-blob"></div>
+        </div>
+        
+        <!-- Group: Listening -->
+        <div class="blob-group group-listening">
+            <div class="siri-blob"></div><div class="siri-blob"></div><div class="siri-blob"></div>
+        </div>
+
+        <!-- Group: Thinking -->
+        <div class="blob-group group-thinking">
+            <div class="siri-blob"></div><div class="siri-blob"></div><div class="siri-blob"></div>
+        </div>
+
+        <!-- Group: Speaking -->
+        <div class="blob-group group-speaking">
+            <div class="siri-blob"></div><div class="siri-blob"></div><div class="siri-blob"></div>
+        </div>
+        
+        <div class="orbit-ring r1"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring r2"><div class="orbit-dot"></div></div>
+        <div class="orbit-ring r3"><div class="orbit-dot"></div></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="setState('idle')" class="active" id="btn-idle">Idle</button>
+        <button onclick="setState('listening')" id="btn-listening">Listening</button>
+        <button onclick="setState('thinking')" id="btn-thinking">Thinking</button>
+        <button onclick="setState('speaking')" id="btn-speaking">Speaking</button>
+    </div>
+
+    <script>
+        const orb = document.getElementById('orb');
+        const statusText = document.getElementById('status-text');
+        const buttons = document.querySelectorAll('button');
+
+        function setState(state) {
+            // Reset classes
+            orb.className = 'siri-container';
+            
+            // Update buttons
+            buttons.forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + state).classList.add('active');
+
+            // Update text
+            statusText.innerText = state;
+
+            // Apply state
+            if (state !== 'idle') {
+                orb.classList.add(state);
+            }
+        }
+    </script>
+</body>
+</html>
