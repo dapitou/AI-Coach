@@ -33,6 +33,11 @@ class Gatekeeper:
             tip = TextConfig.TIP_LUNGE_DO
             if pts.get('lh') and pts.get('rh') and (pts.get('lk') or pts.get('rk')):
                 if abs(pts['lh'][0]-pts['rh'][0]) > 20: is_similar = True
+        
+        elif mode == TextConfig.ACT_LATERAL_RAISE: # [New]
+            tip = TextConfig.TIP_LATERAL_DO
+            # 简单检查：识别到双肘即可
+            if pts.get('le') and pts.get('re'): is_similar = True
                 
         if is_similar:
             self.last_act_time = time.time()

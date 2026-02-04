@@ -97,7 +97,7 @@ class WidgetRenderer:
             if rect[0] <= x <= rect[2] and rect[1] <= y <= rect[3]: return name
         return None
 
-    def update_hover(self, x, y, menu_open, num_actions=4, modal_open=False):
+    def update_hover(self, x, y, menu_open, num_actions=5, modal_open=False):
         self.update_layout(menu_open, num_actions)
         for k in self.hover: self.hover[k] = False
         hit = self.hit_test(x, y, modal_open)
@@ -107,8 +107,8 @@ class WidgetRenderer:
                  self.hover[f"i{idx}"] = True
              else: self.hover[hit] = True
 
-    def draw_all_layers(self, img, mode, count, fps, menu, h_str, typing, msg, msg_color, error_stats, bad_reps, vid, paused):
-        self.update_layout(menu, 4)
+    def draw_all_layers(self, img, mode, count, fps, menu, h_str, typing, msg, msg_color, error_stats, bad_reps, vid, paused, menu_items=None):
+        self.update_layout(menu, 5)
         pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(pil)
         
@@ -119,7 +119,7 @@ class WidgetRenderer:
 
         self._draw_stats(draw, count, bad_reps, error_stats, msg)
         self._draw_top_bar(draw, img, mode, h_str, typing)
-        self._draw_dropdown(draw, img)
+        self._draw_dropdown(draw, img, menu_items)
         self._draw_bottom_bar(draw, img, fps)
         if msg: self._draw_message(draw, img, msg, msg_color)
         img[:] = cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
@@ -186,9 +186,10 @@ class WidgetRenderer:
         draw_text_shadow(draw, 330, 27, disp_h, self.font_md, ColorConfig.TEXT_MAIN)
         draw_text_shadow(draw, 420, 32, "cm", self.font_sm, ColorConfig.TEXT_DIM)
 
-    def _draw_dropdown(self, draw, img):
+    def _draw_dropdown(self, draw, img, menu_items=None):
         if self.menu_anim_val > 0.01:
-            opts = [TextConfig.ACT_PRESS, TextConfig.ACT_SQUAT, TextConfig.ACT_RAISE, TextConfig.ACT_LUNGE]
+            # [Fix] 使用传入的菜单项，如果未传入则使用默认全集
+            opts = menu_items if menu_items else [TextConfig.ACT_PRESS, TextConfig.ACT_SQUAT, TextConfig.ACT_RAISE, TextConfig.ACT_LUNGE, TextConfig.ACT_LATERAL_RAISE]
             visible_h = int(self.menu_anim_val * (len(opts) * 55))
             y = 75
             for i, m in enumerate(opts):

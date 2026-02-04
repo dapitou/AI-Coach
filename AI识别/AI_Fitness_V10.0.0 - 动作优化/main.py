@@ -35,7 +35,7 @@ from utils.geometry import GeomUtils
 from utils.smoother import PointSmoother
 from logic.spine import SpineAnalyzer
 from logic.gatekeeper import Gatekeeper
-from exercises import PressExercise, SquatExercise, LungeExercise, FrontRaiseExercise
+from exercises import PressExercise, SquatExercise, LungeExercise, FrontRaiseExercise, LateralRaiseExercise
 
 # 尝试导入编辑器工具 (如果存在)
 try:
@@ -72,7 +72,8 @@ class Engine:
             TextConfig.ACT_PRESS: PressExercise(self.sound),
             TextConfig.ACT_SQUAT: SquatExercise(self.sound),
             TextConfig.ACT_RAISE: FrontRaiseExercise(self.sound),
-            TextConfig.ACT_LUNGE: LungeExercise(self.sound)
+            TextConfig.ACT_LUNGE: LungeExercise(self.sound),
+            TextConfig.ACT_LATERAL_RAISE: LateralRaiseExercise(self.sound)
         }
         self.current_mode = TextConfig.ACT_PRESS
         self.spine = SpineAnalyzer()
@@ -240,7 +241,7 @@ def main():
             lx, ly = -1, -1
 
         if 0 <= lx <= AppConfig.W and 0 <= ly <= AppConfig.H:
-            ui.update_hover(lx, ly, menu_open, 4, tuning_open)
+            ui.update_hover(lx, ly, menu_open, 5, tuning_open)
             
             if e == cv2.EVENT_LBUTTONDOWN:
                 hit = ui.hit_test(lx, ly, tuning_open)
@@ -288,7 +289,7 @@ def main():
                     
                 elif menu_open and hit and hit.startswith('menu_item_'):
                     idx = int(hit.split('_')[2])
-                    modes = [TextConfig.ACT_PRESS, TextConfig.ACT_SQUAT, TextConfig.ACT_RAISE, TextConfig.ACT_LUNGE]
+                    modes = [TextConfig.ACT_PRESS, TextConfig.ACT_SQUAT, TextConfig.ACT_RAISE, TextConfig.ACT_LUNGE, TextConfig.ACT_LATERAL_RAISE] # [New]
                     if 0 <= idx < len(modes): engine.set_mode(modes[idx]); menu_open = False
                 
                 elif hit == 'btn_cam': loader.switch_source(0)
@@ -389,10 +390,12 @@ def main():
         final = np.hstack((f_l, f_r))
         
         # 绘制 HUD
+        # [Fix] 传入当前引擎支持的动作列表
+        available_modes = list(engine.exercises.keys())
         ui.draw_all_text_layers(
             final, data['mode'], data['count'], fps, menu_open, h_str, is_typing, 
             data['msg'], data['msg_col'], data['errs'], data['bad'], 
-            loader.is_video, loader.paused
+            loader.is_video, loader.paused, menu_items=available_modes
         )
         
         # 绘制弹窗

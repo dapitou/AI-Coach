@@ -19,8 +19,8 @@ class UIRenderer:
     def draw_visuals(self, img, commands):
         self.visuals.draw_commands(img, commands)
 
-    def draw_all_text_layers(self, img, mode, count, fps, menu, h_str, typing, msg, msg_col, errs, bad, vid, paused):
-        self.widgets.draw_all_layers(img, mode, count, fps, menu, h_str, typing, msg, msg_col, errs, bad, vid, paused)
+    def draw_all_text_layers(self, img, mode, count, fps, menu, h_str, typing, msg, msg_col, errs, bad, vid, paused, menu_items=None):
+        self.widgets.draw_all_layers(img, mode, count, fps, menu, h_str, typing, msg, msg_col, errs, bad, vid, paused, menu_items)
 
     def draw_video_bar(self, img, prog, paused):
         self.widgets.draw_video_bar(img, prog, paused)
@@ -28,7 +28,7 @@ class UIRenderer:
     def draw_tuning_modal(self, img, mode, params, idx, is_open):
         self.widgets.draw_tuning_modal(img, mode, params, idx, is_open)
 
-    def update_hover(self, x, y, menu_open, num=4, modal_open=False):
+    def update_hover(self, x, y, menu_open, num=5, modal_open=False):
         self.widgets.update_hover(x, y, menu_open, num, modal_open)
 
     def hit_test(self, x, y, modal_open=False):

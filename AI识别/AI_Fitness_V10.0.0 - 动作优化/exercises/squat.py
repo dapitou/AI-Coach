@@ -271,6 +271,10 @@ class SquatExercise(BaseExercise):
             GAP_END = 25   
             draw_len = max(0, int(raw_dist - GAP_START - GAP_END))
             
+            # [New] 绘制目标线 (双膝连线中点的水平线)
+            t_col = ColorConfig.NEON_GREEN if show_green_depth else ColorConfig.NEON_RED
+            vis.append({'cmd': 'line', 'style': 'dash', 'start': (knee_mid[0]-60, knee_mid[1]), 'end': (knee_mid[0]+60, knee_mid[1]), 'color': t_col, 'thick': 2})
+
             if not show_green_depth:
                 # 状态：未达标 -> 红色向下箭头
                 vis.append({'cmd':'circle', 'center':hip_mid, 'radius':12, 'color':ColorConfig.NEON_RED, 'thick':-1})

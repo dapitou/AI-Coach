@@ -80,6 +80,7 @@ class AlgoConfig:
     LUNGE_DEPTH_TOLERANCE_PIXEL: int = 100
     LUNGE_STANCE_X_RATIO: float = 0.5
     
+    LATERAL_RAISE_ANGLE_TH: float = 75.0 # [New] 侧平举达标角度
     HINGE_ANGLE_MIN: float = 15.0
     RAISE_HEIGHT_RATIO: float = 0.5
     COUNT_COOLDOWN: float = 0.3
@@ -92,6 +93,7 @@ class TextConfig:
     ACT_SQUAT: str = "深蹲"
     ACT_RAISE: str = "前平举"
     ACT_LUNGE: str = "弓步蹲"
+    ACT_LATERAL_RAISE: str = "侧平举" # [New]
     
     LABEL_COUNT: str = "COUNT"
     LABEL_FPS: str = "FPS"
@@ -124,6 +126,9 @@ class TextConfig:
     TIP_LUNGE_DO: str = "请做“弓步蹲”动作"
     ERR_LUNGE_KNEE: str = "前膝向外展开，避免内扣！"
     ERR_LUNGE_DEPTH: str = "前腿蹲至大腿平行地面！"
+    
+    TIP_LATERAL_DO: str = "请做“侧平举”动作" # [New]
+    ERR_LATERAL_HEIGHT: str = "肘部抬至与肩等高效果更好" # [New]
 
 @dataclass(frozen=True)
 class ColorConfig:
@@ -223,6 +228,19 @@ TUNING_TREE = {
             'name': '高度判定',
             'switch': None,
             'params': [('RAISE_HEIGHT_RATIO', '达标高度系数')]
+        }
+    ],
+    TextConfig.ACT_LATERAL_RAISE: [ # [New] 侧平举调参
+        {
+            'name': '耸肩检测',
+            'switch': 'ENABLE_SHRUG',
+            'prio': 'PRIORITY_SHRUG',
+            'params': [('SHRUG_COMPRESSION_TH', '压缩阈值')]
+        },
+        {
+            'name': '高度判定',
+            'switch': None,
+            'params': [('LATERAL_RAISE_ANGLE_TH', '达标角度(度)')]
         }
     ]
 }
