@@ -26,9 +26,9 @@ class GenericExercise(BaseExercise):
        - 初始: 不合格 (False)
        - 逻辑: 默认不合格，只要在区间内达标一次(极值点)，即锁定为合格。
        - 场景: 幅度类指标 (如深蹲深度、侧平举高度)。
-    3. strict_pass (严格修正 / 区间保持):
+    3. strict_pass (过程修正 / 区间保持):
        - 初始: 不合格 (False)
-       - 逻辑: 需在区间内达标(修正)并保持，且当前帧也必须达标。
+       - 逻辑: 需在区间内达标(修正)并保持正确姿态直到离开区间。
        - 场景: 姿态保持类 (如深蹲膝内扣)。
     4. realtime (实时跟随):
        - 逻辑: 无记忆，所见即所得。
@@ -386,14 +386,17 @@ class GenericExercise(BaseExercise):
                     self.latch_states[cid] = True
                 results[cid] = self.latch_states[cid]
                 
-            elif mode == 'strict_pass': # 深蹲: 膝内扣 (必须在纠错区修好才算好)
-                # 只有在纠错区且当前是好的，才标记为"已修正"
-                if in_fix_range and is_good:
-                    self.latch_states[cid] = True
-                
-                # 最终结果：(当前好 AND 曾经修好过)
-                # 严判逻辑：只要当前帧坏了，就是坏；如果没修好过，也是坏。
-                results[cid] = is_good and self.latch_states[cid]
+            elif mode == 'strict_pass': # 过程修正 (Process Fix)
+                # 逻辑：区间内已修正 AND 修正后保持至离开区间
+                if in_fix_range:
+                    # 在区间内：实时跟随，但记录状态
+                    # 如果当前帧是好的，标记为True；如果坏了，标记为False (破功重置)
+                    if is_good: self.latch_states[cid] = True
+                    else: self.latch_states[cid] = False 
+                    results[cid] = self.latch_states[cid]
+                else:
+                    # 在区间外：保持离开区间那一刻的状态 (锁定结果)
+                    results[cid] = self.latch_states[cid]
 
         # --- 4. 优先级压制 (Priority Suppression) ---
         # 复刻深蹲逻辑：如果膝内扣(P1)报错，强制认为深度(P2)是好的，避免双重报错
