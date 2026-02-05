@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEKE Fit Prototype V12.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* Custom Animations to match tailwindcss-animate */
+        @keyframes enter {
+            from { opacity: 0; transform: var(--tw-enter-transform); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes exit {
+            from { opacity: 1; transform: none; }
+            to { opacity: 0; transform: var(--tw-exit-transform); }
+        }
+        .animate-in { animation: enter 0.3s ease-out forwards; }
+        .animate-out { animation: exit 0.3s ease-in forwards; }
+        .fade-in { --tw-enter-opacity: 0; }
+        .fade-out { --tw-exit-opacity: 0; }
+        .slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+        .zoom-in { --tw-enter-scale: 0.95; }
+        
+        /* Utilities */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(var(--border))",
+                        input: "hsl(var(--input))",
+                        ring: "hsl(var(--ring))",
+                        background: "hsl(var(--background))",
+                        foreground: "hsl(var(--foreground))",
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#F5F5F7] h-screen w-screen overflow-hidden flex flex-col text-gray-900">
+
+    <!-- Flash Effect Overlay -->
+    <div id="flash-overlay" class="fixed inset-0 bg-white z-[9999] pointer-events-none opacity-0 transition-opacity duration-500"></div>
+
+    <!-- Header -->
+    <div class="h-16 bg-white border-b flex items-center justify-between px-6 z-50 shrink-0 select-none">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-black italic">A</div>
+            <span class="font-bold hidden sm:block">AEKE Fit v12.2 (HTML)</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="handleScreenshot()" class="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Screenshot">
+                <i data-lucide="camera" class="w-5 h-5 text-gray-600"></i>
+            </button>
+            <div class="h-4 w-px bg-gray-300"></div>
+            <button onclick="toggleViewMode()" class="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full text-xs font-bold hover:bg-gray-800 transition-colors">
+                <i id="view-mode-icon" data-lucide="layout" class="w-3.5 h-3.5"></i>
+                <span id="view-mode-text">FLOW MAP</span>
+            </button>
+            <button onclick="toggleLang()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                <i data-lucide="globe" class="w-4 h-4 text-gray-600"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div id="main-container" class="flex-1 relative overflow-hidden">
+        <!-- App Mode and Flow Mode will be rendered here -->
+    </div>
+
+    <!-- Debug Panel -->
+    <div id="debug-panel" class="fixed left-4 bottom-4 bg-white/90 p-4 rounded-xl shadow-lg border w-64 text-xs transition-transform duration-300 translate-x-0 z-50">
+        <div class="flex justify-between mb-2">
+            <span class="font-bold text-gray-500">DEBUGGER</span>
+            <button onclick="toggleDebug(false)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+        </div>
+        <div class="space-y-2 font-mono">
+            <div onclick="setDebugData('phone', '15200000000')" class="cursor-pointer hover:bg-blue-50 p-1 rounded transition-colors">
+                New User: <span class="text-blue-600 font-bold">15200000000</span>
+            </div>
+            <div onclick="setDebugData('phone', '13700000000')" class="cursor-pointer hover:bg-purple-50 p-1 rounded transition-colors">
+                Old User: <span class="text-purple-600 font-bold">13700000000</span>
+            </div>
+            <div onclick="setDebugData('otp')" class="cursor-pointer hover:bg-green-50 p-1 rounded transition-colors">
+                Valid OTP: <span class="text-green-600 font-bold">123456</span>
+            </div>
+        </div>
+    </div>
+    <button id="debug-toggle" onclick="toggleDebug(true)" class="fixed left-4 bottom-4 bg-black text-white p-2 rounded-full shadow-lg z-40 hidden">
+        <i data-lucide="git-commit" class="w-5 h-5"></i>
+    </button>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="pointer-events-none fixed inset-0 z-[100] flex justify-center items-start"></div>
+
+    <script>
+        // --- DATA & CONFIG ---
+        const MOCK_DB = {
+            registeredUsers: ['13700000000'],
+            validOTP: '123456',
+            testPhone: '15200000000',
+            isAdminBound: false, // 模拟设备未绑定
+            hasProfile: false    // 模拟个人信息未填写
+        };
+
+        const I18N = {
+            zh: {
+                app_name: 'AEKE Fit',
+                slogan: 'FUTURE FITNESS',
+                btn_next_otp: '获取验证码',
+                link_pass_login: '密码登录',
+                phone_label: '手机号码',
+                phone_placeholder: '请输入手机号',
+                otp_title: '验证码',
+                otp_sent_to: '验证码已发送至',
+                resend: '重新发送',
+                seconds: 's',
+                link_qr_login: '二维码登录',
+                qr_title: '扫码登录',
+                qr_desc: '请使用 AEKE Fit App 扫码',
+                qr_download_hint: '未安装 App？点击下载',
+                btn_login: '登 录',
+                pass_title: '密码登录',
+                pass_subtitle: '请输入您的登录密码',
+                pass_placeholder: '请输入密码',
+                forgot_pass: '忘记密码',
+                set_pass_title: '设置密码',
+                set_pass_desc: '新用户需设置安全密码',
+                reset_pass_title: '重置密码',
+                reset_pass_desc: '验证成功，请设置新密码',
+                rule_len: '6-20字符',
+                rule_alpha: '包含字母',
+                rule_num: '包含数字',
+                btn_confirm: '确认并注册',
+                btn_reset: '确认重置',
+                success_title: '欢迎回来',
+                account_label: '账号',
+                confirm_pass_placeholder: '请再次输入密码',
+                profile_setup_title: '个人信息填写',
+                admin_bind_title: '管理员绑定',
+                success_sub: '登录成功',
+                logout: '退出登录',
+                err_phone: '手机号格式错误',
+                err_otp: '验证码错误',
+                err_pass_rule: '密码太简单 (需字母+数字)',
+                err_pass_len: '需 6-20 个字符',
+                err_pass_alpha: '需包含至少一个字母',
+                err_pass_num: '需包含至少一个数字',
+                err_pass_match: '两次密码不一致',
+                toast_code: '验证码已发送: 123456',
+                toast_shot_saving: '正在生成全景长图...',
+                toast_shot_done: '图片已保存到本地',
+                loading: '处理中...',
+                terms: '登录即代表同意《用户协议》和《隐私政策》',
+                toast_reset_success: '密码重置成功',
+                toast_reg_success: '注册成功',
+                toast_qr_success: '扫码成功，正在登录',
+                toast_qr_expired: '二维码已过期，请刷新',
+                err_wrong_pass: '账号或密码错误',
+                err_user_nfound: '该手机号未注册',
+                label_otp: '验证码',
+                label_reset: '重置',
+                label_note: '备注',
+                st_init: '初始空状态', st_typing: '用户输入中', st_valid: '格式校验通过', st_error_fmt: '格式校验报错', st_error_sys: '系统错误/Toast', st_loading: 'API 请求中', st_timer: '倒计时运行中', st_timeout: '倒计时结束/重发', st_weak: '密码强度不足', st_mismatch: '密码不一致', st_mask: '密码脱敏显示', st_unmask: '密码明文显示',
+                st_expired: '状态过期', st_scanned: '已扫码/待确认',
+                phase_1: '01. 手机号分流 (Landing)', phase_2: '02. 验证码校验 (OTP)', phase_3: '03. 密码登录 (Password)', phase_4: '04. 设置密码 (Set Pass)', 
+                phase_5: '05. 找回密码流程 (Forgot Password)', phase_6: '06. 二维码登录 (QR Login)',
+                phase_7: '07. 引导流程 (Onboarding)', phase_8: '08. 成功 (Success)',
+                hint_click_jump: '点击节点跳转演示', note_new_user: '新用户路径', note_old_user: '老用户路径', note_forgot_path: '找回密码路径',
+                check_reg: '用户是否注册?', check_admin: '设备是否绑定?', check_profile: '资料是否填写?'
+            },
+            en: {
+                app_name: 'AEKE Fit',
+                slogan: 'FUTURE FITNESS',
+                btn_next_otp: 'Get Code',
+                link_pass_login: 'Password Login',
+                phone_label: 'Phone Number',
+                phone_placeholder: 'Enter phone number',
+                otp_title: 'Verification',
+                otp_sent_to: 'Code sent to',
+                resend: 'Resend',
+                seconds: 's',
+                link_qr_login: 'QR Code Login',
+                qr_title: 'Scan to Login',
+                qr_desc: 'Please use AEKE Fit App to scan',
+                qr_download_hint: 'No App? Click to download',
+                btn_login: 'LOGIN',
+                pass_title: 'Password',
+                pass_subtitle: 'Enter your password',
+                pass_placeholder: 'Enter password',
+                forgot_pass: 'Forgot?',
+                set_pass_title: 'Set Password',
+                set_pass_desc: 'New users must set a password',
+                reset_pass_title: 'Reset Password',
+                reset_pass_desc: 'Verified! Set your new password',
+                rule_len: '6-20 chars',
+                rule_alpha: 'Letters',
+                rule_num: 'Numbers',
+                btn_confirm: 'Register',
+                btn_reset: 'Reset Password',
+                success_title: 'Welcome',
+                account_label: 'Account',
+                confirm_pass_placeholder: 'Confirm Password',
+                profile_setup_title: 'Profile Setup',
+                admin_bind_title: 'Admin Binding',
+                success_sub: 'Login Success',
+                logout: 'Logout',
+                err_phone: 'Invalid phone format',
+                err_otp: 'Invalid code',
+                err_pass_rule: 'Weak password (Letter+Num)',
+                err_pass_len: '6-20 characters required',
+                err_pass_alpha: 'At least one letter required',
+                err_pass_num: 'At least one number required',
+                err_pass_match: 'Passwords do not match',
+                toast_code: 'Code sent: 123456',
+                toast_shot_saving: 'Generating flow snapshot...',
+                toast_shot_done: 'Snapshot saved',
+                loading: 'Processing...',
+                terms: 'By logging in, you agree to the Terms of Service and Privacy Policy',
+                toast_reset_success: 'Password reset successfully',
+                toast_reg_success: 'Registration Success',
+                toast_qr_success: 'Scanned! Logging in...',
+                toast_qr_expired: 'QR Code expired',
+                err_wrong_pass: 'Invalid credentials',
+                err_user_nfound: 'User not found',
+                label_otp: '验证码',
+                label_reset: '重置',
+                label_note: '备注',
+                st_init: '初始空状态', st_typing: '用户输入中', st_valid: '格式校验通过', st_error_fmt: '格式校验报错', st_error_sys: '系统错误/Toast', st_loading: 'API 请求中', st_timer: '倒计时运行中', st_timeout: '倒计时结束/重发', st_weak: '密码强度不足', st_mismatch: '密码不一致', st_mask: '密码脱敏显示', st_unmask: '密码明文显示',
+                st_expired: '状态过期', st_scanned: '已扫码/待确认',
+                phase_1: '01. 手机号分流 (Landing)', phase_2: '02. 验证码校验 (OTP)', phase_3: '03. 密码登录 (Password)', phase_4: '04. 设置密码 (Set Pass)', 
+                phase_5: '05. 找回密码流程 (Forgot Password)', phase_6: '06. 二维码登录 (QR Login)',
+                phase_7: '07. 引导流程 (Onboarding)', phase_8: '08. 成功 (Success)',
+                hint_click_jump: '点击节点跳转演示', note_new_user: '新用户路径', note_old_user: '老用户路径', note_forgot_path: '找回密码路径',
+                check_reg: '用户是否注册?', check_admin: '设备是否绑定?', check_profile: '资料是否填写?'
+            }
+        };
+
+        // --- STATE ---
+        const state = {
+            viewMode: 'flow', // Default to Flow Map
+            lang: 'zh',
+            step: 'landing',
+            phone: '',
+            otp: '',
+            password: '',
+            confirmPassword: '',
+            showPass: false,
+            isResetFlow: false,
+            isLoading: false,
+            timer: 0,
+            debug: true,
+            // Flow Map State
+            transform: { x: 0, y: 0, scale: 0.35 },
+            isDragging: false,
+            lastMouse: { x: 0, y: 0 }
+        };
+
+        let timerInterval = null;
+
+        // --- ACTIONS ---
+        function setState(newState) {
+            // 1. Capture focus state before update
+            const activeEl = document.activeElement;
+            const activeId = activeEl ? activeEl.id : null;
+            const selectionStart = activeEl && activeEl.setSelectionRange ? activeEl.selectionStart : null;
+            const selectionEnd = activeEl && activeEl.setSelectionRange ? activeEl.selectionEnd : null;
+
+            // Capture OTP state for auto-advance logic
+            const wasOtp = state.step === 'otp_verify';
+            const oldOtpLen = state.otp ? state.otp.length : 0;
+
+            // 2. Update State & Render
+            Object.assign(state, newState);
+            render();
+
+            // 3. Restore Focus (Generic)
+            if (activeId) {
+                const el = document.getElementById(activeId);
+                if (el) {
+                    el.focus();
+                    if (selectionStart !== null && selectionEnd !== null && el.setSelectionRange) {
+                        try {
+                            el.setSelectionRange(selectionStart, selectionEnd);
+                        } catch (e) { /* ignore types that don't support selection */ }
+                    }
+                }
+            }
+
+            // 4. OTP Auto-Advance (Specific Override)
+            if (wasOtp && state.step === 'otp_verify') {
+                const newOtpLen = state.otp.length;
+                // If added a digit and not full
+                if (newOtpLen > oldOtpLen && newOtpLen < 6) {
+                    const nextInput = document.getElementById(`input-otp-${newOtpLen}`);
+                    if (nextInput) {
+                        nextInput.focus();
+                        nextInput.setSelectionRange(1, 1); // Cursor at end
+                    }
+                }
+            }
+        }
+
+        function toggleLang() {
+            setState({ lang: state.lang === 'zh' ? 'en' : 'zh' });
+        }
+
+        function toggleViewMode() {
+            setState({ 
+                viewMode: state.viewMode === 'app' ? 'flow' : 'app',
+                transform: { x: 0, y: 0, scale: 0.35 } // Reset view
+            });
+        }
+
+        function toggleDebug(show) {
+            state.debug = show;
+            document.getElementById('debug-panel').style.transform = show ? 'translateX(0)' : 'translateX(-120%)';
+            document.getElementById('debug-toggle').style.display = show ? 'none' : 'block';
+        }
+
+        function setDebugData(type, val) {
+            if (type === 'phone') setState({ phone: val });
+            if (type === 'otp') setState({ otp: val || MOCK_DB.validOTP });
+            showToast('Data populated');
+        }
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 mt-4 animate-in slide-in-from-top-2 fade-in duration-300 whitespace-nowrap ${type === 'error' ? 'bg-white text-red-600 border border-red-100' : 'bg-[#1a1a1a] text-white'}`;
+            toast.innerHTML = `
+                <i data-lucide="${type === 'error' ? 'alert-circle' : 'check-circle-2'}" class="w-3.5 h-3.5"></i>
+                <span class="text-[10px] font-bold tracking-wide">${msg}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.classList.add('animate-out', 'fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        async function handleScreenshot() {
+            const overlay = document.getElementById('flash-overlay');
+            // Capture the content, not just the container, to ensure full map capture in Flow mode
+            const targetId = state.viewMode === 'flow' ? 'flow-content' : 'main-container';
+            const container = document.getElementById(targetId);
+            
+            overlay.style.opacity = '1';
+            showToast(I18N[state.lang].toast_shot_saving);
+
+            try {
+                // Scale 4 provides Ultra-HD resolution for large flow maps
+                const canvas = await html2canvas(container, {
+                    scale: 4,
+                    useCORS: true,
+                    backgroundColor: '#F5F5F7',
+                    logging: false,
+                    imageTimeout: 0
+                });
+
+                const link = document.createElement('a');
+                link.download = `AEKE-Fit-Snapshot-${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                // 4. 恢复状态
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    showToast(I18N[state.lang].toast_shot_done);
+                }, 300);
+            } catch (err) {
+                console.error("Screenshot failed:", err);
+                overlay.style.opacity = '0';
+                showToast("Screenshot Failed", "error");
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            setState({ timer: 60 });
+            timerInterval = setInterval(() => {
+                if (state.timer > 0) {
+                    state.timer--;
+                    // Only re-render if visible
+                    if (document.getElementById('otp-timer-btn')) {
+                        document.getElementById('otp-timer-btn').innerHTML = `<i data-lucide="clock" class="w-2.5 h-2.5"></i> ${state.timer}${I18N[state.lang].seconds}`;
+                        lucide.createIcons();
+                    }
+                } else {
+                    clearInterval(timerInterval);
+                    setState({ timer: 0 }); // Trigger render for button state
+                }
+            }, 1000);
+        }
+
+        // --- NAVIGATION ACTIONS ---
+        function setStep(newStep) {
+            setState({ step: newStep, error: null });
+            if (newStep === 'qr_login') {
+                setTimeout(() => {
+                    if (state.step === 'qr_login') {
+                        setState({ isLoading: true });
+                        setTimeout(() => {
+                            showToast(I18N[state.lang].toast_qr_success);
+                            checkOnboardingFlow();
+                        }, 1500);
+                    }
+                }, 2000);
+            }
+        }
+
+        function checkOnboardingFlow() {
+            if (!MOCK_DB.hasProfile) {
+                setStep('profile_setup');
+            } else if (!MOCK_DB.isAdminBound) {
+                setStep('admin_bind');
+            } else {
+                setStep('dashboard');
+            }
+        }
+
+        function sendCode() {
+            const t = I18N[state.lang];
+            if (!/^1\d{10}$/.test(state.phone)) {
+                setState({ error: [t.err_phone] });
+                return;
+            }
+            setState({ isLoading: true, error: null });
+            setTimeout(() => {
+                state.isLoading = false;
+                startTimer();
+                showToast(I18N[state.lang].toast_code);
+                setStep('otp_verify');
+            }, 800);
+        }
+
+        function resendCode() {
+            startTimer();
+            showToast(I18N[state.lang].toast_code);
+        }
+
+        function login() {
+            const t = I18N[state.lang];
+            setState({ isLoading: true, error: null });
+            setTimeout(() => {
+                if (!MOCK_DB.registeredUsers.includes(state.phone)) {
+                    setState({ isLoading: false, error: [t.err_user_nfound] });
+                    return;
+                }
+                // 模拟密码错误逻辑：输入 "wrong" 触发报错
+                if (state.password === 'wrong') {
+                    setState({ isLoading: false, error: [t.err_wrong_pass] });
+                    return;
+                }
+                setState({ isLoading: false });
+                checkOnboardingFlow();
+            }, 800);
+        }
+
+        function handleForgotPass() {
+            setState({ isResetFlow: true });
+            sendCode();
+        }
+
+        function register() {
+            const t = I18N[state.lang];
+            const errors = [];
+            // 穷尽式校验逻辑
+            if (state.password.length < 6 || state.password.length > 20) errors.push(t.err_pass_len);
+            if (!/[a-zA-Z]/.test(state.password)) errors.push(t.err_pass_alpha);
+            if (!/[0-9]/.test(state.password)) errors.push(t.err_pass_num);
+            if (state.password !== state.confirmPassword) errors.push(t.err_pass_match);
+
+            if (errors.length > 0) {
+                setState({ error: errors });
+                return;
+            }
+
+            setState({ isLoading: true, error: null });
+            setTimeout(() => {
+                const msg = state.isResetFlow ? I18N[state.lang].toast_reset_success : I18N[state.lang].toast_reg_success;
+                setState({ isLoading: false, isResetFlow: false, error: null });
+                showToast(msg);
+                checkOnboardingFlow();
+            }, 800);
+        }
+
+        function logout() {
+            setState({ step: 'landing', phone: '', otp: '', password: '', confirmPassword: '', isResetFlow: false });
+        }
+
+        function jumpToState(targetStep, mockOverrides) {
+            if (timerInterval) clearInterval(timerInterval);
+            const newState = {
+                step: targetStep,
+                viewMode: 'app',
+                phone: mockOverrides.phone || '',
+                otp: mockOverrides.otp || '',
+                password: mockOverrides.password || '',
+                confirmPassword: mockOverrides.confirmPassword || '',
+                isLoading: mockOverrides.isLoading || false,
+                timer: mockOverrides.timer || 0,
+                showPass: mockOverrides.showPass || false,
+                isResetFlow: mockOverrides.isResetFlow || false
+            };
+            if(mockOverrides.toast) showToast(mockOverrides.toast.msg, mockOverrides.toast.type);
+            setState(newState);
+        }
+
+        // --- RENDERERS ---
+
+        function render() {
+            const container = document.getElementById('main-container');
+            const t = I18N[state.lang];
+            const isFlow = state.viewMode === 'flow';
+
+            // Update Header Icon Text
+            document.getElementById('view-mode-text').innerText = isFlow ? 'INTERACTIVE' : 'FLOW MAP';
+            const icon = document.getElementById('view-mode-icon');
+            icon.setAttribute('data-lucide', isFlow ? 'minimize-2' : 'layout');
+
+            container.innerHTML = ''; // Clear
+
+            if (!isFlow) {
+                // APP MODE
+                container.innerHTML = `
+                    <div class="h-full w-full flex items-center justify-center bg-[#1a1a1a] relative">
+                        <div class="w-[420px] h-[840px] bg-white rounded-[60px] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden relative border-[12px] border-[#2a2a2a]">
+                            <div class="h-full w-full" id="app-screen"></div>
+                        </div>
+                    </div>
+                `;
+                renderCurrentScreen(document.getElementById('app-screen'), t);
+            } else {
+                // FLOW MODE
+                renderFlowMap(container, t);
+            }
+            lucide.createIcons();
+        }
+
+        function renderCurrentScreen(container, t, isStatic = false, mockState = null) {
+            const s = isStatic ? mockState : state;
+            let content = '';
+
+            // Toast Component (Optimized for Mirror - High position)
+            const mockToast = (s.toast) ? `
+                <div class="absolute top-[4%] left-1/2 -translate-x-1/2 w-fit max-w-[90%] z-[60] animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div class="bg-black/90 backdrop-blur-2xl text-white py-2.5 px-6 rounded-2xl shadow-2xl flex items-center justify-center gap-3 border border-white/20">
+                        <div class="w-5 h-5 shrink-0 flex items-center justify-center rounded-full ${s.toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}">
+                            <i data-lucide="${s.toast.type === 'error' ? 'x' : 'check'}" class="w-3 h-3 text-white"></i>
+                        </div>
+                        <span class="text-[10px] font-bold tracking-wide whitespace-nowrap">${s.toast.msg}</span>
+                    </div>
+                </div>
+            ` : '';
+
+            // Common Components Generators
+            const btn = (label, onclick, disabled = false) => `
+                <button onclick="${onclick}" ${disabled || s.isLoading ? 'disabled' : ''} class="w-full h-14 rounded-2xl font-bold text-sm tracking-[0.2em] flex items-center justify-center gap-2 transition-all ${disabled || s.isLoading ? 'bg-gray-100 text-gray-300 scale-100 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800 active:scale-[0.98] shadow-lg'}">
+                    ${s.isLoading ? '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>' : ''}
+                    ${label}
+                </button>
+            `;
+
+            const validationError = (msg) => `
+                <div class="mt-1.5 space-y-1 animate-in fade-in slide-in-from-top-1">
+                    ${(Array.isArray(msg) ? msg : [msg]).map(m => `
+                        <p class="text-red-500 text-[9px] font-bold flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="w-2.5 h-2.5"></i>${m}
+                        </p>
+                    `).join('')}
+                </div>
+            `;
+
+            const wrapper = (title, subtitle, body, footer) => `
+                <div class="flex flex-col h-full w-full bg-white relative overflow-hidden select-none items-center pt-20">
+                    <div class="w-full max-w-[320px] px-6 mb-10 text-center relative z-10">
+                        ${!isStatic && s.step !== 'landing' && s.step !== 'dashboard' ? `<button onclick="setStep('landing')" class="absolute -left-2 top-1 p-2 text-gray-300 hover:text-black transition-colors"><i data-lucide="chevron-left" class="w-7 h-7"></i></button>` : ''}
+                        <h1 class="text-4xl font-light tracking-tighter mb-2 text-gray-900">${title}</h1>
+                        ${subtitle ? `<p class="text-gray-400 text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">${subtitle}</p>` : ''}
+                    </div>
+                    <div class="w-full max-w-[320px] px-6 space-y-8">
+                        <div class="space-y-6">${body}</div>
+                        ${footer ? `<div class="pt-4">${footer}</div>` : ''}
+                    </div>
+                    ${isStatic ? mockToast : ''}
+                </div>
+            `;
+
+            // Screen Logic
+            if (s.step === 'landing') {
+                content = wrapper(t.app_name, t.slogan, `
+                    <div class="mt-4">
+                        <label class="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] pl-1">${t.phone_label}</label>
+                        <div class="relative group">
+                            <input id="input-phone" type="tel" value="${s.phone}" oninput="${isStatic ? '' : 'setState({phone: this.value})'}" placeholder="${t.phone_placeholder}" class="w-full text-3xl font-light py-4 border-b border-gray-100 focus:border-black outline-none bg-transparent transition-all font-mono tracking-tight" ${isStatic ? 'disabled' : ''}>
+                            ${s.phone.length === 11 ? '<i data-lucide="check-circle-2" class="absolute right-0 top-6 text-black w-5 h-5 animate-in zoom-in"></i>' : ''}
+                        </div>
+                        ${s.error ? validationError(s.error) : ''}
+                    </div>
+                `, `
+                    <div class="space-y-6">
+                        ${btn(t.btn_next_otp, isStatic ? '' : 'sendCode()', s.phone.length === 0)}
+                        <div class="flex justify-center items-center gap-10">
+                            <button onclick="${isStatic ? '' : "setStep('password_login')"}" class="text-[11px] text-gray-400 font-bold hover:text-black transition-colors underline underline-offset-8 decoration-gray-200">${t.link_pass_login}</button>
+                            <button onclick="${isStatic ? '' : "setStep('qr_login')"}" class="text-[11px] text-gray-400 font-bold hover:text-black transition-colors underline underline-offset-8 decoration-gray-200">${t.link_qr_login}</button>
+                        </div>
+                        <p class="text-center text-[10px] text-gray-300 mt-10 font-medium leading-relaxed">${t.terms}</p>
+                    </div>
+                `);
+            } else if (s.step === 'otp_verify') {
+                let otpHtml = '';
+                for(let i=0; i<6; i++) {
+                    otpHtml += `<input id="input-otp-${i}" type="text" maxlength="1" value="${s.otp[i] || ''}" class="w-9 h-12 text-center text-xl font-light font-mono bg-transparent border-b-2 border-gray-200 focus:border-black outline-none transition-all" ${isStatic ? 'disabled' : `oninput="handleOtpInput(this, ${i})" onkeydown="handleOtpKeyDown(event, ${i})"`}>`;
+                }
+                
+                content = wrapper(t.otp_title, `${t.otp_sent_to}\n${s.phone}`, `
+                    <div class="flex justify-between gap-2 my-4">${otpHtml}</div>
+                    <div class="flex justify-center">
+                        <button id="otp-timer-btn" ${s.timer > 0 ? 'disabled' : ''} onclick="${isStatic ? '' : 'resendCode()'}" class="text-xs font-bold border-b-2 border-black pb-1 disabled:text-gray-200 disabled:border-gray-100 flex items-center gap-2 transition-colors">
+                            ${s.timer > 0 ? `<i data-lucide="clock" class="w-3 h-3"></i> ${s.timer}${t.seconds}` : `<i data-lucide="refresh-cw" class="w-3 h-3"></i> ${t.resend}`}
+                        </button>
+                    </div>
+                `);
+            } else if (s.step === 'password_login') {
+                content = wrapper(t.pass_title, t.pass_subtitle, `
+                    <div class="mt-4 space-y-4">
+                        <div class="opacity-50"><label class="text-[9px] font-bold uppercase tracking-widest text-gray-400">${t.account_label}</label><div class="text-base font-mono">${s.phone}</div></div>
+                        <div class="relative">
+                            <input id="input-login-pass" type="${s.showPass ? 'text' : 'password'}" value="${s.password}" oninput="${isStatic ? '' : 'setState({password: this.value})'}" placeholder="${t.pass_placeholder}" class="w-full text-xl font-medium placeholder:text-gray-200 border-b border-gray-100 py-4 pr-10 bg-transparent focus:border-black focus:outline-none transition-all font-mono" ${isStatic ? 'disabled' : ''}>
+                            <button onclick="${isStatic ? '' : 'setState({showPass: !state.showPass})'}" class="absolute right-0 top-4 text-gray-300 hover:text-black p-1"><i data-lucide="${s.showPass ? 'eye-off' : 'eye'}" class="w-5 h-5"></i></button>
+                        </div>
+                        ${s.error ? validationError(s.error) : ''}
+                        <div class="flex justify-center items-center gap-10 pt-2">
+                            <button onclick="${isStatic ? '' : "setStep('qr_login')"}" class="text-[11px] text-gray-400 font-bold hover:text-black transition-colors underline underline-offset-8 decoration-gray-200">${t.link_qr_login}</button>
+                            <button onclick="${isStatic ? '' : 'handleForgotPass()'}" class="text-[11px] text-gray-400 font-bold hover:text-black transition-colors underline underline-offset-8 decoration-gray-200">${t.forgot_pass}</button>
+                        </div>
+                    </div>
+                `, btn(t.btn_login, isStatic ? '' : 'login()', s.password.length === 0));
+            } else if (s.step === 'set_password') {
+                const validLen = s.password.length >= 6 && s.password.length <= 20;
+                const hasLetter = /[a-zA-Z]/.test(s.password);
+                const hasNum = /[0-9]/.test(s.password);
+                const valid = validLen && hasLetter && hasNum;
+                
+                const rule = (label, isValid) => `<span class="text-[8px] px-1.5 py-0.5 rounded border transition-colors ${isValid ? 'bg-black text-white border-black' : 'text-gray-300 border-gray-100'}">${label}</span>`;
+
+                content = wrapper(s.isResetFlow ? t.reset_pass_title : t.set_pass_title, s.isResetFlow ? t.reset_pass_desc : t.set_pass_desc, `
+                    <div class="space-y-4 mt-4">
+                        <div class="relative">
+                            <input id="input-set-pass" type="${s.showPass ? 'text' : 'password'}" value="${s.password}" oninput="${isStatic ? '' : 'setState({password: this.value})'}" placeholder="${t.pass_placeholder}" class="w-full text-xl font-medium placeholder:text-gray-200 border-b border-gray-100 py-4 pr-10 bg-transparent focus:border-black focus:outline-none transition-all font-mono" ${isStatic ? 'disabled' : ''}>
+                            <button onclick="${isStatic ? '' : 'setState({showPass: !state.showPass})'}" class="absolute right-0 top-4 text-gray-300 hover:text-black p-1"><i data-lucide="${s.showPass ? 'eye-off' : 'eye'}" class="w-5 h-5"></i></button>
+                        </div>
+                        ${s.error && s.error.some(e => e !== t.err_pass_match) ? validationError(s.error.filter(e => e !== t.err_pass_match)) : ''}
+                        <div class="flex gap-1.5 flex-wrap">
+                            ${rule(t.rule_len, validLen)} ${rule(t.rule_alpha, hasLetter)} ${rule(t.rule_num, hasNum)}
+                        </div>
+                        <div class="relative mt-2">
+                            <input id="input-set-confirm" type="${s.showPass ? 'text' : 'password'}" value="${s.confirmPassword}" oninput="${isStatic ? '' : 'setState({confirmPassword: this.value})'}" placeholder="${t.confirm_pass_placeholder}" class="w-full text-xl font-medium placeholder:text-gray-200 border-b border-gray-100 py-4 pr-10 bg-transparent focus:border-black focus:outline-none transition-all font-mono" ${isStatic ? 'disabled' : ''}>
+                        </div>
+                        ${s.error && s.error.includes(t.err_pass_match) ? validationError(t.err_pass_match) : ''}
+                    </div>
+                `, btn(s.isResetFlow ? t.btn_reset : t.btn_confirm, isStatic ? '' : 'register()', s.password.length === 0));
+            } else if (s.step === 'qr_login') {
+                content = wrapper(t.qr_title, t.qr_desc, `
+                    <div class="flex-1 flex flex-col items-center justify-center py-8">
+                        <div class="relative p-6 bg-white rounded-[32px] shadow-2xl border border-gray-50 group">
+                            <div class="w-48 h-48 bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden relative">
+                                <i data-lucide="qr-code" class="w-32 h-32 text-gray-800 ${s.isLoading ? 'opacity-20' : ''}"></i>
+                                ${s.isLoading ? '<div class="absolute inset-0 flex items-center justify-center"><i data-lucide="loader-2" class="w-8 h-8 animate-spin text-black"></i></div>' : ''}
+                                ${s.error ? '<div class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center p-4 text-center"><i data-lucide="refresh-cw" class="w-8 h-8 mb-2 text-gray-400"></i><span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">'+t.toast_qr_expired+'</span></div>' : ''}
+                            </div>
+                        </div>
+                        <button class="mt-12 text-xs font-bold text-gray-400 hover:text-black transition-colors flex items-center gap-3 bg-gray-50 px-6 py-3 rounded-full">
+                            <i data-lucide="smartphone" class="w-4 h-4"></i> ${t.qr_download_hint}
+                        </button>
+                    </div>
+                `, '');
+            } else if (s.step === 'admin_bind') {
+                content = wrapper(t.admin_bind_title, '', `
+                    <div class="flex-1 flex items-center justify-center py-20">
+                        <div class="text-4xl font-black text-gray-100 uppercase tracking-widest text-center leading-tight">
+                            ${t.admin_bind_title}
+                        </div>
+                    </div>
+                `, btn(t.btn_confirm, isStatic ? '' : "MOCK_DB.isAdminBound=true; checkOnboardingFlow()"));
+            } else if (s.step === 'profile_setup') {
+                content = wrapper(t.profile_setup_title, '', `
+                    <div class="flex-1 flex items-center justify-center py-20">
+                        <div class="text-4xl font-black text-gray-100 uppercase tracking-widest text-center leading-tight">
+                            ${t.profile_setup_title}
+                        </div>
+                    </div>
+                `, btn(t.btn_confirm, isStatic ? '' : "MOCK_DB.hasProfile=true; checkOnboardingFlow()"));
+            } else if (s.step === 'dashboard') {
+                content = `
+                    <div class="h-full flex flex-col items-center justify-center bg-[#F5F5F7] text-gray-900 p-6 text-center select-none">
+                        <div class="w-full max-w-[320px] bg-white rounded-[40px] shadow-2xl p-10 border border-gray-50">
+                            <div class="w-20 h-20 bg-black rounded-3xl flex items-center justify-center mx-auto mb-8 text-white shadow-xl rotate-3"><i data-lucide="check" class="w-10 h-10"></i></div>
+                            <h2 class="text-3xl font-light tracking-tighter mb-2">${t.success_sub}</h2>
+                            <p class="text-gray-300 font-mono mb-12 text-xs tracking-widest">${s.phone}</p>
+                            <button onclick="${isStatic ? '' : 'logout()'}" class="w-full py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-bold text-xs transition-colors uppercase tracking-[0.3em] text-gray-400 hover:text-black">${t.logout}</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = content;
+        }
+
+        function handleOtpKeyDown(e, index) {
+            if (e.key === 'Backspace' && !state.otp[index]) {
+                if (index > 0) {
+                    const otpArr = state.otp.split('');
+                    otpArr[index - 1] = '';
+                    setState({ otp: otpArr.join('') });
+                    const prev = document.getElementById(`input-otp-${index - 1}`);
+                    if (prev) prev.focus();
+                    e.preventDefault();
+                }
+            }
+        }
+
+        function handleOtpInput(input, index) {
+            const val = input.value;
+            if (!/^\d?$/.test(val)) { input.value = state.otp[index] || ''; return; }
+            
+            const otpArr = state.otp.split('');
+            while (otpArr.length < 6) otpArr.push('');
+            otpArr[index] = val;
+            const newOtp = otpArr.join('').slice(0, 6);
+            state.otp = newOtp; // Update state directly to avoid re-render flicker during typing
+            
+            // Auto completion check
+            if (newOtp.length === 6) {
+                setTimeout(() => {
+                    setState({ isLoading: true });
+                    setTimeout(() => {
+                        setState({ isLoading: false });
+                        if (newOtp !== MOCK_DB.validOTP) {
+                            setState({ otp: '' });
+                            showToast(I18N[state.lang].err_otp, 'error');
+                        } else {
+                            if (state.isResetFlow) setStep('set_password');
+                            else if (MOCK_DB.registeredUsers.includes(state.phone)) setStep('dashboard');
+                            else setStep('set_password');
+                        }
+                    }, 500);
+                }, 100);
+            } else if (val && index < 5) {
+                // Auto focus next
+                const next = document.getElementById(`input-otp-${index + 1}`);
+                if (next) next.focus();
+            }
+        }
+
+
+        // --- FLOW MAP RENDERER ---
+        function renderFlowMap(container, t) {
+            container.className = "w-full h-full bg-[#F8FAFC] overflow-hidden cursor-grab active:cursor-grabbing relative font-sans";
+            
+            // Interaction Handlers
+            container.onmousedown = (e) => {
+                if(e.button !== 0) { state.isDragging = true; state.lastMouse = { x: e.clientX, y: e.clientY }; e.preventDefault(); }
+            };
+            container.onmousemove = (e) => {
+                if(state.isDragging) {
+                    const dx = e.clientX - state.lastMouse.x;
+                    const dy = e.clientY - state.lastMouse.y;
+                    state.transform.x += dx;
+                    state.transform.y += dy;
+                    state.lastMouse = { x: e.clientX, y: e.clientY };
+                    updateTransform();
+                }
+            };
+            container.onmouseup = () => state.isDragging = false;
+            container.onwheel = (e) => {
+                e.preventDefault();
+                const delta = e.deltaY < 0 ? 0.05 : -0.05;
+                state.transform.scale = Math.min(Math.max(0.1, state.transform.scale + delta), 1.5);
+                updateTransform();
+            };
+            container.oncontextmenu = (e) => e.preventDefault();
+
+            // Structure
+            const content = document.createElement('div');
+            content.id = 'flow-content';
+            content.className = "absolute origin-top-left transition-transform duration-75 ease-out";
+            content.style.width = "5000px";
+            content.style.height = "4000px";
+            container.appendChild(content);
+            updateTransform();
+
+            // Build Nodes & Lines
+            const laneH = 720; const nodeW = 240; const cardH = 480; const xGap = 350; const startX = 400;
+            const yPad = (laneH - cardH) / 2 + 30;
+            const lanes = [0, laneH, laneH*2, laneH*3, laneH*4, laneH*5, laneH*6, laneH*7];
+            const cols = [startX, startX+xGap, startX+xGap*2, startX+xGap*3, startX+xGap*4];
+            const trk = [nodeW+40, nodeW+60, nodeW+80, nodeW+100]; // Tracks
+            
+            // Channels for snake routing (between lanes)
+            const channels = [];
+            for(let i=0; i<4; i++) {
+                const bottom = lanes[i] + yPad + cardH;
+                const top = lanes[i+1] + yPad;
+                channels.push((bottom + top) / 2);
+            }
+
+            // Additional channels for remaining lanes
+            for(let i=4; i<7; i++) {
+                channels.push((lanes[i] + yPad + cardH + lanes[i+1] + yPad) / 2);
+            }
+
+            const C = { B: "#3B82F6", P: "#8B5CF6", O: "#F59E0B", G: "#10B981" };
+
+            // Helper to add Swimlane
+            const addLane = (y, label, color) => {
+                const div = document.createElement('div');
+                div.className = `absolute left-0 right-0 border-b border-dashed border-gray-300/50 ${color}`;
+                div.style.top = y + 'px'; div.style.height = laneH + 'px'; div.style.width = '6000px';
+                div.innerHTML = `<div class="sticky left-0 p-8 font-black text-gray-200 text-4xl uppercase tracking-widest opacity-60 z-0 pointer-events-none select-none">${label}</div>`;
+                content.appendChild(div);
+            }
+            addLane(lanes[0], t.phase_1, 'bg-white');
+            addLane(lanes[1], t.phase_2, 'bg-gray-50');
+            addLane(lanes[2], t.phase_3, 'bg-white');
+            addLane(lanes[3], t.phase_4, 'bg-gray-50');
+            addLane(lanes[4], t.phase_5, 'bg-white');
+            addLane(lanes[5], t.phase_6, 'bg-gray-50');
+            addLane(lanes[6], t.phase_7, 'bg-white');
+            addLane(lanes[7], t.phase_8, 'bg-gray-50');
+
+            // SVG Container
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("class", "absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible z-10");
+            svg.setAttribute("style", "width:6000px; height:6000px");
+            // Defs
+            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            Object.values(C).concat(["#94A3B8"]).forEach(color => {
+                const m = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+                m.setAttribute("id", `arrow-${color}`);
+                m.setAttribute("markerWidth", "6"); m.setAttribute("markerHeight", "6");
+                m.setAttribute("refX", "5"); m.setAttribute("refY", "3");
+                m.setAttribute("orient", "auto");
+                const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                p.setAttribute("d", "M0,0 L0,6 L6,3 z"); p.setAttribute("fill", color);
+                m.appendChild(p); defs.appendChild(m);
+            });
+            svg.appendChild(defs);
+            content.appendChild(svg);
+
+            // Add Node Helper
+            const addNode = (step, label, r, c, mockData, note) => {
+                const x = cols[c]; const y = lanes[r] + yPad; 
+                const node = document.createElement('div');
+                node.className = "absolute flex flex-col gap-3 cursor-pointer transition-transform hover:scale-105 active:scale-95 group/node z-20";
+                node.style.left = x + 'px'; node.style.top = y + 'px'; node.style.width = nodeW + 'px';
+                
+                // Title
+                node.innerHTML = `
+                    <div class="flex items-center gap-2 pl-1 opacity-80 group-hover/node:opacity-100 transition-opacity">
+                        <div class="w-2 h-2 rounded-full bg-black ring-2 ring-gray-200"></div>
+                        <span class="text-gray-900 font-bold text-xs uppercase tracking-wider">${label}</span>
+                    </div>
+                    <div class="relative group shadow-lg hover:shadow-2xl transition-shadow rounded-[24px]">
+                        <div class="bg-white rounded-[24px] border-[4px] overflow-hidden ring-1 ring-black/5 transition-colors ${note ? 'border-blue-200 group-hover/node:border-blue-400' : 'border-white group-hover/node:border-gray-200'}" style="width:${nodeW}px; height:${cardH}px">
+                            <div class="origin-top-left pointer-events-none" style="transform: scale(${nodeW/375}); width: 375px; height: ${cardH / (nodeW/375)}px">
+                                <div class="h-full w-full" id="node-${r}-${c}"></div>
+                            </div>
+                        </div>
+                        ${note ? `<div class="absolute -right-3 top-4 translate-x-full bg-blue-50 text-blue-900 px-3 py-2 text-[10px] rounded-xl border border-blue-100 shadow-sm leading-snug w-32 z-30 opacity-80 group-hover/node:opacity-100 transition-opacity"><span class="block font-bold mb-0.5 text-blue-600 uppercase tracking-tighter">${t.label_note}</span>${note}</div>` : ''}
+                    </div>
+                `;
+                
+                node.onclick = (e) => { e.stopPropagation(); jumpToState(step, mockData); };
+                content.appendChild(node);
+                
+                // Render Screen Content
+                const target = node.querySelector(`#node-${r}-${c}`);
+                renderCurrentScreen(target, t, true, { ...state, step, ...mockData });
+            };
+
+            // Add Line Helper (Snake Routing)
+            const addLine = (points, color = "#94A3B8") => {
+                let d = `M ${points[0].x} ${points[0].y}`;
+                for(let i=1; i<points.length; i++) d += ` L ${points[i].x} ${points[i].y}`;
+                
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                // White bg
+                const bg = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                bg.setAttribute("d", d); bg.setAttribute("fill", "none"); bg.setAttribute("stroke", "white");
+                bg.setAttribute("stroke-width", "6"); bg.setAttribute("stroke-linejoin", "round"); bg.setAttribute("stroke-linecap", "round");
+                // Color line
+                const fg = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                fg.setAttribute("d", d); fg.setAttribute("fill", "none"); fg.setAttribute("stroke", color);
+                fg.setAttribute("stroke-width", "2.5"); fg.setAttribute("stroke-linejoin", "round"); fg.setAttribute("stroke-linecap", "round");
+                fg.setAttribute("marker-end", `url(#arrow-${color})`);
+                
+                g.appendChild(bg); g.appendChild(fg);
+                svg.appendChild(g);
+            };
+
+            const addDecision = (label, r, c) => {
+                const x = cols[c] + nodeW / 2; const y = cy(r); const s = 60;
+                const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                poly.setAttribute("points", `${x},${y-s} ${x+s+20},${y} ${x},${y+s} ${x-s-20},${y}`);
+                poly.setAttribute("fill", "white"); poly.setAttribute("stroke", "#94A3B8"); poly.setAttribute("stroke-width", "2");
+                svg.appendChild(poly);
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", x); txt.setAttribute("y", y + 5); txt.setAttribute("text-anchor", "middle");
+                txt.setAttribute("class", "text-[11px] font-bold fill-gray-600");
+                txt.textContent = label;
+                svg.appendChild(txt);
+                return { x, y, s };
+            };
+
+            const addLabel = (text, x, y, color) => {
+                const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txt.setAttribute("x", x); txt.setAttribute("y", y);
+                txt.setAttribute("class", "text-[12px] font-black fill-current");
+                txt.style.color = color; txt.textContent = text;
+                svg.appendChild(txt);
+            };
+
+            // --- DATA POINTS ---
+            const mock = (o) => ({ phone: '', otp: '', password: '', confirmPassword: '', showPass: false, isLoading: false, toast: null, timer: 0, error: null, isResetFlow: false, ...o });
+            const cy = (r) => lanes[r] + yPad + cardH/2;
+            const cx = (c) => cols[c] + nodeW; // Right side of node
+            const cxl = (c) => cols[c]; // Left side of node
+            const cxm = (c) => cols[c] + nodeW/2;
+
+            // ROW 1
+            addNode('landing', t.st_init, 0, 0, mock({ phone: '' }));
+            addLine([{x:cx(0), y:cy(0)}, {x:cxl(1), y:cy(0)}]);
+            
+            addNode('landing', t.st_typing, 0, 1, mock({ phone: '1380000' }));
+            addLine([{x:cx(1), y:cy(0)}, {x:cxl(2), y:cy(0)}]);
+
+            const d1 = addDecision(t.check_reg, 0, 2);
+            addLine([{x:cx(1), y:cy(0)}, {x:d1.x - 80, y:cy(0)}]);
+            
+            // N -> OTP
+            addLine([{x:d1.x, y:cy(0)+60}, {x:d1.x, y:channels[0]}, {x:cols[0]-120, y:channels[0]}, {x:cols[0]-120, y:cy(1)}, {x:cxl(0), y:cy(1)}], C.B);
+            addLabel("N", d1.x + 10, cy(0)+80, C.B);
+
+            // Y -> Password
+            addLine([{x:d1.x + 80, y:cy(0)}, {x:cols[4]+trk[1], y:cy(0)}, {x:cols[4]+trk[1], y:channels[1]}, {x:cols[0]-140, y:channels[1]}, {x:cols[0]-140, y:cy(2)}, {x:cxl(0), y:cy(2)}], C.P);
+            addLabel("Y", d1.x + 90, cy(0)-10, C.P);
+
+            addNode('landing', t.st_valid, 0, 3, mock({ phone: '15200000000' }));
+            addNode('landing', t.st_loading, 0, 4, mock({ phone: '15200000000', isLoading: true }));
+            
+            // SNAKE 1->2 (Blue) - Legacy
+            addLine([{x:cx(4), y:cy(0)}, {x:cols[4]+trk[0], y:cy(0)}, {x:cols[4]+trk[0], y:channels[0]}, {x:cols[0]-120, y:channels[0]}, {x:cols[0]-120, y:cy(1)}, {x:cxl(0), y:cy(1)}], C.B);
+            // ROUTING 1->3 (Purple)
+            addLine([{x:cx(4), y:cy(0)}, {x:cols[4]+trk[1], y:cy(0)}, {x:cols[4]+trk[1], y:channels[1]}, {x:cols[0]-140, y:channels[1]}, {x:cols[0]-140, y:cy(2)}, {x:cxl(0), y:cy(2)}], C.P);
+
+            // ROW 2
+            addNode('otp_verify', t.label_otp + ": " + t.st_timer, 1, 0, mock({ phone: '15200000000', timer: 60, toast: {msg:t.toast_code, type:'success'} }));
+            addLine([{x:cx(0), y:cy(1)}, {x:cxl(1), y:cy(1)}]);
+
+            addNode('otp_verify', t.label_otp + ": " + t.st_typing, 1, 1, mock({ phone: '15200000000', otp: '123', timer: 55 }));
+            addLine([{x:cx(1), y:cy(1)}, {x:cxl(2), y:cy(1)}]);
+
+            addNode('otp_verify', t.label_otp + ": " + t.st_error_sys, 1, 2, mock({ phone: '15200000000', otp: '000000', timer: 45, toast: {msg:t.err_otp, type:'error'} }));
+            addLine([{x:cx(2), y:cy(1)}, {x:cxl(3), y:cy(1)}]);
+
+            addNode('otp_verify', t.st_timeout, 1, 3, mock({ phone: '15200000000', otp: '', timer: 0 }));
+            addLine([{x:cx(3), y:cy(1)}, {x:cxl(4), y:cy(1)}]);
+
+            addNode('otp_verify', t.st_loading, 1, 4, mock({ phone: '15200000000', otp: '123456', isLoading: true }));
+            
+            // SNAKE 2->4 (Orange)
+            addLine([{x:cx(4), y:cy(1)}, {x:cols[4]+trk[2], y:cy(1)}, {x:cols[4]+trk[2], y:channels[2]}, {x:cols[0]-160, y:channels[2]}, {x:cols[0]-160, y:cy(3)}, {x:cxl(0), y:cy(3)}], C.O);
+            // SNAKE 2->5 (Green)
+            addLine([{x:cx(4), y:cy(1)}, {x:cols[4]+trk[3], y:cy(1)}, {x:cols[4]+trk[3], y:channels[3]}, {x:cols[0]-180, y:channels[3]}, {x:cols[0]-180, y:cy(4)}, {x:cxl(0), y:cy(4)}], C.G);
+
+            // ROW 3
+            addNode('password_login', t.st_init, 2, 0, mock({ phone: '15200000000' }));
+            addLine([{x:cx(0), y:cy(2)}, {x:cxl(1), y:cy(2)}]);
+
+            addNode('password_login', t.st_typing, 2, 1, mock({ phone: '15200000000', password: 'pass' }));
+            addLine([{x:cx(1), y:cy(2)}, {x:cxl(2), y:cy(2)}]);
+
+            addNode('password_login', t.st_error_sys, 2, 2, mock({ phone: '15200000000', password: 'wrong', error: [t.err_wrong_pass] }));
+            addLine([{x:cx(1), y:cy(2)}, {x:cols[1]+nodeW+20, y:cy(2)}, {x:cols[1]+nodeW+20, y:cy(2)+140}, {x:cols[3]-20, y:cy(2)+140}, {x:cols[3]-20, y:cy(2)}, {x:cxl(3), y:cy(2)}]);
+
+            addNode('password_login', t.st_unmask, 2, 3, mock({ phone: '15200000000', password: 'Password123', showPass: true }));
+            addLine([{x:cx(3), y:cy(2)}, {x:cxl(4), y:cy(2)}]);
+
+            addNode('password_login', t.st_loading, 2, 4, mock({ phone: '15200000000', password: '***', isLoading: true }));
+            // SNAKE 3->5 (Green)
+            addLine([{x:cx(4), y:cy(2)}, {x:cols[4]+trk[3], y:cy(2)}, {x:cols[4]+trk[3], y:channels[3]}, {x:cols[0]-180, y:channels[3]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+
+            // ROW 4
+            addNode('set_password', t.st_init, 3, 0, mock({ phone: '15200000000' }));
+            addLine([{x:cx(0), y:cy(3)}, {x:cxl(1), y:cy(3)}]);
+
+            addNode('set_password', t.st_weak, 3, 1, mock({ phone: '15200000000', password: '123', error: [t.err_pass_len, t.err_pass_alpha, t.err_pass_num] }));
+            addLine([{x:cx(1), y:cy(3)}, {x:cxl(2), y:cy(3)}]);
+
+            addNode('set_password', t.st_mismatch, 3, 2, mock({ phone: '15200000000', password: 'Password123', confirmPassword: 'Pass', error: [t.err_pass_match] }));
+            addLine([{x:cx(2), y:cy(3)}, {x:cxl(3), y:cy(3)}]);
+
+            addNode('set_password', t.st_valid, 3, 3, mock({ phone: '15200000000', password: 'Password123', confirmPassword: 'Password123' }));
+            // SNAKE 4->5 (Green)
+            addLine([{x:cx(3), y:cy(3)}, {x:cols[3]+nodeW+trk[3], y:cy(3)}, {x:cols[3]+nodeW+trk[3], y:channels[3]}, {x:cols[0]-180, y:channels[3]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+
+            // ROW 5: FORGOT PASSWORD FLOW (Independent)
+            addNode('password_login', t.forgot_pass, 4, 0, mock({ phone: '15200000000' }), t.note_forgot_path);
+            addLine([{x:cx(0), y:cy(4)}, {x:cxl(1), y:cy(4)}]);
+
+            addNode('otp_verify', t.label_reset + ": " + t.st_timer, 4, 1, mock({ phone: '15200000000', timer: 60, isResetFlow: true, toast: {msg:t.toast_code, type:'success'} }));
+            addLine([{x:cx(1), y:cy(4)}, {x:cxl(2), y:cy(4)}]);
+
+            addNode('set_password', t.label_reset + ": " + t.st_init, 4, 2, mock({ phone: '15200000000', isResetFlow: true }));
+            addLine([{x:cx(2), y:cy(4)}, {x:cxl(3), y:cy(4)}]);
+
+            addNode('set_password', t.label_reset + ": " + t.st_valid, 4, 3, mock({ phone: '15200000000', isResetFlow: true, password: 'NewPassword123', confirmPassword: 'NewPassword123', toast: {msg: t.toast_reset_success, type: 'success'} }));
+            
+            // SNAKE 5->6 (Green)
+            addLine([{x:cx(3), y:cy(4)}, {x:cols[3]+nodeW+trk[3], y:cy(4)}, {x:cols[3]+nodeW+trk[3], y:channels[4]}, {x:cols[0]-180, y:channels[4]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+
+            // ROW 6: QR LOGIN FLOW
+            addNode('qr_login', t.st_init, 5, 0, mock({}));
+            addLine([{x:cx(0), y:cy(5)}, {x:cxl(1), y:cy(5)}]);
+
+            addNode('qr_login', t.st_scanned, 5, 1, mock({ isLoading: true }));
+            addLine([{x:cx(1), y:cy(5)}, {x:cxl(2), y:cy(5)}]);
+
+            addNode('qr_login', t.st_expired, 5, 2, mock({ error: [t.toast_qr_expired] }));
+            
+            addNode('qr_login', t.st_valid, 5, 3, mock({ toast: {msg: t.toast_qr_success, type: 'success'} }));
+            // SNAKE 6->7 (Green)
+            addLine([{x:cx(3), y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:channels[5]}, {x:cols[0]-180, y:channels[5]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+
+            // ROW 7: ONBOARDING & LOGIC
+            const d2 = addDecision(t.check_profile, 6, 0);
+            // N -> Profile Setup
+            addLine([{x:d2.x + 80, y:cy(6)}, {x:cxl(1), y:cy(6)}], C.O);
+            addLabel("N", d2.x + 90, cy(6)-10, C.O);
+            
+            // Y -> Admin Check
+            const d3 = addDecision(t.check_admin, 6, 2);
+            addLine([{x:d2.x, y:cy(6)+60}, {x:d2.x, y:cy(6)+100}, {x:d3.x, y:cy(6)+100}, {x:d3.x, y:cy(6)+60}], C.G);
+            addLabel("Y", d2.x + 10, cy(6)+90, C.G);
+
+            // N -> Admin Bind
+            addLine([{x:d3.x + 80, y:cy(6)}, {x:cxl(3), y:cy(6)}], C.O);
+            addLabel("N", d3.x + 90, cy(6)-10, C.O);
+
+            // Y -> Dashboard
+            addLine([{x:d3.x, y:cy(6)+60}, {x:d3.x, y:channels[6]}, {x:cxm(0), y:channels[6]}, {x:cxm(0), y:cy(7)-cardH/2}], C.G);
+            addLabel("Y", d3.x + 10, cy(6)+90, C.G);
+
+            addNode('profile_setup', t.profile_setup_title, 6, 1, mock({}));
+            addLine([{x:cx(1), y:cy(6)}, {x:d3.x - 80, y:cy(6)}], C.G);
+
+            addNode('admin_bind', t.admin_bind_title, 6, 3, mock({}));
+            addLine([{x:cx(3), y:cy(6)}, {x:cols[3]+nodeW+40, y:cy(6)}, {x:cols[3]+nodeW+40, y:channels[6]}, {x:cxm(0), y:channels[6]}, {x:cxm(0), y:cy(7)-cardH/2}], C.G);
+
+            // ROW 8: SUCCESS
+            addNode('dashboard', t.success_sub, 7, 0, mock({ phone: '15200000000' }));
+        }
+
+        function updateTransform() {
+            const content = document.getElementById('flow-content');
+            if(content) content.style.transform = `translate(${state.transform.x}px, ${state.transform.y}px) scale(${state.transform.scale})`;
+        }
+
+        // --- INIT ---
+        render();
+    </script>
+</body>
+</html>

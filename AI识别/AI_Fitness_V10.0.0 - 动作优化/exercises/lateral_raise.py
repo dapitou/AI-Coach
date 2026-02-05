@@ -159,17 +159,20 @@ class LateralRaiseExercise(BaseExercise):
                 # 5. 引导 (Guide)
                 if is_range_good:
                     # 正确：绿色对号
-                    vis.append({'cmd': 'check', 'center': (e_pt[0], e_pt[1]-25), 'color': ColorConfig.NEON_GREEN, 'scale': 1.0})
+                    vis.append({'cmd': 'check', 'center': target_pt, 'color': ColorConfig.NEON_GREEN, 'scale': 1.0})
                 else:
-                    # 错误：红色向上箭头
-                    arrow_target = (e_pt[0], s_pt[1])
+                    # 错误：红色垂直向上箭头 (锚定在目标点)
+                    # 逻辑：终点为 target_pt，方向垂直向上 (0, -1)
+                    # start = target_pt + (0, 1) * len -> 在目标点下方
+                    arrow_len = 50
+                    arrow_start = (target_pt[0], target_pt[1] + arrow_len)
                     vis.append({
                         'cmd': 'arrow', 
-                        'start': e_pt, 
-                        'target': arrow_target, 
+                        'start': arrow_start, 
+                        'target': target_pt, 
                         'color': ColorConfig.NEON_RED, 
                         'mode': 'point', 
-                        'gap': 5
+                        'gap': 0
                     })
 
             # 提示词更新

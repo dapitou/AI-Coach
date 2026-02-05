@@ -231,7 +231,7 @@ class SquatExercise(BaseExercise):
                 show_green_valgus = self.last_rep_valgus_ok
             
             # [辅助线] 足部垂线 (绿色虚线) - 始终显示以提供参考
-            for side, ankle_key, toe_key in [('left', 'la', 'lt'), ('right', 'ra', 'rt')]:
+            for side, ankle_key, toe_key in [('left', 'la', 'lf'), ('right', 'ra', 'rf')]:
                 if pts.get(ankle_key):
                     foot_x = pts[ankle_key][0]
                     foot_y = pts[ankle_key][1]

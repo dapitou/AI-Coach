@@ -122,6 +122,17 @@ class GenericExercise(BaseExercise):
                 py = self._get_pt(vp['source_y'], raw_pts)
                 if px and py:
                     self.v_pts[pid] = (px[0], py[1])
+            
+            elif calc_type == 'extend_horizontal':
+                # [New] 水平延伸：起点 + (长度参考段长度 * 方向)
+                p_src = self._get_pt(vp['source'], raw_pts)
+                p_ref1 = self._get_pt(vp['ref_start'], raw_pts)
+                p_ref2 = self._get_pt(vp['ref_end'], raw_pts)
+                
+                if p_src and p_ref1 and p_ref2:
+                    length = math.hypot(p_ref1[0]-p_ref2[0], p_ref1[1]-p_ref2[1])
+                    direction = vp.get('direction', 1.0)
+                    self.v_pts[pid] = (int(p_src[0] + length * direction), p_src[1])
 
     def _update_dynamic_vars(self, raw_pts):
         """更新动态基准值"""
@@ -498,13 +509,35 @@ class GenericExercise(BaseExercise):
             
             elif etype == 'arrow':
                 p1 = self._get_pt(draw_cfg.get('start') or draw_cfg.get('from'), raw_pts)
-                if 'to' in draw_cfg:
+                # [Fix] 透传通用可选参数 (gap, len, anim)
+                common_opts = {k: draw_cfg[k] for k in ['gap', 'len', 'anim'] if k in draw_cfg}
+                
+                # [New] 支持 "终点 + 方向" 模式 (反推起点)
+                # 场景：侧平举引导箭头，锚定在目标点，垂直向上指
+                if p1 is None and 'to' in draw_cfg and 'direction' in draw_cfg:
+                    p2 = self._get_pt(draw_cfg['to'], raw_pts)
+                    if p2:
+                        d = draw_cfg['direction'] # [dx, dy]
+                        length = draw_cfg.get('len', 50)
+                        # start = end - direction * length
+                        p1 = (int(p2[0] - d[0] * length), int(p2[1] - d[1] * length))
+                        
+                        cmd = {'cmd': 'arrow', 'start': p1, 'target': p2, 'color': color, 'mode': 'point', 'gap': 0}
+                        cmd.update(common_opts)
+                        vis.append(cmd)
+
+                elif 'to' in draw_cfg:
                     p2 = self._get_pt(draw_cfg['to'], raw_pts)
                     if p1 and p2:
-                        vis.append({'cmd': 'arrow', 'start': p1, 'target': p2, 'color': color, 'mode': 'point', 'gap': 25})
+                        cmd = {'cmd': 'arrow', 'start': p1, 'target': p2, 'color': color, 'mode': 'point', 'gap': 25}
+                        cmd.update(common_opts)
+                        vis.append(cmd)
                 elif 'direction' in draw_cfg:
                     if p1:
-                        vis.append({'cmd': 'arrow', 'start': p1, 'target': (1,0), 'color': color, 'mode': 'vec'})
+                        d = draw_cfg['direction'] # [Fix] 使用配置的方向，而非硬编码 (1,0)
+                        cmd = {'cmd': 'arrow', 'start': p1, 'target': d, 'color': color, 'mode': 'vec'}
+                        cmd.update(common_opts)
+                        vis.append(cmd)
 
             elif etype == 'circle':
                 c = self._get_pt(draw_cfg.get('center'), raw_pts)

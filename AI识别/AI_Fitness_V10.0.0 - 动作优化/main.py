@@ -364,7 +364,7 @@ def main():
         pts = {}
         if res.pose_landmarks:
              # 映射关键点
-             for i, n in {11:'ls',12:'rs',13:'le',14:'re',15:'lw',16:'rw',23:'lh',24:'rh',25:'lk',26:'rk',27:'la',28:'ra',0:'nose'}.items():
+             for i, n in {11:'ls',12:'rs',13:'le',14:'re',15:'lw',16:'rw',23:'lh',24:'rh',25:'lk',26:'rk',27:'la',28:'ra',31:'lf',32:'rf',0:'nose'}.items():
                  lm = res.pose_landmarks.landmark[i]
                  if lm.visibility > 0.5: 
                      pts[n] = (int(lm.x*AppConfig.HALF_W), int(lm.y*AppConfig.H))
