@@ -106,7 +106,7 @@
         // --- DATA & CONFIG ---
         const MOCK_DB = {
             registeredUsers: ['13700000000'],
-            validOTP: '123456',
+            validOTP: '123456', // 默认验证码
             testPhone: '15200000000',
             isAdminBound: false, // 模拟设备未绑定
             hasProfile: false    // 模拟个人信息未填写
@@ -167,12 +167,16 @@
                 toast_qr_expired: '二维码已过期，请刷新',
                 err_wrong_pass: '账号或密码错误',
                 err_user_nfound: '该手机号未注册',
+                select_lang_title: '选择语言',
+                connect_wifi_title: '连接 WiFi',
+                select_region_title: '选择地区',
+                btn_confirm_next: '下一步',
                 label_otp: '验证码',
                 label_reset: '重置',
                 label_note: '备注',
                 st_init: '初始空状态', st_typing: '用户输入中', st_valid: '格式校验通过', st_error_fmt: '格式校验报错', st_error_sys: '系统错误/Toast', st_loading: 'API 请求中', st_timer: '倒计时运行中', st_timeout: '倒计时结束/重发', st_weak: '密码强度不足', st_mismatch: '密码不一致', st_mask: '密码脱敏显示', st_unmask: '密码明文显示',
                 st_expired: '状态过期', st_scanned: '已扫码/待确认',
-                phase_1: '01. 手机号分流 (Landing)', phase_2: '02. 验证码校验 (OTP)', phase_3: '03. 密码登录 (Password)', phase_4: '04. 设置密码 (Set Pass)', 
+                phase_0: '00. 初始化设置 (Setup)', phase_1: '01. 手机号分流 (Landing)', phase_2: '02. 验证码校验 (OTP)', phase_3: '03. 密码登录 (Password)', phase_4: '04. 设置密码 (Set Pass)', 
                 phase_5: '05. 找回密码流程 (Forgot Password)', phase_6: '06. 二维码登录 (QR Login)',
                 phase_7: '07. 引导流程 (Onboarding)', phase_8: '08. 成功 (Success)',
                 hint_click_jump: '点击节点跳转演示', note_new_user: '新用户路径', note_old_user: '老用户路径', note_forgot_path: '找回密码路径',
@@ -232,12 +236,16 @@
                 toast_qr_expired: 'QR Code expired',
                 err_wrong_pass: 'Invalid credentials',
                 err_user_nfound: 'User not found',
+                select_lang_title: 'Language',
+                connect_wifi_title: 'Connect WiFi',
+                select_region_title: 'Region',
+                btn_confirm_next: 'Next',
                 label_otp: '验证码',
                 label_reset: '重置',
                 label_note: '备注',
                 st_init: '初始空状态', st_typing: '用户输入中', st_valid: '格式校验通过', st_error_fmt: '格式校验报错', st_error_sys: '系统错误/Toast', st_loading: 'API 请求中', st_timer: '倒计时运行中', st_timeout: '倒计时结束/重发', st_weak: '密码强度不足', st_mismatch: '密码不一致', st_mask: '密码脱敏显示', st_unmask: '密码明文显示',
                 st_expired: '状态过期', st_scanned: '已扫码/待确认',
-                phase_1: '01. 手机号分流 (Landing)', phase_2: '02. 验证码校验 (OTP)', phase_3: '03. 密码登录 (Password)', phase_4: '04. 设置密码 (Set Pass)', 
+                phase_0: '00. 初始化设置 (Setup)', phase_1: '01. 手机号分流 (Landing)', phase_2: '02. 验证码校验 (OTP)', phase_3: '03. 密码登录 (Password)', phase_4: '04. 设置密码 (Set Pass)', 
                 phase_5: '05. 找回密码流程 (Forgot Password)', phase_6: '06. 二维码登录 (QR Login)',
                 phase_7: '07. 引导流程 (Onboarding)', phase_8: '08. 成功 (Success)',
                 hint_click_jump: '点击节点跳转演示', note_new_user: '新用户路径', note_old_user: '老用户路径', note_forgot_path: '找回密码路径',
@@ -249,7 +257,7 @@
         const state = {
             viewMode: 'flow', // Default to Flow Map
             lang: 'zh',
-            step: 'landing',
+            step: 'select_lang',
             phone: '',
             otp: '',
             password: '',
@@ -309,6 +317,70 @@
                 }
             }
         }
+
+        // UI 设计引注数据 (用于全景图展示)
+        const SPECS = {
+            select_lang: {
+                title: "选择语言",
+                states: "1. 列表展示态：展示支持的语言列表<br>2. 选中态：当前选择项高亮显示",
+                validation: "无",
+                interaction: "• 点击语言条目立即切换系统语言预览<br>• 点击底部确认按钮进入下一环节"
+            },
+            connect_wifi: {
+                title: "连接 WiFi",
+                states: "1. 引导态：提示用户连接网络",
+                validation: "无",
+                interaction: "• 模拟系统网络配置流程<br>• 联网成功后进入下一环节"
+            },
+            select_region: {
+                title: "选择地区",
+                states: "1. 引导态：提示用户选择服务区域",
+                validation: "无",
+                interaction: "• 影响后续内容分发与合规性策略<br>• 选择后进入登录主流程"
+            },
+            landing: {
+                title: "手机号分流页",
+                states: "1. 初始态：获取验证码按钮禁用<br>2. 输入态：实时校验位数<br>3. 合法态：显示勾选图标，按钮激活<br>4. 错误态：输入框下方红字提示",
+                validation: "• 11位数字校验，必须1开头<br>• 过滤非数字字符<br>• 点击按钮触发后端注册状态检查",
+                interaction: "• 自动聚焦输入框<br>• 满11位按钮高亮<br>• 点击辅助入口平滑切换登录模式<br>• 底部法律协议区常驻，点击跳转协议详情"
+            },
+            otp_verify: {
+                title: "验证码校验页",
+                states: "1. 倒计时态：60s自动运行<br>2. 输入态：6位独立框焦点流转<br>3. 校验态：Loading 遮罩<br>4. 失败态：输入框抖动并清空",
+                validation: "• 6位纯数字校验<br>• 验证码时效性逻辑模拟",
+                interaction: "• 自动聚焦首位<br>• 满6位自动触发提交<br>• Backspace 支持跨框回退删除<br>• 倒计时结束恢复重发按钮"
+            },
+            password_login: {
+                title: "密码登录页",
+                states: "1. 预填态：从前页带入手机号<br>2. 输入态：密码显隐切换<br>3. 报错态：账号不存在或密码错误提示",
+                validation: "• 手机号合法性二次校验<br>• 密码非空校验",
+                interaction: "• 手机号支持点击编辑修改<br>• 点击眼睛图标切换明密文<br>• 忘记密码进入重置流<br>• 登录按钮随输入状态激活"
+            },
+            set_password: {
+                title: "设置/重置密码页",
+                states: "1. 初始态：按钮禁用<br>2. 强度检测态：三项指标动态变色<br>3. 匹配态：确认密码一致性检查",
+                validation: "• 6-20位字符<br>• 必须包含字母和数字",
+                interaction: "• 实时监听输入更新强度UI<br>• 动态标题根据业务场景切换<br>• 确认密码框失焦触发一致性校验<br>• 注册成功后自动执行拦截检查"
+            },
+            qr_login: {
+                title: "二维码登录页",
+                states: "1. 加载态：生成二维码中<br>2. 待扫态：展示静态码<br>3. 过期态：覆盖遮罩提示刷新",
+                validation: "• 模拟后端轮询状态机制<br>• 二维码有效期模拟",
+                interaction: "• 点击二维码区域手动刷新<br>• 扫码成功自动执行 Onboarding 拦截<br>• 底部提供 App 下载引导入口"
+            },
+            profile_setup: {
+                title: "个人信息填写",
+                states: "1. 拦截态：强制引导不可跳过",
+                validation: "• 资料完整性校验",
+                interaction: "• 提交后进入下一级拦截检查<br>• 无法通过返回键跳过"
+            },
+            admin_bind: {
+                title: "管理员绑定",
+                states: "1. 拦截态：设备确权引导",
+                validation: "• 管理员唯一性检查",
+                interaction: "• 绑定成功进入系统首页<br>• 无法通过返回键跳过"
+            }
+        };
 
         function toggleLang() {
             setState({ lang: state.lang === 'zh' ? 'en' : 'zh' });
@@ -453,11 +525,15 @@
             const t = I18N[state.lang];
             setState({ isLoading: true, error: null });
             setTimeout(() => {
-                if (!MOCK_DB.registeredUsers.includes(state.phone)) {
+                // 测试密码 lkc123 逻辑：豁免所有校验
+                const isTestPass = state.password === 'lkc123';
+
+                if (!MOCK_DB.registeredUsers.includes(state.phone) && !isTestPass) {
                     setState({ isLoading: false, error: [t.err_user_nfound] });
                     return;
                 }
-                // 模拟密码错误逻辑：输入 "wrong" 触发报错
+                
+                // 模拟报错逻辑
                 if (state.password === 'wrong') {
                     setState({ isLoading: false, error: [t.err_wrong_pass] });
                     return;
@@ -475,10 +551,14 @@
         function register() {
             const t = I18N[state.lang];
             const errors = [];
-            // 穷尽式校验逻辑
-            if (state.password.length < 6 || state.password.length > 20) errors.push(t.err_pass_len);
-            if (!/[a-zA-Z]/.test(state.password)) errors.push(t.err_pass_alpha);
-            if (!/[0-9]/.test(state.password)) errors.push(t.err_pass_num);
+            
+            // 测试密码 lkc123 豁免强度校验
+            if (state.password !== 'lkc123') {
+                if (state.password.length < 6 || state.password.length > 20) errors.push(t.err_pass_len);
+                if (!/[a-zA-Z]/.test(state.password)) errors.push(t.err_pass_alpha);
+                if (!/[0-9]/.test(state.password)) errors.push(t.err_pass_num);
+            }
+            
             if (state.password !== state.confirmPassword) errors.push(t.err_pass_match);
 
             if (errors.length > 0) {
@@ -488,6 +568,11 @@
 
             setState({ isLoading: true, error: null });
             setTimeout(() => {
+                // 注册成功后持久化到模拟数据库，确保后续登录可用
+                if (!MOCK_DB.registeredUsers.includes(state.phone)) {
+                    MOCK_DB.registeredUsers.push(state.phone);
+                }
+
                 const msg = state.isResetFlow ? I18N[state.lang].toast_reset_success : I18N[state.lang].toast_reg_success;
                 setState({ isLoading: false, isResetFlow: false, error: null });
                 showToast(msg);
@@ -535,17 +620,49 @@
                 // APP MODE
                 container.innerHTML = `
                     <div class="h-full w-full flex items-center justify-center bg-[#1a1a1a] relative">
-                        <div class="w-[420px] h-[840px] bg-white rounded-[60px] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden relative border-[12px] border-[#2a2a2a]">
-                            <div class="h-full w-full" id="app-screen"></div>
+                        <div class="flex items-start gap-12">
+                            <div class="w-[420px] h-[840px] bg-white rounded-[60px] shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden relative border-[12px] border-[#2a2a2a]">
+                                <div class="h-full w-full" id="app-screen"></div>
+                            </div>
+                            <div id="app-specs-panel" class="w-80 py-10 self-center"></div>
                         </div>
                     </div>
                 `;
                 renderCurrentScreen(document.getElementById('app-screen'), t);
+                renderSpecsPanel(document.getElementById('app-specs-panel'), state.step);
             } else {
                 // FLOW MODE
                 renderFlowMap(container, t);
             }
             lucide.createIcons();
+        }
+
+        function renderSpecsPanel(container, step) {
+            const spec = SPECS[step];
+            if (!spec || !container) return;
+            
+            container.innerHTML = `
+                <div class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[40px] p-8 text-white animate-in fade-in slide-in-from-right-4 duration-500 shadow-2xl">
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                        <h3 class="text-xl font-bold tracking-tight">${spec.title}</h3>
+                    </div>
+                    <div class="space-y-8">
+                        <section>
+                            <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-3">状态说明 / States</h4>
+                            <div class="text-sm text-gray-300 leading-relaxed font-medium">${spec.states}</div>
+                        </section>
+                        <section>
+                            <h4 class="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-3">校验规则 / Validation</h4>
+                            <div class="text-sm text-gray-300 leading-relaxed font-medium">${spec.validation}</div>
+                        </section>
+                        <section>
+                            <h4 class="text-[10px] font-black text-green-400 uppercase tracking-[0.2em] mb-3">交互逻辑 / Interaction</h4>
+                            <div class="text-sm text-gray-300 leading-relaxed font-medium">${spec.interaction}</div>
+                        </section>
+                    </div>
+                </div>
+            `;
         }
 
         function renderCurrentScreen(container, t, isStatic = false, mockState = null) {
@@ -598,7 +715,35 @@
             `;
 
             // Screen Logic
-            if (s.step === 'landing') {
+            if (s.step === 'select_lang') {
+                const langs = [{id:'zh', n:'简体中文'}, {id:'en', n:'English'}];
+                content = wrapper(t.select_lang_title, 'Select Language', `
+                    <div class="space-y-4 w-full mt-4">
+                        ${langs.map(l => `
+                            <button onclick="${isStatic ? '' : `setState({lang: '${l.id}'})`}" class="w-full h-20 rounded-[24px] border-2 flex items-center justify-between px-8 transition-all ${s.lang === l.id ? 'border-black bg-black text-white shadow-xl' : 'border-gray-100 text-gray-400 hover:border-gray-200'}">
+                                <span class="text-lg font-bold">${l.n}</span>
+                                ${s.lang === l.id ? '<i data-lucide="check" class="w-6 h-6"></i>' : ''}
+                            </button>
+                        `).join('')}
+                    </div>
+                `, btn(t.btn_confirm_next, isStatic ? '' : "setStep('connect_wifi')"));
+            } else if (s.step === 'connect_wifi') {
+                content = wrapper(t.connect_wifi_title, '', `
+                    <div class="flex-1 flex items-center justify-center py-20">
+                        <div class="text-4xl font-black text-gray-100 uppercase tracking-widest text-center leading-tight">
+                            ${t.connect_wifi_title}
+                        </div>
+                    </div>
+                `, btn(t.btn_confirm_next, isStatic ? '' : "setStep('select_region')"));
+            } else if (s.step === 'select_region') {
+                content = wrapper(t.select_region_title, '', `
+                    <div class="flex-1 flex items-center justify-center py-20">
+                        <div class="text-4xl font-black text-gray-100 uppercase tracking-widest text-center leading-tight">
+                            ${t.select_region_title}
+                        </div>
+                    </div>
+                `, btn(t.btn_confirm_next, isStatic ? '' : "setStep('landing')"));
+            } else if (s.step === 'landing') {
                 content = wrapper(t.app_name, t.slogan, `
                     <div class="mt-4">
                         <label class="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] pl-1">${t.phone_label}</label>
@@ -635,7 +780,10 @@
             } else if (s.step === 'password_login') {
                 content = wrapper(t.pass_title, t.pass_subtitle, `
                     <div class="mt-4 space-y-4">
-                        <div class="opacity-50"><label class="text-[9px] font-bold uppercase tracking-widest text-gray-400">${t.account_label}</label><div class="text-base font-mono">${s.phone}</div></div>
+                        <div class="group/phone relative">
+                            <label class="text-[9px] font-bold uppercase tracking-widest text-gray-400">${t.account_label}</label>
+                            <input type="tel" value="${s.phone}" oninput="${isStatic ? '' : 'setState({phone: this.value})'}" class="w-full text-base font-mono bg-transparent border-b border-transparent focus:border-gray-200 outline-none transition-all" ${isStatic ? 'disabled' : ''}>
+                        </div>
                         <div class="relative">
                             <input id="input-login-pass" type="${s.showPass ? 'text' : 'password'}" value="${s.password}" oninput="${isStatic ? '' : 'setState({password: this.value})'}" placeholder="${t.pass_placeholder}" class="w-full text-xl font-medium placeholder:text-gray-200 border-b border-gray-100 py-4 pr-10 bg-transparent focus:border-black focus:outline-none transition-all font-mono" ${isStatic ? 'disabled' : ''}>
                             <button onclick="${isStatic ? '' : 'setState({showPass: !state.showPass})'}" class="absolute right-0 top-4 text-gray-300 hover:text-black p-1"><i data-lucide="${s.showPass ? 'eye-off' : 'eye'}" class="w-5 h-5"></i></button>
@@ -804,21 +952,16 @@
             // Build Nodes & Lines
             const laneH = 720; const nodeW = 240; const cardH = 480; const xGap = 350; const startX = 400;
             const yPad = (laneH - cardH) / 2 + 30;
-            const lanes = [0, laneH, laneH*2, laneH*3, laneH*4, laneH*5, laneH*6, laneH*7];
+            const lanes = [0, laneH, laneH*2, laneH*3, laneH*4, laneH*5, laneH*6, laneH*7, laneH*8];
             const cols = [startX, startX+xGap, startX+xGap*2, startX+xGap*3, startX+xGap*4];
             const trk = [nodeW+40, nodeW+60, nodeW+80, nodeW+100]; // Tracks
             
             // Channels for snake routing (between lanes)
             const channels = [];
-            for(let i=0; i<4; i++) {
+            for(let i=0; i<8; i++) {
                 const bottom = lanes[i] + yPad + cardH;
                 const top = lanes[i+1] + yPad;
                 channels.push((bottom + top) / 2);
-            }
-
-            // Additional channels for remaining lanes
-            for(let i=4; i<7; i++) {
-                channels.push((lanes[i] + yPad + cardH + lanes[i+1] + yPad) / 2);
             }
 
             const C = { B: "#3B82F6", P: "#8B5CF6", O: "#F59E0B", G: "#10B981" };
@@ -831,14 +974,15 @@
                 div.innerHTML = `<div class="sticky left-0 p-8 font-black text-gray-200 text-4xl uppercase tracking-widest opacity-60 z-0 pointer-events-none select-none">${label}</div>`;
                 content.appendChild(div);
             }
-            addLane(lanes[0], t.phase_1, 'bg-white');
-            addLane(lanes[1], t.phase_2, 'bg-gray-50');
-            addLane(lanes[2], t.phase_3, 'bg-white');
-            addLane(lanes[3], t.phase_4, 'bg-gray-50');
-            addLane(lanes[4], t.phase_5, 'bg-white');
-            addLane(lanes[5], t.phase_6, 'bg-gray-50');
-            addLane(lanes[6], t.phase_7, 'bg-white');
-            addLane(lanes[7], t.phase_8, 'bg-gray-50');
+            addLane(lanes[0], t.phase_0, 'bg-gray-50');
+            addLane(lanes[1], t.phase_1, 'bg-white');
+            addLane(lanes[2], t.phase_2, 'bg-gray-50');
+            addLane(lanes[3], t.phase_3, 'bg-white');
+            addLane(lanes[4], t.phase_4, 'bg-gray-50');
+            addLane(lanes[5], t.phase_5, 'bg-white');
+            addLane(lanes[6], t.phase_6, 'bg-gray-50');
+            addLane(lanes[7], t.phase_7, 'bg-white');
+            addLane(lanes[8], t.phase_8, 'bg-gray-50');
 
             // SVG Container
             const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -863,9 +1007,30 @@
             const addNode = (step, label, r, c, mockData, note) => {
                 const x = cols[c]; const y = lanes[r] + yPad; 
                 const node = document.createElement('div');
-                node.className = "absolute flex flex-col gap-3 cursor-pointer transition-transform hover:scale-105 active:scale-95 group/node z-20";
+                node.className = "absolute flex flex-col gap-3 cursor-pointer transition-transform hover:scale-105 active:scale-95 group/node z-20 hover:z-[100]";
                 node.style.left = x + 'px'; node.style.top = y + 'px'; node.style.width = nodeW + 'px';
                 
+                // 获取引注数据
+                const spec = SPECS[step];
+                const specHtml = spec ? `
+                    <div class="absolute -right-3 top-24 translate-x-full bg-white/95 backdrop-blur p-4 rounded-[24px] border border-gray-100 shadow-2xl w-56 z-[110] opacity-0 group-hover/node:opacity-100 transition-all translate-y-4 group-hover/node:translate-y-0 pointer-events-none">
+                        <div class="space-y-4">
+                            <div>
+                                <span class="text-[10px] font-black text-blue-600 uppercase tracking-tighter block mb-1">状态说明</span>
+                                <p class="text-[11px] text-gray-600 leading-relaxed">${spec.states}</p>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black text-orange-600 uppercase tracking-tighter block mb-1">校验规则</span>
+                                <p class="text-[11px] text-gray-600 leading-relaxed">${spec.validation}</p>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black text-green-600 uppercase tracking-tighter block mb-1">交互逻辑</span>
+                                <p class="text-[11px] text-gray-600 leading-relaxed">${spec.interaction}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : '';
+
                 // Title
                 node.innerHTML = `
                     <div class="flex items-center gap-2 pl-1 opacity-80 group-hover/node:opacity-100 transition-opacity">
@@ -879,6 +1044,7 @@
                             </div>
                         </div>
                         ${note ? `<div class="absolute -right-3 top-4 translate-x-full bg-blue-50 text-blue-900 px-3 py-2 text-[10px] rounded-xl border border-blue-100 shadow-sm leading-snug w-32 z-30 opacity-80 group-hover/node:opacity-100 transition-opacity"><span class="block font-bold mb-0.5 text-blue-600 uppercase tracking-tighter">${t.label_note}</span>${note}</div>` : ''}
+                        ${specHtml}
                     </div>
                 `;
                 
@@ -939,138 +1105,144 @@
             const cxl = (c) => cols[c]; // Left side of node
             const cxm = (c) => cols[c] + nodeW/2;
 
-            // ROW 1
-            addNode('landing', t.st_init, 0, 0, mock({ phone: '' }));
+            // ROW 0: SETUP
+            addNode('select_lang', t.select_lang_title, 0, 0, mock({}));
             addLine([{x:cx(0), y:cy(0)}, {x:cxl(1), y:cy(0)}]);
-            
-            addNode('landing', t.st_typing, 0, 1, mock({ phone: '1380000' }));
+            addNode('connect_wifi', t.connect_wifi_title, 0, 1, mock({}));
             addLine([{x:cx(1), y:cy(0)}, {x:cxl(2), y:cy(0)}]);
+            addNode('select_region', t.select_region_title, 0, 2, mock({}));
+            addLine([{x:cx(2), y:cy(0)}, {x:cols[2]+nodeW+40, y:cy(0)}, {x:cols[2]+nodeW+40, y:channels[0]}, {x:cols[0]-120, y:channels[0]}, {x:cols[0]-120, y:cy(1)}, {x:cxl(0), y:cy(1)}]);
 
-            const d1 = addDecision(t.check_reg, 0, 2);
-            addLine([{x:cx(1), y:cy(0)}, {x:d1.x - 80, y:cy(0)}]);
-            
-            // N -> OTP
-            addLine([{x:d1.x, y:cy(0)+60}, {x:d1.x, y:channels[0]}, {x:cols[0]-120, y:channels[0]}, {x:cols[0]-120, y:cy(1)}, {x:cxl(0), y:cy(1)}], C.B);
-            addLabel("N", d1.x + 10, cy(0)+80, C.B);
-
-            // Y -> Password
-            addLine([{x:d1.x + 80, y:cy(0)}, {x:cols[4]+trk[1], y:cy(0)}, {x:cols[4]+trk[1], y:channels[1]}, {x:cols[0]-140, y:channels[1]}, {x:cols[0]-140, y:cy(2)}, {x:cxl(0), y:cy(2)}], C.P);
-            addLabel("Y", d1.x + 90, cy(0)-10, C.P);
-
-            addNode('landing', t.st_valid, 0, 3, mock({ phone: '15200000000' }));
-            addNode('landing', t.st_loading, 0, 4, mock({ phone: '15200000000', isLoading: true }));
-            
-            // SNAKE 1->2 (Blue) - Legacy
-            addLine([{x:cx(4), y:cy(0)}, {x:cols[4]+trk[0], y:cy(0)}, {x:cols[4]+trk[0], y:channels[0]}, {x:cols[0]-120, y:channels[0]}, {x:cols[0]-120, y:cy(1)}, {x:cxl(0), y:cy(1)}], C.B);
-            // ROUTING 1->3 (Purple)
-            addLine([{x:cx(4), y:cy(0)}, {x:cols[4]+trk[1], y:cy(0)}, {x:cols[4]+trk[1], y:channels[1]}, {x:cols[0]-140, y:channels[1]}, {x:cols[0]-140, y:cy(2)}, {x:cxl(0), y:cy(2)}], C.P);
-
-            // ROW 2
-            addNode('otp_verify', t.label_otp + ": " + t.st_timer, 1, 0, mock({ phone: '15200000000', timer: 60, toast: {msg:t.toast_code, type:'success'} }));
+            // ROW 1: LANDING
+            addNode('landing', t.st_init, 1, 0, mock({ phone: '' }));
             addLine([{x:cx(0), y:cy(1)}, {x:cxl(1), y:cy(1)}]);
-
-            addNode('otp_verify', t.label_otp + ": " + t.st_typing, 1, 1, mock({ phone: '15200000000', otp: '123', timer: 55 }));
+            
+            addNode('landing', t.st_typing, 1, 1, mock({ phone: '1380000' }));
             addLine([{x:cx(1), y:cy(1)}, {x:cxl(2), y:cy(1)}]);
 
-            addNode('otp_verify', t.label_otp + ": " + t.st_error_sys, 1, 2, mock({ phone: '15200000000', otp: '000000', timer: 45, toast: {msg:t.err_otp, type:'error'} }));
-            addLine([{x:cx(2), y:cy(1)}, {x:cxl(3), y:cy(1)}]);
-
-            addNode('otp_verify', t.st_timeout, 1, 3, mock({ phone: '15200000000', otp: '', timer: 0 }));
-            addLine([{x:cx(3), y:cy(1)}, {x:cxl(4), y:cy(1)}]);
-
-            addNode('otp_verify', t.st_loading, 1, 4, mock({ phone: '15200000000', otp: '123456', isLoading: true }));
+            const d1 = addDecision(t.check_reg, 1, 2);
+            addLine([{x:cx(1), y:cy(1)}, {x:d1.x - 80, y:cy(1)}]);
             
-            // SNAKE 2->4 (Orange)
-            addLine([{x:cx(4), y:cy(1)}, {x:cols[4]+trk[2], y:cy(1)}, {x:cols[4]+trk[2], y:channels[2]}, {x:cols[0]-160, y:channels[2]}, {x:cols[0]-160, y:cy(3)}, {x:cxl(0), y:cy(3)}], C.O);
-            // SNAKE 2->5 (Green)
-            addLine([{x:cx(4), y:cy(1)}, {x:cols[4]+trk[3], y:cy(1)}, {x:cols[4]+trk[3], y:channels[3]}, {x:cols[0]-180, y:channels[3]}, {x:cols[0]-180, y:cy(4)}, {x:cxl(0), y:cy(4)}], C.G);
+            // N -> OTP
+            addLine([{x:d1.x, y:cy(1)+60}, {x:d1.x, y:channels[1]}, {x:cols[0]-120, y:channels[1]}, {x:cols[0]-120, y:cy(2)}, {x:cxl(0), y:cy(2)}], C.B);
+            addLabel("N", d1.x + 10, cy(1)+80, C.B);
 
-            // ROW 3
-            addNode('password_login', t.st_init, 2, 0, mock({ phone: '15200000000' }));
+            // Y -> Password
+            addLine([{x:d1.x + 80, y:cy(1)}, {x:cols[4]+trk[1], y:cy(1)}, {x:cols[4]+trk[1], y:channels[2]}, {x:cols[0]-140, y:channels[2]}, {x:cols[0]-140, y:cy(3)}, {x:cxl(0), y:cy(3)}], C.P);
+            addLabel("Y", d1.x + 90, cy(1)-10, C.P);
+
+            addNode('landing', t.st_valid, 1, 3, mock({ phone: '15200000000' }));
+            addNode('landing', t.st_loading, 1, 4, mock({ phone: '15200000000', isLoading: true }));
+            
+            // SNAKE 1->2 (Blue) - Legacy
+            addLine([{x:cx(4), y:cy(1)}, {x:cols[4]+trk[0], y:cy(1)}, {x:cols[4]+trk[0], y:channels[1]}, {x:cols[0]-120, y:channels[1]}, {x:cols[0]-120, y:cy(2)}, {x:cxl(0), y:cy(2)}], C.B);
+
+            // ROW 2: OTP
+            addNode('otp_verify', t.label_otp + ": " + t.st_timer, 2, 0, mock({ phone: '15200000000', timer: 60, toast: {msg:t.toast_code, type:'success'} }));
             addLine([{x:cx(0), y:cy(2)}, {x:cxl(1), y:cy(2)}]);
 
-            addNode('password_login', t.st_typing, 2, 1, mock({ phone: '15200000000', password: 'pass' }));
+            addNode('otp_verify', t.label_otp + ": " + t.st_typing, 2, 1, mock({ phone: '15200000000', otp: '123', timer: 55 }));
             addLine([{x:cx(1), y:cy(2)}, {x:cxl(2), y:cy(2)}]);
 
-            addNode('password_login', t.st_error_sys, 2, 2, mock({ phone: '15200000000', password: 'wrong', error: [t.err_wrong_pass] }));
-            addLine([{x:cx(1), y:cy(2)}, {x:cols[1]+nodeW+20, y:cy(2)}, {x:cols[1]+nodeW+20, y:cy(2)+140}, {x:cols[3]-20, y:cy(2)+140}, {x:cols[3]-20, y:cy(2)}, {x:cxl(3), y:cy(2)}]);
+            addNode('otp_verify', t.label_otp + ": " + t.st_error_sys, 2, 2, mock({ phone: '15200000000', otp: '000000', timer: 45, toast: {msg:t.err_otp, type:'error'} }));
+            addLine([{x:cx(2), y:cy(2)}, {x:cxl(3), y:cy(2)}]);
 
-            addNode('password_login', t.st_unmask, 2, 3, mock({ phone: '15200000000', password: 'Password123', showPass: true }));
+            addNode('otp_verify', t.st_timeout, 2, 3, mock({ phone: '15200000000', otp: '', timer: 0 }));
             addLine([{x:cx(3), y:cy(2)}, {x:cxl(4), y:cy(2)}]);
 
-            addNode('password_login', t.st_loading, 2, 4, mock({ phone: '15200000000', password: '***', isLoading: true }));
-            // SNAKE 3->5 (Green)
-            addLine([{x:cx(4), y:cy(2)}, {x:cols[4]+trk[3], y:cy(2)}, {x:cols[4]+trk[3], y:channels[3]}, {x:cols[0]-180, y:channels[3]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+            addNode('otp_verify', t.st_loading, 2, 4, mock({ phone: '15200000000', otp: '123456', isLoading: true }));
+            
+            // SNAKE 2->4 (Orange)
+            addLine([{x:cx(4), y:cy(2)}, {x:cols[4]+trk[2], y:cy(2)}, {x:cols[4]+trk[2], y:channels[3]}, {x:cols[0]-160, y:channels[3]}, {x:cols[0]-160, y:cy(4)}, {x:cxl(0), y:cy(4)}], C.O);
+            // SNAKE 2->5 (Green)
+            addLine([{x:cx(4), y:cy(2)}, {x:cols[4]+trk[3], y:cy(2)}, {x:cols[4]+trk[3], y:channels[4]}, {x:cols[0]-180, y:channels[4]}, {x:cols[0]-180, y:cy(5)}, {x:cxl(0), y:cy(5)}], C.G);
 
-            // ROW 4
-            addNode('set_password', t.st_init, 3, 0, mock({ phone: '15200000000' }));
+            // ROW 3: PASSWORD
+            addNode('password_login', t.st_init, 3, 0, mock({ phone: '15200000000' }));
             addLine([{x:cx(0), y:cy(3)}, {x:cxl(1), y:cy(3)}]);
 
-            addNode('set_password', t.st_weak, 3, 1, mock({ phone: '15200000000', password: '123', error: [t.err_pass_len, t.err_pass_alpha, t.err_pass_num] }));
+            addNode('password_login', t.st_typing, 3, 1, mock({ phone: '15200000000', password: 'pass' }));
             addLine([{x:cx(1), y:cy(3)}, {x:cxl(2), y:cy(3)}]);
 
-            addNode('set_password', t.st_mismatch, 3, 2, mock({ phone: '15200000000', password: 'Password123', confirmPassword: 'Pass', error: [t.err_pass_match] }));
-            addLine([{x:cx(2), y:cy(3)}, {x:cxl(3), y:cy(3)}]);
+            addNode('password_login', t.st_error_sys, 3, 2, mock({ phone: '15200000000', password: 'wrong', error: [t.err_wrong_pass] }));
+            addLine([{x:cx(1), y:cy(3)}, {x:cols[1]+nodeW+20, y:cy(3)}, {x:cols[1]+nodeW+20, y:cy(3)+140}, {x:cols[3]-20, y:cy(3)+140}, {x:cols[3]-20, y:cy(3)}, {x:cxl(3), y:cy(3)}]);
 
-            addNode('set_password', t.st_valid, 3, 3, mock({ phone: '15200000000', password: 'Password123', confirmPassword: 'Password123' }));
-            // SNAKE 4->5 (Green)
-            addLine([{x:cx(3), y:cy(3)}, {x:cols[3]+nodeW+trk[3], y:cy(3)}, {x:cols[3]+nodeW+trk[3], y:channels[3]}, {x:cols[0]-180, y:channels[3]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+            addNode('password_login', t.st_unmask, 3, 3, mock({ phone: '15200000000', password: 'Password123', showPass: true }));
+            addLine([{x:cx(3), y:cy(3)}, {x:cxl(4), y:cy(3)}]);
 
-            // ROW 5: FORGOT PASSWORD FLOW (Independent)
-            addNode('password_login', t.forgot_pass, 4, 0, mock({ phone: '15200000000' }), t.note_forgot_path);
+            addNode('password_login', t.st_loading, 3, 4, mock({ phone: '15200000000', password: '***', isLoading: true }));
+            // SNAKE 3->7 (Green)
+            addLine([{x:cx(4), y:cy(3)}, {x:cols[4]+trk[3], y:cy(3)}, {x:cols[4]+trk[3], y:channels[4]}, {x:cols[0]-180, y:channels[4]}, {x:cols[0]-180, y:cy(7)}, {x:cxl(0)-80, y:cy(7)}], C.G);
+
+            // ROW 4: SET PASSWORD
+            addNode('set_password', t.st_init, 4, 0, mock({ phone: '15200000000' }));
             addLine([{x:cx(0), y:cy(4)}, {x:cxl(1), y:cy(4)}]);
 
-            addNode('otp_verify', t.label_reset + ": " + t.st_timer, 4, 1, mock({ phone: '15200000000', timer: 60, isResetFlow: true, toast: {msg:t.toast_code, type:'success'} }));
+            addNode('set_password', t.st_weak, 4, 1, mock({ phone: '15200000000', password: '123', error: [t.err_pass_len, t.err_pass_alpha, t.err_pass_num] }));
             addLine([{x:cx(1), y:cy(4)}, {x:cxl(2), y:cy(4)}]);
 
-            addNode('set_password', t.label_reset + ": " + t.st_init, 4, 2, mock({ phone: '15200000000', isResetFlow: true }));
+            addNode('set_password', t.st_mismatch, 4, 2, mock({ phone: '15200000000', password: 'Password123', confirmPassword: 'Pass', error: [t.err_pass_match] }));
             addLine([{x:cx(2), y:cy(4)}, {x:cxl(3), y:cy(4)}]);
 
-            addNode('set_password', t.label_reset + ": " + t.st_valid, 4, 3, mock({ phone: '15200000000', isResetFlow: true, password: 'NewPassword123', confirmPassword: 'NewPassword123', toast: {msg: t.toast_reset_success, type: 'success'} }));
-            
-            // SNAKE 5->6 (Green)
-            addLine([{x:cx(3), y:cy(4)}, {x:cols[3]+nodeW+trk[3], y:cy(4)}, {x:cols[3]+nodeW+trk[3], y:channels[4]}, {x:cols[0]-180, y:channels[4]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+            addNode('set_password', t.st_valid, 4, 3, mock({ phone: '15200000000', password: 'Password123', confirmPassword: 'Password123' }));
+            // SNAKE 4->7 (Green)
+            addLine([{x:cx(3), y:cy(4)}, {x:cols[3]+nodeW+trk[3], y:cy(4)}, {x:cols[3]+nodeW+trk[3], y:channels[4]}, {x:cols[0]-180, y:channels[4]}, {x:cols[0]-180, y:cy(7)}, {x:cxl(0)-80, y:cy(7)}], C.G);
 
-            // ROW 6: QR LOGIN FLOW
-            addNode('qr_login', t.st_init, 5, 0, mock({}));
+            // ROW 5: FORGOT PASSWORD FLOW
+            addNode('password_login', t.forgot_pass, 5, 0, mock({ phone: '15200000000' }), t.note_forgot_path);
             addLine([{x:cx(0), y:cy(5)}, {x:cxl(1), y:cy(5)}]);
 
-            addNode('qr_login', t.st_scanned, 5, 1, mock({ isLoading: true }));
+            addNode('otp_verify', t.label_reset + ": " + t.st_timer, 5, 1, mock({ phone: '15200000000', timer: 60, isResetFlow: true, toast: {msg:t.toast_code, type:'success'} }));
             addLine([{x:cx(1), y:cy(5)}, {x:cxl(2), y:cy(5)}]);
 
-            addNode('qr_login', t.st_expired, 5, 2, mock({ error: [t.toast_qr_expired] }));
+            addNode('set_password', t.label_reset + ": " + t.st_init, 5, 2, mock({ phone: '15200000000', isResetFlow: true }));
+            addLine([{x:cx(2), y:cy(5)}, {x:cxl(3), y:cy(5)}]);
+
+            addNode('set_password', t.label_reset + ": " + t.st_valid, 5, 3, mock({ phone: '15200000000', isResetFlow: true, password: 'NewPassword123', confirmPassword: 'NewPassword123', toast: {msg: t.toast_reset_success, type: 'success'} }));
             
-            addNode('qr_login', t.st_valid, 5, 3, mock({ toast: {msg: t.toast_qr_success, type: 'success'} }));
+            // SNAKE 5->7 (Green)
+            addLine([{x:cx(3), y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:channels[5]}, {x:cols[0]-180, y:channels[5]}, {x:cols[0]-180, y:cy(7)}, {x:cxl(0)-80, y:cy(7)}], C.G);
+
+            // ROW 6: QR LOGIN FLOW
+            addNode('qr_login', t.st_init, 6, 0, mock({}));
+            addLine([{x:cx(0), y:cy(6)}, {x:cxl(1), y:cy(6)}]);
+
+            addNode('qr_login', t.st_scanned, 6, 1, mock({ isLoading: true }));
+            addLine([{x:cx(1), y:cy(6)}, {x:cxl(2), y:cy(6)}]);
+
+            addNode('qr_login', t.st_expired, 6, 2, mock({ error: [t.toast_qr_expired] }));
+            
+            addNode('qr_login', t.st_valid, 6, 3, mock({ toast: {msg: t.toast_qr_success, type: 'success'} }));
             // SNAKE 6->7 (Green)
-            addLine([{x:cx(3), y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:channels[5]}, {x:cols[0]-180, y:channels[5]}, {x:cols[0]-180, y:cy(6)}, {x:cxl(0)-80, y:cy(6)}], C.G);
+            addLine([{x:cx(3), y:cy(6)}, {x:cols[3]+nodeW+trk[3], y:cy(6)}, {x:cols[3]+nodeW+trk[3], y:channels[6]}, {x:cols[0]-180, y:channels[6]}, {x:cols[0]-180, y:cy(7)}, {x:cxl(0)-80, y:cy(7)}], C.G);
 
             // ROW 7: ONBOARDING & LOGIC
-            const d2 = addDecision(t.check_profile, 6, 0);
+            const d2 = addDecision(t.check_profile, 7, 0);
             // N -> Profile Setup
-            addLine([{x:d2.x + 80, y:cy(6)}, {x:cxl(1), y:cy(6)}], C.O);
-            addLabel("N", d2.x + 90, cy(6)-10, C.O);
+            addLine([{x:d2.x + 80, y:cy(7)}, {x:cxl(1), y:cy(7)}], C.O);
+            addLabel("N", d2.x + 90, cy(7)-10, C.O);
             
             // Y -> Admin Check
-            const d3 = addDecision(t.check_admin, 6, 2);
-            addLine([{x:d2.x, y:cy(6)+60}, {x:d2.x, y:cy(6)+100}, {x:d3.x, y:cy(6)+100}, {x:d3.x, y:cy(6)+60}], C.G);
-            addLabel("Y", d2.x + 10, cy(6)+90, C.G);
+            const d3 = addDecision(t.check_admin, 7, 2);
+            addLine([{x:d2.x, y:cy(7)+60}, {x:d2.x, y:cy(7)+100}, {x:d3.x, y:cy(7)+100}, {x:d3.x, y:cy(7)+60}], C.G);
+            addLabel("Y", d2.x + 10, cy(7)+90, C.G);
 
             // N -> Admin Bind
-            addLine([{x:d3.x + 80, y:cy(6)}, {x:cxl(3), y:cy(6)}], C.O);
-            addLabel("N", d3.x + 90, cy(6)-10, C.O);
+            addLine([{x:d3.x + 80, y:cy(7)}, {x:cxl(3), y:cy(7)}], C.O);
+            addLabel("N", d3.x + 90, cy(7)-10, C.O);
 
             // Y -> Dashboard
-            addLine([{x:d3.x, y:cy(6)+60}, {x:d3.x, y:channels[6]}, {x:cxm(0), y:channels[6]}, {x:cxm(0), y:cy(7)-cardH/2}], C.G);
-            addLabel("Y", d3.x + 10, cy(6)+90, C.G);
+            addLine([{x:d3.x, y:cy(7)+60}, {x:d3.x, y:channels[7]}, {x:cxm(0), y:channels[7]}, {x:cxm(0), y:cy(8)-cardH/2}], C.G);
+            addLabel("Y", d3.x + 10, cy(7)+90, C.G);
 
-            addNode('profile_setup', t.profile_setup_title, 6, 1, mock({}));
-            addLine([{x:cx(1), y:cy(6)}, {x:d3.x - 80, y:cy(6)}], C.G);
+            addNode('profile_setup', t.profile_setup_title, 7, 1, mock({}));
+            addLine([{x:cx(1), y:cy(7)}, {x:d3.x - 80, y:cy(7)}], C.G);
 
-            addNode('admin_bind', t.admin_bind_title, 6, 3, mock({}));
-            addLine([{x:cx(3), y:cy(6)}, {x:cols[3]+nodeW+40, y:cy(6)}, {x:cols[3]+nodeW+40, y:channels[6]}, {x:cxm(0), y:channels[6]}, {x:cxm(0), y:cy(7)-cardH/2}], C.G);
+            addNode('admin_bind', t.admin_bind_title, 7, 3, mock({}));
+            addLine([{x:cx(3), y:cy(7)}, {x:cols[3]+nodeW+40, y:cy(7)}, {x:cols[3]+nodeW+40, y:channels[7]}, {x:cxm(0), y:channels[7]}, {x:cxm(0), y:cy(8)-cardH/2}], C.G);
 
             // ROW 8: SUCCESS
-            addNode('dashboard', t.success_sub, 7, 0, mock({ phone: '15200000000' }));
+            addNode('dashboard', t.success_sub, 8, 0, mock({ phone: '15200000000' }));
         }
 
         function updateTransform() {
