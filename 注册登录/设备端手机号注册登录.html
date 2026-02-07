@@ -716,11 +716,16 @@
 
             // Screen Logic
             if (s.step === 'select_lang') {
-                const langs = [{id:'zh', n:'简体中文'}, {id:'en', n:'English'}];
+                const langs = [
+                    {id:'zh', n:'简体中文'}, {id:'en', n:'English'}, 
+                    {id:'jp', n:'日本語'}, {id:'kr', n:'한국어'},
+                    {id:'fr', n:'Français'}, {id:'de', n:'Deutsch'},
+                    {id:'es', n:'Español'}, {id:'it', n:'Italiano'}
+                ];
                 content = wrapper(t.select_lang_title, 'Select Language', `
-                    <div class="space-y-4 w-full mt-4">
+                    <div class="space-y-4 w-full mt-4 max-h-[440px] overflow-y-auto pr-2 scrollbar-hide">
                         ${langs.map(l => `
-                            <button onclick="${isStatic ? '' : `setState({lang: '${l.id}'})`}" class="w-full h-20 rounded-[24px] border-2 flex items-center justify-between px-8 transition-all ${s.lang === l.id ? 'border-black bg-black text-white shadow-xl' : 'border-gray-100 text-gray-400 hover:border-gray-200'}">
+                            <button onclick="${isStatic ? '' : `setState({lang: '${l.id}'})`}" class="w-full h-20 shrink-0 rounded-[24px] border-2 flex items-center justify-between px-8 transition-all ${s.lang === l.id ? 'border-black bg-black text-white shadow-xl' : 'border-gray-100 text-gray-400 hover:border-gray-200'}">
                                 <span class="text-lg font-bold">${l.n}</span>
                                 ${s.lang === l.id ? '<i data-lucide="check" class="w-6 h-6"></i>' : ''}
                             </button>
@@ -836,9 +841,12 @@
                 `, '');
             } else if (s.step === 'admin_bind') {
                 content = wrapper(t.admin_bind_title, '', `
-                    <div class="flex-1 flex items-center justify-center py-20">
+                    <div class="flex-1 flex flex-col items-center justify-center py-20 gap-4">
                         <div class="text-4xl font-black text-gray-100 uppercase tracking-widest text-center leading-tight">
                             ${t.admin_bind_title}
+                        </div>
+                        <div class="px-4 py-2 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-lg border border-blue-100 uppercase tracking-widest">
+                            替换效果图
                         </div>
                     </div>
                 `, btn(t.btn_confirm, isStatic ? '' : "MOCK_DB.isAdminBound=true; checkOnboardingFlow()"));
@@ -1012,6 +1020,13 @@
                 
                 // 获取引注数据
                 const spec = SPECS[step];
+
+                let displayLabel = label;
+                const existingSteps = ['qr_login', 'connect_wifi', 'select_region', 'profile_setup', 'dashboard'];
+                if (existingSteps.includes(step)) {
+                    displayLabel += " (已有)";
+                }
+
                 const specHtml = spec ? `
                     <div class="absolute -right-3 top-24 translate-x-full bg-white/95 backdrop-blur p-4 rounded-[24px] border border-gray-100 shadow-2xl w-56 z-[110] opacity-0 group-hover/node:opacity-100 transition-all translate-y-4 group-hover/node:translate-y-0 pointer-events-none">
                         <div class="space-y-4">
@@ -1035,7 +1050,7 @@
                 node.innerHTML = `
                     <div class="flex items-center gap-2 pl-1 opacity-80 group-hover/node:opacity-100 transition-opacity">
                         <div class="w-2 h-2 rounded-full bg-black ring-2 ring-gray-200"></div>
-                        <span class="text-gray-900 font-bold text-xs uppercase tracking-wider">${label}</span>
+                        <span class="text-gray-900 font-bold text-xs uppercase tracking-wider">${displayLabel}</span>
                     </div>
                     <div class="relative group shadow-lg hover:shadow-2xl transition-shadow rounded-[24px]">
                         <div class="bg-white rounded-[24px] border-[4px] overflow-hidden ring-1 ring-black/5 transition-colors ${note ? 'border-blue-200 group-hover/node:border-blue-400' : 'border-white group-hover/node:border-gray-200'}" style="width:${nodeW}px; height:${cardH}px">
