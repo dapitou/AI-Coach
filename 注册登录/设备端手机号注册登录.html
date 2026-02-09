@@ -156,6 +156,9 @@
                 err_pass_alpha: '需包含至少一个字母',
                 err_pass_num: '需包含至少一个数字',
                 err_pass_match: '两次密码不一致',
+                err_network: '网络连接异常，请重试',
+                err_freq_limit: '请求过于频繁，请稍后再试',
+                err_system: '系统繁忙，请稍后再试',
                 toast_code: '验证码已发送: 123456',
                 toast_shot_saving: '正在生成全景长图...',
                 toast_shot_done: '图片已保存到本地',
@@ -171,6 +174,8 @@
                 connect_wifi_title: '连接 WiFi',
                 select_region_title: '选择地区',
                 btn_confirm_next: '下一步',
+                forgot_pass_title: '找回密码',
+                btn_reset_pass: '重置密码',
                 label_otp: '验证码',
                 label_reset: '重置',
                 label_note: '备注',
@@ -225,6 +230,9 @@
                 err_pass_alpha: 'At least one letter required',
                 err_pass_num: 'At least one number required',
                 err_pass_match: 'Passwords do not match',
+                err_network: 'Network error, please try again',
+                err_freq_limit: 'Too many requests, please try later',
+                err_system: 'System busy, please try again',
                 toast_code: 'Code sent: 123456',
                 toast_shot_saving: 'Generating flow snapshot...',
                 toast_shot_done: 'Snapshot saved',
@@ -240,6 +248,8 @@
                 connect_wifi_title: 'Connect WiFi',
                 select_region_title: 'Region',
                 btn_confirm_next: 'Next',
+                forgot_pass_title: 'Forgot Password',
+                btn_reset_pass: 'Reset Password',
                 label_otp: '验证码',
                 label_reset: '重置',
                 label_note: '备注',
@@ -338,28 +348,34 @@
                 validation: "无",
                 interaction: "• 影响后续内容分发与合规性策略<br>• 选择后进入登录主流程"
             },
+            forgot_password: {
+                title: "找回密码确认页",
+                states: "1. 初始态：自动带入手机号",
+                validation: "• 手机号合法性校验",
+                interaction: "• 点击按钮发送验证码并进入校验流程"
+            },
             landing: {
                 title: "手机号分流页",
                 states: "1. 初始态：获取验证码按钮禁用<br>2. 输入态：实时校验位数<br>3. 合法态：显示勾选图标，按钮激活<br>4. 错误态：输入框下方红字提示",
-                validation: "• 11位数字校验，必须1开头<br>• 过滤非数字字符<br>• 点击按钮触发后端注册状态检查",
+                validation: "• 11位数字校验，必须1开头<br>• 过滤非数字字符<br>• 频次限制拦截（Toast提示）",
                 interaction: "• 自动聚焦输入框<br>• 满11位按钮高亮<br>• 点击辅助入口平滑切换登录模式<br>• 底部法律协议区常驻，点击跳转协议详情"
             },
             otp_verify: {
                 title: "验证码校验页",
                 states: "1. 倒计时态：60s自动运行<br>2. 输入态：6位独立框焦点流转<br>3. 校验态：Loading 遮罩<br>4. 失败态：输入框抖动并清空",
-                validation: "• 6位纯数字校验<br>• 验证码时效性逻辑模拟",
+                validation: "• 6位纯数字校验<br>• 网络异常处理（Toast提示）",
                 interaction: "• 自动聚焦首位<br>• 满6位自动触发提交<br>• Backspace 支持跨框回退删除<br>• 倒计时结束恢复重发按钮"
             },
             password_login: {
                 title: "密码登录页",
                 states: "1. 预填态：从前页带入手机号<br>2. 输入态：密码显隐切换<br>3. 报错态：账号不存在或密码错误提示",
-                validation: "• 手机号合法性二次校验<br>• 密码非空校验",
+                validation: "• 手机号合法性二次校验<br>• 密码非空校验<br>• 网络异常处理",
                 interaction: "• 手机号支持点击编辑修改<br>• 点击眼睛图标切换明密文<br>• 忘记密码进入重置流<br>• 登录按钮随输入状态激活"
             },
             set_password: {
                 title: "设置/重置密码页",
                 states: "1. 初始态：按钮禁用<br>2. 强度检测态：三项指标动态变色<br>3. 匹配态：确认密码一致性检查",
-                validation: "• 6-20位字符<br>• 必须包含字母和数字",
+                validation: "• 6-20位字符<br>• 包含字母<br>• 包含数字<br>• 提交失败处理（Toast提示）",
                 interaction: "• 实时监听输入更新强度UI<br>• 动态标题根据业务场景切换<br>• 确认密码框失焦触发一致性校验<br>• 注册成功后自动执行拦截检查"
             },
             qr_login: {
@@ -507,6 +523,12 @@
                 setState({ error: [t.err_phone] });
                 return;
             }
+            // 模拟频次限制：手机号 19900000000
+            if (state.phone === '19900000000') {
+                showToast(t.err_freq_limit, 'error');
+                return;
+            }
+
             setState({ isLoading: true, error: null });
             setTimeout(() => {
                 state.isLoading = false;
@@ -538,6 +560,12 @@
                     setState({ isLoading: false, error: [t.err_wrong_pass] });
                     return;
                 }
+                // 模拟网络异常：密码 "network"
+                if (state.password === 'network') {
+                    setState({ isLoading: false });
+                    showToast(t.err_network, 'error');
+                    return;
+                }
                 setState({ isLoading: false });
                 checkOnboardingFlow();
             }, 800);
@@ -545,7 +573,7 @@
 
         function handleForgotPass() {
             setState({ isResetFlow: true });
-            sendCode();
+            setStep('forgot_password');
         }
 
         function register() {
@@ -568,6 +596,13 @@
 
             setState({ isLoading: true, error: null });
             setTimeout(() => {
+                // 模拟系统异常：密码 "network"
+                if (state.password === 'network') {
+                    setState({ isLoading: false });
+                    showToast(t.err_system, 'error');
+                    return;
+                }
+
                 // 注册成功后持久化到模拟数据库，确保后续登录可用
                 if (!MOCK_DB.registeredUsers.includes(state.phone)) {
                     MOCK_DB.registeredUsers.push(state.phone);
@@ -800,6 +835,15 @@
                         </div>
                     </div>
                 `, btn(t.btn_login, isStatic ? '' : 'login()', s.password.length === 0));
+            } else if (s.step === 'forgot_password') {
+                content = wrapper(t.forgot_pass_title, '', `
+                    <div class="mt-4 space-y-4">
+                        <div class="group/phone relative">
+                            <label class="text-[9px] font-bold uppercase tracking-widest text-gray-400">${t.phone_label}</label>
+                            <input type="tel" value="${s.phone}" oninput="${isStatic ? '' : 'setState({phone: this.value})'}" class="w-full text-3xl font-light py-4 border-b border-gray-100 focus:border-black outline-none bg-transparent transition-all font-mono tracking-tight" ${isStatic ? 'disabled' : ''}>
+                        </div>
+                    </div>
+                `, btn(t.btn_reset_pass, isStatic ? '' : 'sendCode()', s.phone.length === 0));
             } else if (s.step === 'set_password') {
                 const validLen = s.password.length >= 6 && s.password.length <= 20;
                 const hasLetter = /[a-zA-Z]/.test(s.password);
@@ -1207,16 +1251,19 @@
             addNode('password_login', t.forgot_pass, 5, 0, mock({ phone: '15200000000' }), t.note_forgot_path);
             addLine([{x:cx(0), y:cy(5)}, {x:cxl(1), y:cy(5)}]);
 
-            addNode('otp_verify', t.label_reset + ": " + t.st_timer, 5, 1, mock({ phone: '15200000000', timer: 60, isResetFlow: true, toast: {msg:t.toast_code, type:'success'} }));
+            addNode('forgot_password', t.forgot_pass_title, 5, 1, mock({ phone: '15200000000', isResetFlow: true }));
             addLine([{x:cx(1), y:cy(5)}, {x:cxl(2), y:cy(5)}]);
 
-            addNode('set_password', t.label_reset + ": " + t.st_init, 5, 2, mock({ phone: '15200000000', isResetFlow: true }));
+            addNode('otp_verify', t.label_reset + ": " + t.st_timer, 5, 2, mock({ phone: '15200000000', timer: 60, isResetFlow: true, toast: {msg:t.toast_code, type:'success'} }));
             addLine([{x:cx(2), y:cy(5)}, {x:cxl(3), y:cy(5)}]);
 
-            addNode('set_password', t.label_reset + ": " + t.st_valid, 5, 3, mock({ phone: '15200000000', isResetFlow: true, password: 'NewPassword123', confirmPassword: 'NewPassword123', toast: {msg: t.toast_reset_success, type: 'success'} }));
+            addNode('set_password', t.label_reset + ": " + t.st_init, 5, 3, mock({ phone: '15200000000', isResetFlow: true }));
+            addLine([{x:cx(3), y:cy(5)}, {x:cxl(4), y:cy(5)}]);
+
+            addNode('set_password', t.label_reset + ": " + t.st_valid, 5, 4, mock({ phone: '15200000000', isResetFlow: true, password: 'NewPassword123', confirmPassword: 'NewPassword123', toast: {msg: t.toast_reset_success, type: 'success'} }));
             
             // SNAKE 5->7 (Green)
-            addLine([{x:cx(3), y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:cy(5)}, {x:cols[3]+nodeW+trk[3], y:channels[5]}, {x:cols[0]-180, y:channels[5]}, {x:cols[0]-180, y:cy(7)}, {x:cxl(0)-80, y:cy(7)}], C.G);
+            addLine([{x:cx(4), y:cy(5)}, {x:cols[4]+nodeW+trk[3], y:cy(5)}, {x:cols[4]+nodeW+trk[3], y:channels[5]}, {x:cols[0]-180, y:channels[5]}, {x:cols[0]-180, y:cy(7)}, {x:cxl(0)-80, y:cy(7)}], C.G);
 
             // ROW 6: QR LOGIN FLOW
             addNode('qr_login', t.st_init, 6, 0, mock({}));
