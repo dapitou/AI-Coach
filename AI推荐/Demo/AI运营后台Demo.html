@@ -181,7 +181,7 @@
                     <select id="picker-filter-cons" onchange="app.renderPickerList()"><option value="">全部构造</option><option>复合动作</option><option>孤立动作</option></select>
                     <select id="picker-filter-imp" onchange="app.renderPickerList()"><option value="">全部冲击</option><option>无冲击</option><option>低冲击</option><option>高冲击</option></select>
                     <select id="picker-filter-pain" onchange="app.renderPickerList()"><option value="">全部疼痛</option><option>无</option><option>手腕</option><option>肘部</option><option>肩部</option><option>腰部</option><option>髋部</option><option>膝盖</option><option>脚踝</option></select>
-                    <select id="picker-filter-equip" onchange="app.renderPickerList()"><option value="">全部配件</option><option>自重</option><option>手柄</option><option>横杆</option><option>踝带</option><option>健身凳</option><option>瑜伽垫</option><option>瑜伽砖</option><option>泡沫轴</option></select>
+                    <select id="picker-filter-equip" onchange="app.renderPickerList()"><option value="">全部配件</option><option>自重</option><option>手柄</option><option>横杆</option><option>踝带</option><option>健身凳</option><option>瑜伽垫</option><option>瑜伽砖</option><option>泡沫轴</option><option>双头绳</option></select>
                 </div>
             </div>
             <div class="modal-body">
@@ -599,6 +599,7 @@ const RULE_OPTS = {
     '主动肌': ['胸大肌', '背阔肌', '斜方肌', '竖脊肌', '三角肌', '肱二头肌', '肱三头肌', '臀大肌', '股四头肌', '腘绳肌', '腹直肌'],
     '部位': ['胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心', '全身'],
     '动作功能': ['增肌', '力量', '耐力', '减脂', '心肺', '恢复', '柔韧', '协调', '体态', '激活', '平衡'],
+    '适合课程类型': ['力量', '有氧', 'HIIT', '搏击', '普拉提', '瑜伽', '拉伸', '气功', '康复', '冥想', '高尔夫'],
 };
 
 const SORT_DIM_OPTS = {
@@ -616,11 +617,13 @@ const SCHEMA = {
         products: '关联产品', packages: '关联销售套餐',
         courseType: '适合课程类型', weight: '动作权重', level: '动作难度', mode: '动作模式', func: '动作功能',
         construct: '动作构造', constructCount: '复合次数', measure: '默认计量维度', impact: '冲击等级',
+        construct: '动作构造', constructCount: '复合次数', measure: '默认交互', impact: '冲击等级',
         pain: '疼痛部位', met: '动作MET值', coach: '动作教练', equip: '动作配件',
         part: '主要部位', subPart: '次要部位', muscle: '主动肌', antagonist: '拮抗肌', synergist: '辅助肌', stabilizer: '稳定肌',
         orientation: '动作朝向', posture: '动作体位', unilateral: '单侧/双侧', mirror: '镜像动作',
         powerModule: '力量模组', leverArm: '力臂位置', stroke: '行程类型', benchAngle: '健身凳角度',
         focus: '动作重点', feedback: '纠错反馈', algoFile: '算法文件',
+        focus: '动作重点', feedback: '关联错误', algoFile: '算法文件',
         cover: '封面图', thumb: '缩略图', video: '动作视频', videoDur: '动作视频时长', demoCount: '动作演示次数',
         singleDur: '单次动作时长', mirrorVideo: '动作镜像视频', teachVideo: '动作教学视频', teachDur: '教学视频时长',
         status: '状态'
@@ -658,6 +661,7 @@ const RENDERERS = {
         ])}
         <table class="data-table">
             <thead><tr>${ThWithTooltip('动作ID')}${ThWithTooltip('动作运营ID')}${ThWithTooltip('动作名称')}${ThWithTooltip('主要部位')}${ThWithTooltip('主动肌')}${ThWithTooltip('动作模式')}${ThWithTooltip('动作器械')}${ThWithTooltip('动作功能')}${ThWithTooltip('动作难度')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
+            <thead><tr>${ThWithTooltip('动作ID')}${ThWithTooltip('动作运营ID')}${ThWithTooltip('动作名称')}${ThWithTooltip('主要部位')}${ThWithTooltip('主动肌')}${ThWithTooltip('动作模式')}${ThWithTooltip('动作配件')}${ThWithTooltip('动作功能')}${ThWithTooltip('动作难度')}${ThWithTooltip('状态')}<th>操作</th></tr></thead>
             <tbody>
                 ${MOCK_DATA.actions.map(item => `
                 <tr>
@@ -704,17 +708,21 @@ const RENDERERS = {
             <div class="form-grid">
                 ${Field('适合课程类型', 'select', ['力量','有氧','HIIT','搏击','普拉提','瑜伽','拉伸','气功','康复','冥想','高尔夫'], '新增', false, '', true)}
                 ${Field('动作权重', 'number', '10', '原“推荐值”', true)}
+                ${Field('动作权重', 'number', '50', '原“推荐值”', false)}
                 ${Field('动作难度', 'select', ['L1','L2','L3','L4','L5'], '已有')}
                 ${Field('动作模式', 'select', ['水平推','垂直推','水平拉','垂直拉','髋主导','膝主导','弓步','旋转','核心稳定','步态'], '已有')}
+                ${Field('动作模式', 'select', ['水平推','垂直推','水平拉','垂直拉','髋主导','膝主导','弓步','旋转','核心稳定','脊柱屈伸','步态'], '已有')}
                 ${Field('动作功能', 'select', ['增肌','力量','耐力','爆发','减脂','心肺','恢复','柔韧','协调','体态','专项','激活','平衡','呼吸'], '原“功能标签”', false, '', true)}
                 ${Field('动作构造', 'select', ['复合动作','孤立动作'], '新增').replace('select', 'select onchange="app.toggleSub(\'construct\', this.value)"')}
                 ${Field('└─ 复合次数', 'number', '1', '原“计次逻辑”', false, 'sub-construct', false, '次')}
                 ${Field('默认计量维度', 'select', ['计次','计时'], '新增')}
+                ${Field('默认交互', 'select', ['计次','计时'], '原“默认计量维度”')}
                 ${Field('冲击等级', 'select', ['无冲击','低冲击','高冲击'], '新增')}
                 ${Field('疼痛部位', 'select', ['无','手腕','肘部','肩部','腰部','髋部','膝盖','脚踝'], '新增', false, '', true)}
                 ${Field('动作MET值', 'number', '4.5', '已有', false, '', false, 'MET')}
                 ${Field('动作教练', 'select', ['Coach A', 'Coach B'], '新增', false, '', true)}
                 ${Field('动作配件', 'select', ['横杆','手柄','自重'], '原“动作器械”', false, '', true)}
+                ${Field('动作配件', 'select', ['自重','手柄','横杆','踝带','健身凳','瑜伽垫','瑜伽砖','泡沫轴','双头绳'], '原“动作器械”', false, '', true)}
             </div>
         </div>
 
@@ -724,7 +732,7 @@ const RENDERERS = {
                 ${Field('主要部位', 'select', ['全身','胸部','背部','肩部','手臂','臀部','腿部','核心'], '已有')}
                 ${Field('次要部位', 'select', ['手臂','肩部'], '已有', false, '', true)}
                 ${Field('主动肌', 'select', ['胸大肌中束'], '原“主要肌肉”')}
-                ${Field('拮抗肌', 'text', '背阔肌', '新增', true)}
+                ${Field('拮抗肌', 'text', '背阔肌', '自动填写', true)}
                 ${Field('辅助肌', 'select', ['肱三头肌'], '新增', false, '', true)}
                 ${Field('稳定肌', 'select', ['腹直肌'], '新增', false, '', true)}
             </div>
@@ -767,7 +775,7 @@ const RENDERERS = {
                     </div>
                 </div>
 
-                ${Field('健身凳角度', 'select', ['30°','35°','40°','45°','50°','55°','60°','65°','70°','75°','80°','85°','90°'], '新增')}
+                ${Field('健身凳角度', 'select', ['-15°','0°','15°','30°','35°','40°','45°','50°','55°','60°','65°','70°','75°','80°','85°','90°'], '新增')}
             </div>
         </div>
 
@@ -789,7 +797,7 @@ const RENDERERS = {
                     <button class="btn-primary" style="margin-top:8px; width:100px;" onclick="app.addFocusRow(this)">+ 添加重点</button>
                 </div>
 
-                ${Field('纠错反馈', 'select', ['膝盖内扣','腰背拱起'], '原“CV配置”', false, 'full', true)}
+                ${Field('关联错误', 'select', ['膝盖内扣','腰背拱起'], '原“纠错反馈”', false, 'full', true)}
                 ${Field('算法文件', 'file', '', '非必填')}
             </div>
         </div>
@@ -797,12 +805,11 @@ const RENDERERS = {
         <div class="form-section">
             <div class="section-header">动作素材</div>
             <div class="form-grid">
-                ${Field('封面图', 'file', '', '原“设备端封面图”')}
-                ${Field('缩略图', 'file', '', '原“设备端缩略图”')}
+                ${Field('动作缩略图', 'file', '', '原“设备端封面图”')}
                 ${Field('动作视频', 'file', '', '已有')}
                 ${Field('└─ 动作视频时长', 'number', '15.0', '已有', false, '', false, 's')}
                 ${Field('└─ 动作演示次数', 'number', '1', '原“教学次数”', false, '', false, '次 (有视频必填)')}
-                ${Field('单次动作时长', 'number', '3.5', '已有', true, '', false, 's')}
+                ${Field('单次动作时长', 'number', '3.5', '自动计算', false, '', false, 's')}
                 ${Field('动作镜像视频', 'file', '', '已有')}
                 ${Field('动作教学视频', 'file', '', '原“教学视频”')}
                 ${Field('└─ 教学视频时长', 'number', '45.0', '已有', false, '', false, 's')}
@@ -812,17 +819,20 @@ const RENDERERS = {
         <div class="deprecated-box">
             <div class="deprecated-title">废弃字段 (仅展示)</div>
             <div class="deprecated-list">
-                <span class="deprecated-item">AI配置</span>
                 <span class="deprecated-item">动作描述</span>
                 <span class="deprecated-item">动作目标</span>
                 <span class="deprecated-item">└─ 目标次数</span>
                 <span class="deprecated-item">└─ 目标时长</span>
                 <span class="deprecated-item">└─ 目标保持时长</span>
+                <span class="deprecated-item">其他部位1/2/3</span>
+                <span class="deprecated-item">其他肌肉1/2/3</span>
+                <span class="deprecated-item">动作类型(旧)</span>
                 <span class="deprecated-item">动作目的</span>
                 <span class="deprecated-item">算法类型</span>
                 <span class="deprecated-item">打点开始时间</span>
                 <span class="deprecated-item">打点结束时间</span>
                 <span class="deprecated-item">电机识别</span>
+                <span class="deprecated-item">电机配置</span>
                 <span class="deprecated-item">默认发力模式</span>
                 <span class="deprecated-item">行程基准</span>
                 <span class="deprecated-item">动作方向</span>
@@ -832,6 +842,9 @@ const RENDERERS = {
                 <span class="deprecated-item">推荐系数下限</span>
                 <span class="deprecated-item">移动端封面图</span>
                 <span class="deprecated-item">移动端缩略图</span>
+                <span class="deprecated-item">推荐值</span>
+                <span class="deprecated-item">是否单边</span>
+                <span class="deprecated-item">设备端缩略图</span>
             </div>
         </div>
     `,
