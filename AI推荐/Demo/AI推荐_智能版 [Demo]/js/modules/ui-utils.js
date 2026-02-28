@@ -135,8 +135,9 @@ window.UIUtils = {
 
     captureScreenshot: () => {
         const h2c = window.html2canvas;
+        const t = (k, d) => (window.I18n && window.I18n.t) ? window.I18n.t(k) : d;
         if (!h2c) {
-            window.UIUtils.showToast('截图插件未加载');
+            window.UIUtils.showToast(t('ui_toast_screenshot_missing', 'Screenshot plugin missing'));
             return;
         }
 
@@ -159,7 +160,7 @@ window.UIUtils = {
         const x = minX - padding;
         const width = (maxX + padding) - x;
         
-        window.UIUtils.showToast('正在截图...');
+        window.UIUtils.showToast(t('ui_toast_screenshot_start', 'Capturing...'));
 
         h2c(document.body, {
             x: x + window.scrollX,
@@ -269,10 +270,10 @@ window.UIUtils = {
             link.href = canvas.toDataURL('image/png');
             link.click();
             
-            window.UIUtils.showToast('截图已下载');
+            window.UIUtils.showToast(t('ui_toast_screenshot_success', 'Screenshot downloaded'));
         }).catch(err => {
             console.error('Screenshot failed:', err);
-            window.UIUtils.showToast('截图失败');
+            window.UIUtils.showToast(t('ui_toast_screenshot_fail', 'Screenshot failed'));
         });
     }
 };

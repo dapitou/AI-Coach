@@ -13,11 +13,29 @@
     <link rel="stylesheet" href="css/modules/library.css">
     <link rel="stylesheet" href="css/modules/workout.css">
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <!-- TOP RIGHT TOOLS -->
 <div class="top-right-tools">
+    <div class="tool-btn" onclick="window.I18n.exportConfig()">导出 Excel</div>
+    <select class="tool-select" id="lang-select" onchange="window.I18n.setLanguage(this.value)">
+        <option value="zh_CN">简体中文</option>
+        <option value="zh_HK">繁體中文</option>
+        <option value="en_US">English</option>
+        <option value="es_ES">Español</option>
+        <option value="ru_RU">Русский</option>
+        <option value="de_DE">Deutsch</option>
+        <option value="fr_FR">Français</option>
+        <option value="pt_PT">Português</option>
+        <option value="it_IT">Italiano</option>
+        <option value="ar_SA">العربية</option>
+        <option value="ja_JP">日本語</option>
+        <option value="ko_KR">한국어</option>
+        <option value="pl_PL">Polski</option>
+        <option value="th_TH">ไทย</option>
+    </select>
     <div class="tool-btn" onclick="window.App.captureScreenshot()">截图 (S)</div>
     <div id="prd-toggle-btn" class="tool-btn" onclick="window.PRD.toggle()">PRD 引注: OFF</div>
 </div>
@@ -39,8 +57,8 @@
     <!-- START TRIGGER -->
     <div id="home-start-btn" onclick="window.App.startSession()">
         <i style="font-size:40px; font-style:normal; display:block; margin-bottom:10px; filter:grayscale(1);">🎙️</i>
-        <div style="font-size:16px; font-weight:600; color:var(--primary);">点击开启麦克风权限</div>
-        <div style="font-size:12px; color:#666; margin-top:5px;">激活 AI 智能教练</div>
+        <div style="font-size:16px; font-weight:600; color:var(--primary);" data-i18n="home_start_mic_permission">点击开启麦克风权限</div>
+        <div style="font-size:12px; color:#666; margin-top:5px;" data-i18n="home_start_activate_ai">激活 AI 智能教练</div>
         <div style="font-size:10px; color:#444; margin-top:10px; font-family:monospace;">V28.0</div>
     </div>
 
@@ -48,25 +66,25 @@
     <div id="view-home" class="view active">
         <div class="home-top" style="justify-content: flex-end; padding-bottom: 120px;">            
             <div id="home-active-content" class="hidden" style="width:100%; display:flex; flex-direction:column; align-items:center; animation: slideUp 0.5s; z-index: 10;">
-                <div class="ai-greeting">Hi，我是AEKE 私人教练<br><span style="font-size:16px; font-weight:400; color:#888; margin-top:10px; display:block;">帮你定制专属运动方案</span></div>
+                <div class="ai-greeting"><span data-i18n="home_greeting_title">Hi，我是AEKE 私人教练</span><br><span style="font-size:16px; font-weight:400; color:#888; margin-top:10px; display:block;" data-i18n="home_greeting_subtitle">帮你定制专属运动方案</span></div>
                 <div id="home-subtitle"></div>
                 
                 <div class="action-buttons">
                     <div class="big-btn" onclick="App.startFlow('course')">
-                        <i>⚡️</i><span>给我一节课</span>
+                        <i>⚡️</i><span data-i18n="home_btn_course">给我一节课</span>
                     </div>
                     <div class="big-btn" onclick="App.startFlow('plan')">
-                        <i>📅</i><span>给我一份计划</span>
+                        <i>📅</i><span data-i18n="home_btn_plan">给我一份计划</span>
                     </div>
                 </div>
-                <div class="custom-template-link" onclick="App.startCustomFlow()">自定义课程模板 &gt;</div>
+                <div class="custom-template-link" onclick="App.startCustomFlow()" data-i18n="home_link_custom_template">自定义课程模板 &gt;</div>
             </div>
         </div>
         
         <div class="home-bottom hidden" id="profile-card">
             <div class="profile-header">
-                <div class="profile-title">我的运动档案</div>
-                <div class="edit-btn" onclick="App.openProfile()">更新 ></div>
+                <div class="profile-title" data-i18n="home_profile_title">我的运动档案</div>
+                <div class="edit-btn" onclick="App.openProfile()" data-i18n="home_profile_update">更新 ></div>
             </div>
             <div class="profile-grid" id="profile-display"></div>
         </div>
@@ -75,8 +93,8 @@
     <!-- VIEW 2: CHAT WIZARD -->
     <div id="view-chat" class="view">
         <div class="chat-header">
-            <div class="chat-back" onclick="App.reset()">✕ 退出</div>
-            <div class="chat-title"><div class="ai-status-dot"></div>AI Coach</div>
+            <div class="chat-back" onclick="App.reset()">✕ <span data-i18n="chat_btn_exit">退出</span></div>
+            <div class="chat-title"><div class="ai-status-dot"></div><span data-i18n="chat_title">AI Coach</span></div>
             <div style="width: 60px;"></div>
         </div>
         <div class="chat-container" id="chat-history"></div>
@@ -110,7 +128,7 @@
                 <div class="unit-switch" id="unit-switch" onclick="App.toggleUnit()" style="transform: scale(0.9);">
                     <div class="unit-knob">KG</div>
                 </div>
-                <div style="font-size: 14px; font-weight: 600; color: var(--primary); cursor: pointer;" onclick="App.saveTemplate()">保存</div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--primary); cursor: pointer;" onclick="App.saveTemplate()" data-i18n="common_btn_save">保存</div>
             </div>
         </div>
         <div class="result-body" id="res-body" style="padding-top: 0;">
@@ -121,10 +139,10 @@
             <div id="res-course-content">
                 <div id="res-intro" class="course-intro" style="margin: 5px 15px; font-size: 12px; line-height: 1.4;"></div>
                 <div class="stats-bar" id="res-stats" style="margin: 5px 15px; padding: 8px 12px; min-height: auto;">
-                    <div>时长 <span class="stat-val" id="st-time">--</span></div>
-                    <div>动作 <span class="stat-val" id="st-count">--</span></div>
-                    <div>容量 <span class="stat-val" id="st-vol">--</span></div>
-                    <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+                    <div><span data-i18n="result_stats_time">时长</span> <span class="stat-val" id="st-time">--</span></div>
+                    <div><span data-i18n="result_stats_count">动作</span> <span class="stat-val" id="st-count">--</span></div>
+                    <div><span data-i18n="result_stats_vol">容量</span> <span class="stat-val" id="st-vol">--</span></div>
+                    <div><span data-i18n="result_stats_cal">消耗</span> <span class="stat-val" id="st-cal">--</span></div>
                 </div>
                 <div class="tabs" id="res-phase-tabs" style="position:sticky; top:0; z-index:10; background:#000; margin-bottom:0; border-bottom:1px solid #222;"></div>
                 <div id="res-phase-content" style="padding: 10px 0;"></div>
@@ -132,16 +150,16 @@
         </div>
         <div class="bottom-bar">
             <button class="btn-icon" onclick="App.reset()">↺</button>
-            <button class="btn-full" id="btn-main-action">开始训练</button>
+            <button class="btn-full" id="btn-main-action" data-i18n="result_btn_start">开始训练</button>
         </div>
     </div>
 
     <!-- VIEW 5: ACTION LIBRARY -->
     <div id="view-library" class="view">
         <div class="result-header" style="height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; position: relative;">
-            <div class="chat-back" onclick="App.closeLibrary()" style="font-size: 15px; color: #fff; cursor: pointer; z-index: 2;">取消</div>
-            <div class="result-title" style="font-size:16px; font-weight: 600; position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;">动作库</div>
-            <div style="color:var(--primary); font-weight:600; cursor:pointer; font-size: 15px; z-index: 2;" onclick="App.confirmReplace()">确认</div>
+            <div class="chat-back" onclick="App.closeLibrary()" style="font-size: 15px; color: #fff; cursor: pointer; z-index: 2;" data-i18n="common_btn_cancel">取消</div>
+            <div class="result-title" style="font-size:16px; font-weight: 600; position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;" data-i18n="library_title">动作库</div>
+            <div style="color:var(--primary); font-weight:600; cursor:pointer; font-size: 15px; z-index: 2;" onclick="App.confirmReplace()" data-i18n="common_btn_confirm">确认</div>
         </div>
         <div class="lib-filters" id="lib-parts"></div>
         <div class="lib-body" id="lib-list"></div>
@@ -152,10 +170,10 @@
         <div class="workout-container">
             <div class="wk-header">
                 <div style="display:flex; align-items:center;">
-                    <div class="wk-phase-tag" id="wk-phase-name">主训</div>
+                    <div class="wk-phase-tag" id="wk-phase-name" data-i18n="common_phase_main">主训</div>
                     <div id="wk-total-time" style="font-family:monospace; font-variant-numeric: tabular-nums;">00:00</div>
                 </div>
-                <div style="cursor:pointer;" onclick="App.openConfirmModal('确定要结束训练吗？', () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕ 结束</div>
+                <div style="cursor:pointer;" onclick="App.openConfirmModal(I18n.t('workout_confirm_end'), () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕ <span data-i18n="workout_btn_end">结束</span></div>
             </div>
             
             <!-- Action List Overlay -->
@@ -179,22 +197,22 @@
 
                 <!-- Count Overlay -->
                 <div class="wk-countdown-overlay" id="wk-overlay-cnt" style="display:none;">
-                    <div style="color:#fff; font-size:20px; margin-bottom:20px;">准备开始</div>
+                    <div style="color:#fff; font-size:20px; margin-bottom:20px;" data-i18n="workout_overlay_ready">准备开始</div>
                     <div class="wk-count-num" id="wk-cnt-num">3</div>
                 </div>
 
                 <!-- Rest Overlay -->
                 <div class="wk-rest-overlay" id="wk-overlay-rest" style="display:none;">
-                    <div style="color:#888; font-size:16px;">休息一下</div>
+                    <div style="color:#888; font-size:16px;" data-i18n="workout_overlay_rest">休息一下</div>
                     <div class="wk-count-num" id="wk-rest-time" style="color:#fff;">30</div>
-                    <div class="sim-btn" onclick="window.ViewWorkout.nextSet()" style="margin-top:20px; padding:10px 30px; font-size:14px;">跳过休息</div>
+                    <div class="sim-btn" onclick="window.ViewWorkout.nextSet()" style="margin-top:20px; padding:10px 30px; font-size:14px;" data-i18n="workout_btn_skip_rest">跳过休息</div>
                 </div>
             </div>
 
             <div class="wk-dashboard">
                 <!-- Left: Power Chart -->
                 <div class="wk-dash-col">
-                    <div class="wk-chart-title">实时功率 (W)</div>
+                    <div class="wk-chart-title" data-i18n="workout_chart_title_power">实时功率 (W)</div>
                     <canvas id="wk-power-chart" class="wk-chart-canvas"></canvas>
                 </div>
 
@@ -218,7 +236,7 @@
                 
                 <!-- Right: Stroke Curve -->
                 <div class="wk-dash-col">
-                    <div class="wk-chart-title">行程曲线 (cm)</div>
+                    <div class="wk-chart-title" data-i18n="workout_chart_title_stroke">行程曲线 (cm)</div>
                     <canvas id="wk-stroke-chart" class="wk-chart-canvas"></canvas>
                 </div>
             </div>
@@ -227,7 +245,7 @@
         <!-- Simulation Tools (Fixed) -->
         <div class="sim-controls">
             <div class="sim-btn" onclick="window.ViewWorkout.simRep()">+1 次数</div>
-            <div class="sim-btn" onclick="window.ViewWorkout.simTime()">>> 时间</div>
+            <div class="sim-btn" onclick="window.ViewWorkout.simTime()" data-i18n="workout_sim_speed">>> 时间</div>
             <div class="sim-btn" onclick="window.ViewWorkout.simPower()">⚡ 爆发</div>
         </div>
     </div>
@@ -235,67 +253,67 @@
     <!-- VIEW 6: SCHEDULE -->
     <div id="view-schedule" class="view">
         <div class="chat-header">
-            <div class="chat-back" onclick="App.switchView('view-home')">✕ 关闭</div>
-            <div class="chat-title">训练日程</div>
+            <div class="chat-back" onclick="App.switchView('view-home')">✕ <span data-i18n="common_btn_close">关闭</span></div>
+            <div class="chat-title" data-i18n="schedule_title">训练日程</div>
             <div style="width: 60px;"></div>
         </div>
         <div class="result-body" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%;">
             <i style="font-size:64px; margin-bottom:20px; font-style:normal;">📅</i>
-            <div style="font-size:18px; font-weight:700; margin-bottom:10px;">日程已创建</div>
-            <div style="font-size:13px; color:#888;">您的训练计划已加入日程表</div>
+            <div style="font-size:18px; font-weight:700; margin-bottom:10px;" data-i18n="schedule_success_title">日程已创建</div>
+            <div style="font-size:13px; color:#888;" data-i18n="schedule_success_sub">您的训练计划已加入日程表</div>
         </div>
     </div>
 
     <!-- VIEW 8: SUMMARY -->
     <div id="view-summary" class="view">
         <div class="result-header">
-            <div class="chat-back" onclick="App.reset()">✕ 关闭</div>
-            <div class="chat-title">运动结算</div>
+            <div class="chat-back" onclick="App.reset()">✕ <span data-i18n="common_btn_close">关闭</span></div>
+            <div class="chat-title" data-i18n="summary_title">运动结算</div>
             <div style="width: 60px;"></div>
         </div>
         <div class="result-body">
             <div class="summary-hero">
-                <div style="font-size:14px; color:#888;">本次运动得分</div>
+                <div style="font-size:14px; color:#888;" data-i18n="summary_score_label">本次运动得分</div>
                 <div class="sum-big-score">92</div>
-                <div style="font-size:12px; color:var(--primary);">状态极佳，再接再厉！</div>
+                <div style="font-size:12px; color:var(--primary);" data-i18n="summary_score_sub">状态极佳，再接再厉！</div>
             </div>
             <div class="sum-grid">
-                <div class="sum-card"><div style="color:#888; font-size:12px;">总时长</div><div style="font-size:24px; font-weight:700;" id="sum-time">--</div></div>
-                <div class="sum-card"><div style="color:#888; font-size:12px;">消耗(kcal)</div><div style="font-size:24px; font-weight:700;" id="sum-cal">--</div></div>
+                <div class="sum-card"><div style="color:#888; font-size:12px;" data-i18n="summary_stat_time">总时长</div><div style="font-size:24px; font-weight:700;" id="sum-time">--</div></div>
+                <div class="sum-card"><div style="color:#888; font-size:12px;" data-i18n="summary_stat_cal">消耗(kcal)</div><div style="font-size:24px; font-weight:700;" id="sum-cal">--</div></div>
             </div>
-            <div style="padding:20px;"><button class="btn-full" onclick="App.reset()">完成</button></div>
+            <div style="padding:20px;"><button class="btn-full" onclick="App.reset()" data-i18n="common_btn_done">完成</button></div>
         </div>
     </div>
 
     <!-- MODALS & DIALOGS -->
     <div id="modal-profile" class="modal">
         <div class="modal-header">
-            <div style="font-size:16px; font-weight:700;">修改档案</div>
-            <div style="color:var(--primary); cursor:pointer;" onclick="App.saveProfile()">保存</div>
+            <div style="font-size:16px; font-weight:700;" data-i18n="home_profile_title">修改档案</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.saveProfile()" data-i18n="common_btn_save">保存</div>
         </div>
         <div id="profile-fatigue-container" class="profile-fatigue-sticky"></div>
         <div class="tabs">
-            <div class="tab active" onclick="App.switchTab('basic')">基础</div>
-            <div class="tab" onclick="App.switchTab('pref')">偏好</div>
-            <div class="tab" onclick="App.switchTab('goal')">目标</div>
+            <div class="tab active" onclick="App.switchTab('basic')" data-i18n="profile_tab_basic">基础</div>
+            <div class="tab" onclick="App.switchTab('pref')" data-i18n="profile_tab_pref">偏好</div>
+            <div class="tab" onclick="App.switchTab('goal')" data-i18n="profile_tab_goal">目标</div>
         </div>
         <div class="modal-body" id="profile-form"></div>
     </div>
 
     <div id="modal-schedule" class="modal">
         <div class="modal-header">
-            <div style="font-size:16px; font-weight:700;">确认训练日</div>
-            <div style="color:var(--primary); cursor:pointer;" onclick="App.confirmSchedule()">确认</div>
+            <div style="font-size:16px; font-weight:700;" data-i18n="schedule_modal_title">确认训练日</div>
+            <div style="color:var(--primary); cursor:pointer;" onclick="App.confirmSchedule()" data-i18n="common_btn_confirm">确认</div>
         </div>
         <div class="modal-body">
-            <div style="margin-bottom:15px; font-size:13px; color:#888;">请确认您的每周训练安排：</div>
+            <div style="margin-bottom:15px; font-size:13px; color:#888;" data-i18n="schedule_modal_desc">请确认您的每周训练安排：</div>
             <div class="options-grid" id="schedule-days-list"></div>
         </div>
     </div>
     
     <div id="modal-action-detail" class="modal">
         <div class="modal-header">
-            <div style="font-size:16px; font-weight:700;">动作详情</div>
+            <div style="font-size:16px; font-weight:700;" data-i18n="result_link_detail">动作详情</div>
             <div style="color:#888; cursor:pointer;" onclick="App.closeActionDetail()">✕</div>
         </div>
         <div class="tabs" id="detail-tabs"></div>
@@ -308,8 +326,8 @@
             <div class="dialog-title">提示</div>
             <div class="dialog-msg" id="dialog-msg">--</div>
             <div class="dialog-btns">
-                <button class="dialog-btn cancel" onclick="App.closeConfirmModal()">取消</button>
-                <button class="dialog-btn confirm" id="dialog-confirm-btn">确认</button>
+                <button class="dialog-btn cancel" onclick="App.closeConfirmModal()" data-i18n="common_btn_cancel">取消</button>
+                <button class="dialog-btn confirm" id="dialog-confirm-btn" data-i18n="common_btn_confirm">确认</button>
             </div>
         </div>
     </div>
@@ -326,6 +344,8 @@
 <script src="js/core/user-ability.js"></script>
 <script src="js/core/phase-engine.js"></script>
 <script src="js/core/logic.js"></script>
+<script src="js/data/i18n.js"></script>
+<script src="js/modules/i18n-manager.js"></script>
 <script src="js/modules/voice.js"></script>
 <script src="js/modules/ui-utils.js"></script>
 <script src="js/modules/view-home.js"></script>

@@ -32,12 +32,25 @@ let DB = [];
     }
 
     function processData(data) {
+        const map = window.CONSTANTS.CN_TO_EN;
+        const translate = (val) => map[val] || val;
+        const translateArr = (arr) => arr ? arr.map(v => map[v] || v) : [];
+
         DB = data.map(a => ({
             ...a,
-            pain: a.pain || [], // Ensure array to prevent crash
-            equip: a.equip || [], // Ensure array to prevent crash
-            subPart: a.subPart || [], // FIX: Ensure array for filtering
-            func: a.func || [], // FIX: Ensure array for scoring
+            part: translate(a.part),
+            muscle: translate(a.muscle),
+            antagonist: translate(a.antagonist),
+            mode: translate(a.mode),
+            func: translateArr(a.func || []),
+            equip: translateArr(a.equip || []),
+            pain: translateArr(a.pain || []),
+            subPart: translateArr(a.subPart || []),
+            difficulty: translate(a.level), // Map level to difficulty
+            impact: translate(a.impact),
+            construct: translate(a.construct),
+            posture: translate(a.posture),
+            
             // Mock runtime data if missing
             lastTrained: a.lastTrained || new Date(Date.now() - Math.random() * 1000000000),
             isFav: (a.isFav !== undefined) ? a.isFav : (Math.random() > 0.8),

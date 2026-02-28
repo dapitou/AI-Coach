@@ -24,7 +24,7 @@ window.ViewLibrary = {
         if (!action) return;
 
         const tabs = ['intro', 'teach', 'history'];
-        const tabNames = {'intro':'简介', 'teach':'教学', 'history':'历史'};
+        const tabNames = {'intro':window.I18n.t('detail_tab_intro'), 'teach':window.I18n.t('detail_tab_teach'), 'history':window.I18n.t('detail_tab_history')};
         document.getElementById('detail-tabs').innerHTML = tabs.map(t => 
             `<div class="tab ${t===tab?'active':''}" onclick="App.switchDetailTab('${t}')">${tabNames[t]}</div>`
         ).join('');
@@ -35,30 +35,30 @@ window.ViewLibrary = {
             const synergist = (action.subPart && action.subPart.length) ? action.subPart.join('、') : '无';
             const stabilizer = '核心肌群';
             const paradigm = action.paradigm || CONSTANTS.COURSE_TYPES[action.courseType] || '抗阻范式';
-            const mirrorTag = action.mirror ? `<div class="ad-tag" style="color:var(--primary); border-color:var(--primary);">镜像</div>` : '';
+            const mirrorTag = action.mirror ? `<div class="ad-tag" style="color:var(--primary); border-color:var(--primary);">${window.I18n.t('common_tag_mirror')}</div>` : '';
 
             let addBtn = '';
             if (source === 'library') {
-                addBtn = `<button class="ad-add-btn" onclick="App.confirmDetailAdd('${id}')">＋ 添加动作</button>`;
+                addBtn = `<button class="ad-add-btn" onclick="App.confirmDetailAdd('${id}')">${window.I18n.t('library_btn_add')}</button>`;
             }
 
             html = `
-                <div class="ad-video"><div style="font-size:12px;">动作演示视频</div></div>
+                <div class="ad-video"><div style="font-size:12px;">${window.I18n.t('detail_video_placeholder_demo')}</div></div>
                 <div class="ad-header">
                     <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:10px;">
                         <div class="ad-title" style="margin-bottom:0;">${action.name}</div>${addBtn}
                     </div>
                     <div class="ad-tags"><div class="ad-tag">${action.part}</div><div class="ad-tag">${action.construct || '复合动作'}</div><div class="ad-tag">${action.difficulty}</div>${mirrorTag}</div>
                 </div>
-                <div class="ad-section" id="ad-sec-basic"><div class="ad-sec-title">基本信息</div><div class="info-grid"><div class="info-card"><div class="ic-label">器械</div><div class="ic-val">${action.equip[0]}</div></div><div class="info-card"><div class="ic-label">冲击</div><div class="ic-val">${action.impact}</div></div><div class="info-card"><div class="ic-label">范式</div><div class="ic-val">${paradigm.replace('范式','')}</div></div></div></div>
-                <div class="ad-section" id="ad-sec-muscle"><div class="ad-sec-title">肌群参与</div><div class="muscle-map"><div class="muscle-card"><div class="mc-label">主动肌 (Agonist)</div><div class="mc-val highlight">${action.muscle}</div></div><div class="muscle-card"><div class="mc-label">拮抗肌 (Antagonist)</div><div class="mc-val">${antagonist}</div></div><div class="muscle-card"><div class="mc-label">辅助肌 (Synergist)</div><div class="mc-val">${synergist}</div></div><div class="muscle-card"><div class="mc-label">稳定肌 (Stabilizer)</div><div class="mc-val">${stabilizer}</div></div></div></div>
-                <div class="ad-section" id="ad-sec-desc"><div class="ad-sec-title">动作说明</div><div class="desc-box">${action.name}是一个经典的${action.part}训练动作，主要针对${action.muscle}进行强化。通过${action.construct || '复合'}运动模式，能够有效提升${action.func.join('与')}能力。适合${action.difficulty}及以上水平训练者。</div></div>
+                <div class="ad-section" id="ad-sec-basic"><div class="ad-sec-title">${window.I18n.t('detail_section_basic')}</div><div class="info-grid"><div class="info-card"><div class="ic-label">${window.I18n.t('library_filter_equip')}</div><div class="ic-val">${action.equip[0]}</div></div><div class="info-card"><div class="ic-label">${window.I18n.t('library_filter_impact')}</div><div class="ic-val">${action.impact}</div></div><div class="info-card"><div class="ic-label">范式</div><div class="ic-val">${paradigm.replace('范式','')}</div></div></div></div>
+                <div class="ad-section" id="ad-sec-muscle"><div class="ad-sec-title">${window.I18n.t('detail_section_muscle')}</div><div class="muscle-map"><div class="muscle-card"><div class="mc-label">${window.I18n.t('detail_muscle_agonist')}</div><div class="mc-val highlight">${action.muscle}</div></div><div class="muscle-card"><div class="mc-label">${window.I18n.t('detail_muscle_antagonist')}</div><div class="mc-val">${antagonist}</div></div><div class="muscle-card"><div class="mc-label">${window.I18n.t('detail_muscle_synergist')}</div><div class="mc-val">${synergist}</div></div><div class="muscle-card"><div class="mc-label">${window.I18n.t('detail_muscle_stabilizer')}</div><div class="mc-val">${stabilizer}</div></div></div></div>
+                <div class="ad-section" id="ad-sec-desc"><div class="ad-sec-title">${window.I18n.t('detail_section_desc')}</div><div class="desc-box">${action.name}是一个经典的${action.part}训练动作，主要针对${action.muscle}进行强化。通过${action.construct || '复合'}运动模式，能够有效提升${action.func.join('与')}能力。适合${action.difficulty}及以上水平训练者。</div></div>
             `;
         } else if (tab === 'teach') {
             html = `
-                <div class="ad-video"><div style="font-size:12px;">教学讲解视频</div></div>
-                <div class="ad-section" id="ad-sec-points"><div class="ad-sec-title">动作要点</div><ul style="font-size:13px; color:#ccc; padding-left:20px; margin-bottom:20px; line-height:1.8;"><li>保持核心收紧，背部挺直，避免脊柱过度伸展。</li><li>动作过程中控制速度，离心阶段（下放）控制在2-3秒。</li><li>呼吸配合：发力时呼气，还原时吸气。</li><li>注意力集中在${action.muscle}的收缩感上。</li></ul></div>
-                <div class="ad-section" id="ad-sec-errors"><div class="ad-sec-title" style="color:var(--danger);">常见错误</div><ul style="font-size:13px; color:#ccc; padding-left:20px; line-height:1.8;"><li>耸肩或含胸，导致斜方肌代偿。</li><li>关节锁死，增加关节压力。</li><li>重量过大导致动作变形，借力明显。</li></ul></div>
+                <div class="ad-video"><div style="font-size:12px;">${window.I18n.t('detail_video_placeholder_teach')}</div></div>
+                <div class="ad-section" id="ad-sec-points"><div class="ad-sec-title">${window.I18n.t('detail_section_points')}</div><ul style="font-size:13px; color:#ccc; padding-left:20px; margin-bottom:20px; line-height:1.8;"><li>保持核心收紧，背部挺直，避免脊柱过度伸展。</li><li>动作过程中控制速度，离心阶段（下放）控制在2-3秒。</li><li>呼吸配合：发力时呼气，还原时吸气。</li><li>注意力集中在${action.muscle}的收缩感上。</li></ul></div>
+                <div class="ad-section" id="ad-sec-errors"><div class="ad-sec-title" style="color:var(--danger);">${window.I18n.t('detail_section_errors')}</div><ul style="font-size:13px; color:#ccc; padding-left:20px; line-height:1.8;"><li>耸肩或含胸，导致斜方肌代偿。</li><li>关节锁死，增加关节压力。</li><li>重量过大导致动作变形，借力明显。</li></ul></div>
             `;
         } else if (tab === 'history') {
             const historyData = [
@@ -68,9 +68,9 @@ window.ViewLibrary = {
             const rmTrend = [20, 22, 22, 25, 25, 28];
             
             html = `
-                <div class="ad-section" id="ad-sec-1rm"><div class="ad-sec-title">预估 1RM 趋势</div><div style="background:#1a1a1a; height:150px; border-radius:8px; display:flex; align-items:flex-end; justify-content:space-around; padding:10px; border:1px solid #333;">${rmTrend.map(h => `<div style="width:10%; background:var(--primary); height:${h*3}px; border-radius:2px 2px 0 0; opacity:0.8;"></div>`).join('')}</div></div>
-                <div class="ad-section" id="ad-sec-recent"><div class="ad-sec-title">近期变化</div><div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;"><div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">近1周</div><div style="color:var(--primary); font-weight:700;">+2%</div></div><div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">近1月</div><div style="color:var(--primary); font-weight:700;">+5%</div></div><div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">近3月</div><div style="color:var(--primary); font-weight:700;">+12%</div></div></div></div>
-                <div class="ad-section" id="ad-sec-records"><div class="ad-sec-title">训练记录</div>${historyData.map(h => `<div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #222; font-size:13px;"><span style="color:#888;">${h.date}</span><span style="font-weight:600;">${h.vol} kg</span></div>`).join('')}</div>
+                <div class="ad-section" id="ad-sec-1rm"><div class="ad-sec-title">${window.I18n.t('detail_section_1rm')}</div><div style="background:#1a1a1a; height:150px; border-radius:8px; display:flex; align-items:flex-end; justify-content:space-around; padding:10px; border:1px solid #333;">${rmTrend.map(h => `<div style="width:10%; background:var(--primary); height:${h*3}px; border-radius:2px 2px 0 0; opacity:0.8;"></div>`).join('')}</div></div>
+                <div class="ad-section" id="ad-sec-recent"><div class="ad-sec-title">${window.I18n.t('detail_section_recent')}</div><div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;"><div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">${window.I18n.t('detail_history_week')}</div><div style="color:var(--primary); font-weight:700;">+2%</div></div><div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">${window.I18n.t('detail_history_month')}</div><div style="color:var(--primary); font-weight:700;">+5%</div></div><div style="background:#1a1a1a; padding:10px; border-radius:6px; text-align:center; border:1px solid #333;"><div style="font-size:10px; color:#888;">${window.I18n.t('detail_history_3month')}</div><div style="color:var(--primary); font-weight:700;">+12%</div></div></div></div>
+                <div class="ad-section" id="ad-sec-records"><div class="ad-sec-title">${window.I18n.t('detail_section_records')}</div>${historyData.map(h => `<div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #222; font-size:13px;"><span style="color:#888;">${h.date}</span><span style="font-weight:600;">${h.vol} kg</span></div>`).join('')}</div>
             `;
         }
         document.getElementById('action-detail-body').innerHTML = html;
@@ -92,7 +92,7 @@ window.ViewLibrary = {
 
     addAction: (pIdx) => {
         window.store.replaceState = { pIdx, mode: 'add' };
-        let defaultPart = '全部';
+        let defaultPart = 'All';
         if (window.currentCtx && window.currentCtx.meta && window.currentCtx.meta.targets && window.currentCtx.meta.targets.length > 0) {
             defaultPart = window.currentCtx.meta.targets[0];
         }
@@ -122,7 +122,7 @@ window.ViewLibrary = {
     },
 
     renderLibraryFilters: () => {
-        const parts = ['全部', ...CONSTANTS.PARTS];
+        const parts = [window.I18n.t('common_all'), ...CONSTANTS.PARTS];
         const { part, showPanel } = window.store.libFilter;
         
         const tabsHtml = parts.map(p => 
@@ -166,17 +166,17 @@ window.ViewLibrary = {
                 <div class="filter-label">${label}</div>
                 <div class="filter-chips">
                     ${opts.map(o => `
-                        <div class="f-chip ${(f[key]||[]).includes(o) ? 'active' : ''}" onclick="App.toggleLibFilterOpt('${key}', '${o}')">${o}</div>
+                        <div class="f-chip ${(f[key]||[]).includes(o) ? 'active' : ''}" onclick="App.toggleLibFilterOpt('${key}', '${o}')">${window.I18n.t('enum_' + o)}</div>
                     `).join('')}
                 </div>
             </div>
         `;
         
-        const equips = ['自重', '横杆', '手柄', '健身凳', '泡沫轴', '哑铃'];
+        const equips = CONSTANTS.MAPPINGS.EQUIPMENT_LIST || ['Bodyweight', 'Barbell', 'Dumbbell', 'Bench', 'Foam Roller', 'Ankle Strap', 'Yoga Mat', 'Yoga Block', 'Rope'];
         const diffs = ['L1', 'L2', 'L3', 'L4', 'L5'];
-        const impacts = ['无冲击', '低冲击', '高冲击'];
+        const impacts = ['No Impact', 'Low Impact', 'High Impact'];
         
-        container.innerHTML = renderSec('器械', 'equip', equips) + renderSec('难度', 'difficulty', diffs) + renderSec('冲击', 'impact', impacts) + `<div class="filter-btn-row"><div class="f-chip" onclick="App.resetLibFilters()">重置</div><div class="f-chip active" onclick="App.toggleLibFilterPanel()">收起</div></div>`;
+        container.innerHTML = renderSec(window.I18n.t('library_filter_equip'), 'equip', equips) + renderSec(window.I18n.t('library_filter_diff'), 'difficulty', diffs) + renderSec(window.I18n.t('library_filter_impact'), 'impact', impacts) + `<div class="filter-btn-row"><div class="f-chip" onclick="App.resetLibFilters()">${window.I18n.t('common_btn_reset')}</div><div class="f-chip active" onclick="App.toggleLibFilterPanel()">${window.I18n.t('common_btn_collapse')}</div></div>`;
     },
 
     toggleLibFilterOpt: (key, val) => {
@@ -201,27 +201,27 @@ window.ViewLibrary = {
         const { part, equip, difficulty, impact } = window.store.libFilter;
         let list = DB;
         
-        if (part !== '全部') list = list.filter(a => a.part === part);
+        if (part !== 'All') list = list.filter(a => a.part === part);
         if (equip && equip.length) list = list.filter(a => a.equip.some(e => equip.includes(e)));
         if (difficulty && difficulty.length) list = list.filter(a => difficulty.includes(a.difficulty));
         if (impact && impact.length) list = list.filter(a => impact.includes(a.impact));
         
         const groups = {};
         list.forEach(a => {
-            const func = (a.func && a.func.length) ? a.func[0] : '其他';
+            const func = (a.func && a.func.length) ? a.func[0] : 'Other';
             if (!groups[func]) groups[func] = [];
             groups[func].push(a);
         });
         
         let html = '';
         if (list.length === 0) {
-            html = `<div style="text-align:center; color:#666; padding:20px;">无匹配动作</div>`;
+            html = `<div style="text-align:center; color:#666; padding:20px;">${window.I18n.t('library_msg_no_match')}</div>`;
         } else {
             Object.keys(groups).sort().forEach(gName => {
-                html += `<div class="lib-group-title">${gName}</div>`;
+                html += `<div class="lib-group-title">${window.I18n.t('enum_' + gName)}</div>`;
                 html += groups[gName].map(a => {
                     const isSelected = (window.store.replaceState.selectedIds || []).includes(a.id);
-                    const mirrorTag = a.mirror ? `<span style="font-size:9px; color:var(--primary); border:1px solid var(--primary); padding:0 2px; border-radius:2px; margin-left:4px;">镜像</span>` : '';
+                    const mirrorTag = a.mirror ? `<span style="font-size:9px; color:var(--primary); border:1px solid var(--primary); padding:0 2px; border-radius:2px; margin-left:4px;">${window.I18n.t('common_tag_mirror')}</span>` : '';
                     return `
                     <div class="lib-item ${isSelected ? 'selected' : ''}" onclick="App.openActionDetail('${a.id}', 'library')"><div class="lib-thumb"></div><div class="lib-info"><div class="lib-name">${a.name}${mirrorTag}</div><div class="lib-meta">${a.part} · ${a.muscle} · ${a.equip[0]} · ${a.difficulty}</div></div><div class="lib-check-area" onclick="event.stopPropagation(); App.selectLibAction('${a.id}')"><div class="lib-check"></div></div></div>`;
                 }).join('');

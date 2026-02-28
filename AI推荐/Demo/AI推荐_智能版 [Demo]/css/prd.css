@@ -100,6 +100,23 @@
     transform: scale(0.95);
 }
 
+.tool-select {
+    background: #333;
+    color: #888;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #444;
+    transition: 0.2s;
+    outline: none;
+}
+.tool-select:hover {
+    background: #444;
+    color: #fff;
+    border-color: #666;
+}
+
 #prd-toggle-btn.active {
     background: var(--primary);
     color: #000;

@@ -1,38 +1,38 @@
 // d:\AEKE Projects\AI Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\data\constants.js
 
 window.CONSTANTS = {
-    PARTS: ['全身', '胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心'],
-    WEEKDAYS: ['周一','周二','周三','周四','周五','周六','周日'],
+    PARTS: ['Full Body', 'Chest', 'Back', 'Shoulder', 'Arm', 'Glute', 'Leg', 'Core'],
+    WEEKDAYS: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     
     // 映射数据 (Mappings)
     MAPPINGS: {
         // [SYNC] 全量器械库 (用于计算可用器械)
-        EQUIPMENT_LIST: ['自重', '横杆', '手柄', '健身凳', '泡沫轴', '哑铃', '踝带', '瑜伽垫', '瑜伽砖', '双头绳'],
+        EQUIPMENT_LIST: ['Bodyweight', 'Barbell', 'Dumbbell', 'Bench', 'Foam Roller', 'Ankle Strap', 'Yoga Mat', 'Yoga Block', 'Rope'],
         // [NEW] 部位关联映射 (用于热身/放松的精准过滤)
         RELATED_PARTS: {
-            '胸部': ['肩部', '手臂'],
-            '背部': ['肩部', '手臂'],
-            '肩部': ['胸部', '背部', '手臂'],
-            '手臂': ['肩部', '胸部', '背部'],
-            '腿部': ['臀部'],
-            '臀部': ['腿部'],
-            '核心': ['臀部'],
-            '全身': ['胸部', '背部', '肩部', '手臂', '臀部', '腿部', '核心']
+            'Chest': ['Shoulder', 'Arm'],
+            'Back': ['Shoulder', 'Arm'],
+            'Shoulder': ['Chest', 'Back', 'Arm'],
+            'Arm': ['Shoulder', 'Chest', 'Back'],
+            'Leg': ['Glute'],
+            'Glute': ['Leg'],
+            'Core': ['Glute'],
+            'Full Body': ['Chest', 'Back', 'Shoulder', 'Arm', 'Glute', 'Leg', 'Core']
         },
         // 解剖学层级
         ANATOMY: {
-            '上肢': ['胸部', '背部', '肩部', '手臂'],
-            '下肢': ['臀部', '腿部'],
-            '核心': ['核心'],
-            '全身': ['全身']
+            'Upper Body': ['Chest', 'Back', 'Shoulder', 'Arm'],
+            'Lower Body': ['Glute', 'Leg'],
+            'Core': ['Core'],
+            'Full Body': ['Full Body']
         },
         // 动作模式 -> 主练部位
         MODE_TO_PART: {
-            '水平推': '胸部', '垂直推': '肩部',
-            '水平拉': '背部', '垂直拉': '背部',
-            '膝主导': '腿部', '髋主导': '臀部',
-            '弓步': '腿部', '旋转': '核心',
-            '核心稳定': '核心', '步态': '全身'
+            'Push_H': 'Chest', 'Push_V': 'Shoulder',
+            'Pull_H': 'Back', 'Pull_V': 'Back',
+            'Squat': 'Leg', 'Hinge': 'Glute',
+            'Lunge': 'Leg', 'Rotation': 'Core',
+            'Core_Stability': 'Core', 'Gait': 'Full Body'
         },
         // 强度换算
         INTENSITY: {
@@ -47,23 +47,48 @@ window.CONSTANTS = {
     LEVEL_MAP: { 'L1':1, 'L2':2, 'L3':3, 'L4':4, 'L5':5 },
     
     COURSE_TYPES: {
-        '力量': '抗阻范式', '康复': '抗阻范式', '高尔夫': '抗阻范式',
-        'HIIT': '间歇范式', '有氧': '间歇范式', '搏击': '间歇范式',
-        '瑜伽': '流式范式', '普拉提': '流式范式', '拉伸': '流式范式', '冥想': '流式范式', '气功': '流式范式'
+        'Strength': 'Resistance', 'Rehab': 'Resistance', 'Golf': 'Resistance',
+        'HIIT': 'Interval', 'Cardio': 'Interval', 'Combat': 'Interval',
+        'Yoga': 'Flow', 'Pilates': 'Flow', 'Stretch': 'Flow', 'Meditation': 'Flow', 'Qigong': 'Flow'
     }, 
     
     ENUMS: {
-        ONE_RM: { '胸部': 60, '背部': 70, '腿部': 100, '臀部': 90, '肩部': 30, '手臂': 25, '核心': 40, '全身': 50 },
-        GENDER: ['男', '女'],
+        ONE_RM: { 'Chest': 60, 'Back': 70, 'Leg': 100, 'Glute': 90, 'Shoulder': 30, 'Arm': 25, 'Core': 40, 'Full Body': 50 },
+        GENDER: ['Male', 'Female'],
         LEVEL: ['L1', 'L2', 'L3', 'L4', 'L5'],
-        GOAL: ['增肌', '减重', '健康'],
-        FUNC_GOAL: ['增肌', '力量', '耐力', '爆发', '减脂', '心肺', '恢复', '柔韧', '协调', '体态', '专项', '激活', '平衡'],
-        STYLE: ['传统型', '多变型', '激进型'],
-        BODY_TYPE: ['均衡标准型', '标准肌肉型', '紧致精瘦型', '健美肌肉型'],
-        LOOP_MODE: ['常规', '循环'],
-        LOAD_STRATEGY: ['推荐', '恒定', '递增', '递减', '自定义'],
-        COURSE_TYPES: ['力量', '有氧', 'HIIT', '搏击', '普拉提', '瑜伽', '拉伸', '气功', '康复', '冥想', '高尔夫'],
-        PAIN_AREAS: ['无', '手腕', '肘部', '肩部', '腰部', '髋部', '膝盖', '脚踝'],
-        MISSING_ACCESSORIES: ['健身凳', '瑜伽砖', '泡沫轴', '横杆', '手柄']
+        GOAL: ['Muscle Gain', 'Weight Loss', 'Health'],
+        FUNC_GOAL: ['Muscle Gain', 'Strength', 'Endurance', 'Power', 'Fat Loss', 'Cardio', 'Recovery', 'Flexibility', 'Coordination', 'Posture', 'Specific', 'Activation', 'Balance'],
+        STYLE: ['Traditional', 'Varied', 'Aggressive'],
+        BODY_TYPE: ['Balanced', 'Muscular', 'Lean', 'Bodybuilder'],
+        LOOP_MODE: ['Regular', 'Circuit'],
+        LOAD_STRATEGY: ['Recommended', 'Constant', 'Progressive', 'Regressive', 'Custom'],
+        COURSE_TYPES: ['Strength', 'Cardio', 'HIIT', 'Combat', 'Pilates', 'Yoga', 'Stretch', 'Qigong', 'Rehab', 'Meditation', 'Golf'],
+        PAIN_AREAS: ['None', 'Wrist', 'Elbow', 'Shoulder', 'Lower Back', 'Hip', 'Knee', 'Ankle'],
+        MISSING_ACCESSORIES: ['Bench', 'Yoga Block', 'Foam Roller', 'Barbell', 'Dumbbell']
+    },
+
+    CN_TO_EN: {
+        '男': 'Male', '女': 'Female',
+        '增肌': 'Muscle Gain', '减重': 'Weight Loss', '健康': 'Health',
+        '力量': 'Strength', '耐力': 'Endurance', '爆发': 'Power', '减脂': 'Fat Loss', '心肺': 'Cardio', '恢复': 'Recovery', '柔韧': 'Flexibility', '协调': 'Coordination', '体态': 'Posture', '专项': 'Specific', '激活': 'Activation', '平衡': 'Balance',
+        '传统型': 'Traditional', '多变型': 'Varied', '激进型': 'Aggressive',
+        '均衡标准型': 'Balanced', '标准肌肉型': 'Muscular', '紧致精瘦型': 'Lean', '健美肌肉型': 'Bodybuilder',
+        '常规': 'Regular', '循环': 'Circuit', '常规组': 'Regular', '循环组': 'Circuit',
+        '推荐': 'Recommended', '恒定': 'Constant', '递增': 'Progressive', '递减': 'Regressive', '自定义': 'Custom',
+        '有氧': 'Cardio', 'HIIT': 'HIIT', '搏击': 'Combat', '普拉提': 'Pilates', '瑜伽': 'Yoga', '拉伸': 'Stretch', '气功': 'Qigong', '康复': 'Rehab', '冥想': 'Meditation', '高尔夫': 'Golf',
+        '无': 'None', '手腕': 'Wrist', '肘部': 'Elbow', '肩部': 'Shoulder', '腰部': 'Lower Back', '髋部': 'Hip', '膝盖': 'Knee', '脚踝': 'Ankle',
+        '健身凳': 'Bench', '瑜伽砖': 'Yoga Block', '泡沫轴': 'Foam Roller', '横杆': 'Barbell', '手柄': 'Dumbbell', '自重': 'Bodyweight', '踝带': 'Ankle Strap', '瑜伽垫': 'Yoga Mat', '双头绳': 'Rope',
+        '全身': 'Full Body', '胸部': 'Chest', '背部': 'Back', '手臂': 'Arm', '臀部': 'Glute', '腿部': 'Leg', '核心': 'Core',
+        '周一': 'Mon', '周二': 'Tue', '周三': 'Wed', '周四': 'Thu', '周五': 'Fri', '周六': 'Sat', '周日': 'Sun',
+        '热身': 'Warmup', '主训': 'Main', '放松': 'Cooldown',
+        '抗阻范式': 'Resistance', '间歇范式': 'Interval', '流式范式': 'Flow',
+        '水平推': 'Push_H', '垂直推': 'Push_V', '水平拉': 'Pull_H', '垂直拉': 'Pull_V', '髋主导': 'Hinge', '膝主导': 'Squat', '弓步': 'Lunge', '旋转': 'Rotation', '核心稳定': 'Core_Stability', '步态': 'Gait',
+        '复合动作': 'Compound', '孤立动作': 'Isolation',
+        '无冲击': 'No Impact', '低冲击': 'Low Impact', '高冲击': 'High Impact',
+        '初级': 'Beginner', '中级': 'Intermediate', '高级': 'Advanced',
+        '已恢复': 'Recovered', '恢复中': 'Recovering', '疲劳中': 'Fatigued', '已力竭': 'Exhausted',
+        '适应期': 'Adaptation', '进阶期': 'Progression', '突破期': 'Peak', '减载期': 'Deload',
+        '动作构造': 'Construct', '动作模式': 'Mode', '主动肌': 'Muscle', '主要配件': 'Equip', '动作体位': 'Posture', '动作难度': 'Difficulty', 'MET值': 'MET', '推荐权重': 'Score', '动作功能': 'Func', '单双侧': 'Unilateral', '冲击等级': 'Impact', '随机': 'Random', '部位': 'Part',
+        '上肢': 'Upper Body', '下肢': 'Lower Body'
     }
 };

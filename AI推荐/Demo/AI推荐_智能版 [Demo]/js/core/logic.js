@@ -9,25 +9,25 @@ window.Logic = {
         const fatigueScore = Math.max(0, 100 - (user.fatigue * 8)); // Simple mapping for now
         const bodyStatus = fatigueScore;
         const rawTargets = input ? input.targets : null;
-        const targets = (Array.isArray(rawTargets) && rawTargets.length > 0) ? rawTargets : (rawTargets ? [rawTargets] : ['全身']);
+        const targets = (Array.isArray(rawTargets) && rawTargets.length > 0) ? rawTargets : (rawTargets ? [rawTargets] : ['Full Body']);
 
         // Calculate BMI for Impact Risk
         const bmi = user.weight / ((user.height / 100) ** 2);
 
         // [SYNC] 1. Dynamic Equipment List (Source of Truth: CONSTANTS)
-        const allEquips = CONSTANTS.MAPPINGS.EQUIPMENT_LIST || ['自重'];
+        const allEquips = CONSTANTS.MAPPINGS.EQUIPMENT_LIST || ['Bodyweight'];
         const availableEquip = allEquips.filter(e => !user.missing.includes(e));
 
         // [SYNC] 2. Local Fatigue Analysis (Mocking part status based on global fatigue for now, ideally needs part-level data)
         // In a real app, this would read from user.partFatigue
         const exhaustedParts = bodyStatus < 30 ? targets : []; // Mock: if global is low, target is exhausted
-        const suggestedParts = bodyStatus > 85 ? ['全身'] : [];
+        const suggestedParts = bodyStatus > 85 ? ['Full Body'] : [];
 
         return {
             source: planContext ? 'Plan' : 'Single',
             planContext: planContext,
             meta: {
-                type: planContext ? planContext.type : (input.type || '力量'),
+                type: planContext ? planContext.type : (input.type || 'Strength'),
                 targets: planContext ? planContext.targets : targets,
                 duration: planContext ? planContext.duration : (input ? (parseInt(input.duration) || 30) : 30),
                 level: user.level,
@@ -55,7 +55,7 @@ window.Logic = {
         const conflict = finalTargets.some(t => ctx.constraints.forbiddenParts.includes(t));
         
         if (conflict) {
-            if (ctx.source === 'Plan') finalTargets = ['全身']; // Plan mode: Auto-switch
+            if (ctx.source === 'Plan') finalTargets = ['Full Body']; // Plan mode: Auto-switch
             else ctx.constraints.downgrade = true; // Single mode: Downgrade
         }
 
@@ -81,8 +81,8 @@ window.Logic = {
         let mainStrategy = CONFIG.STRATEGY.find(s => s.target === goal) || CONFIG.STRATEGY[0];
 
         // [SYNC] Warmup/Relax Strategy Lookup (Keys: '激活', '柔韧')
-        let wuStrategy = CONFIG.STRATEGY.find(s => s.target === '激活') || { intensity: 0.4, strategy: '恒定', mode: '常规' };
-        let cdStrategy = CONFIG.STRATEGY.find(s => s.target === '柔韧') || { intensity: 0.3, strategy: '恒定', mode: '常规' };
+        let wuStrategy = CONFIG.STRATEGY.find(s => s.target === 'Activation') || { intensity: 0.4, strategy: 'Constant', mode: 'Regular' };
+        let cdStrategy = CONFIG.STRATEGY.find(s => s.target === 'Flexibility') || { intensity: 0.3, strategy: 'Constant', mode: 'Regular' };
 
         // 2. 结构规划 (Structure Planning) - T/10 Rule
         const wuCount = Math.ceil(duration / 10);
@@ -113,15 +113,15 @@ window.Logic = {
             let sets = baseStrat.sets || 1;
             let rest = baseStrat.rest || 0;
             
-            if (pType === '热身' || pType === '放松') {
+            if (pType === 'Warmup' || pType === 'Cooldown') {
                 sets = 1; // Force 1 set for warmup/relax
                 rest = 0;
             }
             return { ...baseStrat, sets, rest };
         };
 
-        const wuStratFinal = applyParadigmConstraints(wuStrategy, '热身');
-        const cdStratFinal = applyParadigmConstraints(cdStrategy, '放松');
+        const wuStratFinal = applyParadigmConstraints(wuStrategy, 'Warmup');
+        const cdStratFinal = applyParadigmConstraints(cdStrategy, 'Cooldown');
 
         // Rest Rounds (Transition)
         const wuRestRound = 0; 
@@ -130,25 +130,25 @@ window.Logic = {
         // Regular Mode (Strength/Hypertrophy): Transition time >= Set Rest time
         // Circuit Mode (HIIT): Round Rest > Station Rest (usually double)
         let mainRestRound = 60;
-        if (mainStrategy.mode === '循环') mainRestRound = Math.max(60, (mainStrategy.rest || 30) * 2);
+        if (mainStrategy.mode === 'Circuit') mainRestRound = Math.max(60, (mainStrategy.rest || 30) * 2);
         else mainRestRound = mainStrategy.rest || 60;
 
         const cdRestRound = 0;
 
         ctx.phases = [
             { 
-                type: '热身', 
+                type: 'Warmup', 
                 duration: wuTime, 
-                paradigm: '流式范式', 
+                paradigm: 'Flow', 
                 targetCount: wuCount, 
                 strategy: { 
                     ...wuStratFinal, 
                     restRound: wuRestRound, 
-                    loadStrategy: '恒定' 
+                    loadStrategy: 'Constant' 
                 } 
             },
             { 
-                type: '主训', 
+                type: 'Main', 
                 duration: mainTime, 
                 paradigm: paradigmName, 
                 targetCount: 99, 
@@ -162,14 +162,14 @@ window.Logic = {
                 coeffs: phaseCoeffs
             },
             { 
-                type: '放松', 
+                type: 'Cooldown', 
                 duration: cdTime, 
-                paradigm: '流式范式', 
+                paradigm: 'Flow', 
                 targetCount: cdCount, 
                 strategy: { 
                     ...cdStratFinal, 
                     restRound: cdRestRound, 
-                    loadStrategy: '恒定' 
+                    loadStrategy: 'Constant' 
                 } 
             }
         ];
@@ -177,8 +177,8 @@ window.Logic = {
         // 5. 计算主训动作数量 (Capacity Calculation)
         const mainPhase = ctx.phases[1];
         let singleActionTime = 0;
-        if (paradigmName === '间歇范式') singleActionTime = 60 + (mainPhase.strategy.rest || 30) + mainRestRound;
-        else if (paradigmName === '流式范式') singleActionTime = 60 + mainRestRound;
+        if (paradigmName === 'Interval') singleActionTime = 60 + (mainPhase.strategy.rest || 30) + mainRestRound;
+        else if (paradigmName === 'Flow') singleActionTime = 60 + mainRestRound;
         else singleActionTime = (mainSets * 45) + ((mainSets - 1) * (mainPhase.strategy.rest || 60)) + mainRestRound; 
 
         mainPhase.targetCount = Math.max(1, Math.round((mainTime * 60) / singleActionTime));

@@ -27,9 +27,9 @@ window.ViewChat = {
 
         if (flow === 'course' && step === 1) {
              const type = window.store.inputs['type'];
-             const lockTypes = ['HIIT', '有氧', '搏击'];
+             const lockTypes = ['HIIT', 'Cardio', 'Combat'];
              if (lockTypes.includes(type)) {
-                 window.store.inputs['targets'] = ['全身'];
+                 window.store.inputs['targets'] = ['Full Body'];
                  window.store.step++;
                  App.nextStep();
                  return;
@@ -43,7 +43,7 @@ window.ViewChat = {
             App.showTyping();
             setTimeout(() => {
                 App.hideTyping();
-                const confirmText = TEXT_VARIANTS.analysisStart[Math.floor(Math.random() * TEXT_VARIANTS.analysisStart.length)];
+                const confirmText = window.I18n.t('chat_variant_analysis');
                 const bubble = document.createElement('div');
                 bubble.className = 'chat-bubble chat-ai';
                 
@@ -72,7 +72,7 @@ window.ViewChat = {
 
         // Data-driven variant selection
         const variants = (config.variant && TEXT_VARIANTS[config.variant]) ? TEXT_VARIANTS[config.variant] : [config.q];
-        const qText = variants[Math.floor(Math.random() * variants.length)];
+        const qText = window.I18n.t(variants[Math.floor(Math.random() * variants.length)]);
         
         App.showTyping();
 
@@ -95,27 +95,27 @@ window.ViewChat = {
                 optionsHtml = `
                     <div class="chat-slider-box">
                         <div style="display:flex;justify-content:space-between;margin-bottom:10px;color:#fff;font-weight:700;">
-                            <span>时长</span><span id="slider-val">${config.default || config.min} ${config.unit}</span>
+                            <span>${window.I18n.t('chat_slider_duration')}</span><span id="slider-val">${config.default || config.min} ${window.I18n.t('common_unit_min')}</span>
                         </div>
                         <input type="range" min="${config.min}" max="${config.max}" step="${config.step}" value="${config.default || config.min}" style="width:100%" oninput="document.getElementById('slider-val').innerText = this.value + ' ${config.unit}'">
-                        <div style="display:flex; justify-content:center; margin-top:15px;"><div class="opt-chip confirm" onclick="App.handleInput('${config.key}', this.parentElement.previousElementSibling.value, false)">确认</div></div>
+                        <div style="display:flex; justify-content:center; margin-top:15px;"><div class="opt-chip confirm" onclick="App.handleInput('${config.key}', this.parentElement.previousElementSibling.value, false)">${window.I18n.t('common_btn_confirm')}</div></div>
                     </div>`;
             } else {
                 const gridClass = (config.key === 'targets') ? 'options-grid cols-4' : 'options-grid';
                 optionsHtml = `<div class="${gridClass}">` + config.opts.map(o => {
                     const isActive = (config.key === 'days' && window.store.user.days && window.store.user.days.includes(o)) ? 'active' : '';
                     let subText = '';
-                    if (config.key === 'days') subText = `<span class="chat-sub-text">${isActive ? '训练' : '休息'}</span>`; 
-                    return `<div class="opt-chip ${isActive}" onclick="App.handleInput('${config.key}', '${o}', ${config.multi}, this); App.toggleDayText(this)"><span>${o}</span>${subText}</div>`;
+                    if (config.key === 'days') subText = `<span class="chat-sub-text">${isActive ? window.I18n.t('common_status_train') : window.I18n.t('common_status_rest')}</span>`; 
+                    return `<div class="opt-chip ${isActive}" onclick="App.handleInput('${config.key}', '${o}', ${config.multi}, this); App.toggleDayText(this)"><span>${window.I18n.t('enum_' + o)}</span>${subText}</div>`;
                 }).join('') + `</div>`;
             }
 
             if(config.multi) {
-                optionsHtml += `<div class="options-grid" style="margin-top:10px; justify-content:center;"><div class="opt-chip confirm" onclick="App.confirmMulti('${config.key}', this)">确认</div></div>`;
+                optionsHtml += `<div class="options-grid" style="margin-top:10px; justify-content:center;"><div class="opt-chip confirm" onclick="App.confirmMulti('${config.key}', this)">${window.I18n.t('common_btn_confirm')}</div></div>`;
             }
             
             if (step > 0) {
-                optionsHtml += `<div style="margin-top:15px; text-align:center;"><span onclick="App.prevStep()" style="font-size:12px; color:#666; cursor:pointer; padding:5px 10px;">↩ 上一步</span></div>`;
+                optionsHtml += `<div style="margin-top:15px; text-align:center;"><span onclick="App.prevStep()" style="font-size:12px; color:#666; cursor:pointer; padding:5px 10px;">${window.I18n.t('chat_btn_prev')}</span></div>`;
             }
             
             const optContainer = document.createElement('div');
@@ -147,11 +147,11 @@ window.ViewChat = {
     
     toggleDayText: (el) => {
         const sub = el.querySelector('.chat-sub-text');
-        if(sub) sub.innerText = el.classList.contains('active') ? '训练' : '休息';
+        if(sub) sub.innerText = el.classList.contains('active') ? window.I18n.t('common_status_train') : window.I18n.t('common_status_rest');
     },
 
     handleDaysVoiceInput: (text, container) => {
-        const dayMap = { '一': '周一', '二': '周二', '三': '周三', '四': '周四', '五': '周五', '六': '周六', '日': '周日', '天': '周日', '七': '周日', '1': '周一', '2': '周二', '3': '周三', '4': '周四', '5': '周五', '6': '周六', '7': '周日' };
+        const dayMap = { '一': 'Mon', '二': 'Tue', '三': 'Wed', '四': 'Thu', '五': 'Fri', '六': 'Sat', '日': 'Sun', '天': 'Sun', '七': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat', '7': 'Sun' };
         const segments = text.split(/[，。,.;；\s]+/);
         const chips = Array.from(container.querySelectorAll('.opt-chip')).filter(c => !c.getAttribute('onclick').includes('confirmMulti'));
         
@@ -161,9 +161,9 @@ window.ViewChat = {
             const regex = /[一二三四五六日天七1-7]/g;
             let match;
             while ((match = regex.exec(seg)) !== null) { if (dayMap[match[0]]) targets.push(dayMap[match[0]]); }
-            if (seg.includes('周末')) targets.push('周六', '周日');
-            if (seg.includes('工作日')) targets.push('周一', '周二', '周三', '周四', '周五');
-            if (seg.includes('每天') || seg.includes('天天') || seg.includes('全选')) targets = ['周一','周二','周三','周四','周五','周六','周日'];
+            if (seg.includes('周末')) targets.push('Sat', 'Sun');
+            if (seg.includes('工作日')) targets.push('Mon', 'Tue', 'Wed', 'Thu', 'Fri');
+            if (seg.includes('每天') || seg.includes('天天') || seg.includes('全选')) targets = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
             targets = [...new Set(targets)];
             if (targets.length === 0) return;
 
@@ -424,7 +424,7 @@ window.ViewChat = {
                 }
             } else {
                 if (flow) {
-                    const errText = TEXT_VARIANTS.error[Math.floor(Math.random() * TEXT_VARIANTS.error.length)];
+                    const errText = window.I18n.t(TEXT_VARIANTS.error[Math.floor(Math.random() * TEXT_VARIANTS.error.length)]);
                     Voice.speak(errText);
                     if (userBubble) userBubble.style.opacity = '0.5';
                 }
@@ -466,9 +466,9 @@ window.ViewChat = {
             const hit = selected.find(p => fatigued.includes(p));
             
             if (hit) {
-                const rec = '背部';
+                const rec = 'Back';
                 window.store.pendingFatigue = { original: val, recommended: [rec], hit: hit };
-                const template = TEXT_VARIANTS.fatigueWarn[Math.floor(Math.random() * TEXT_VARIANTS.fatigueWarn.length)];
+                const template = window.I18n.t('chat_variant_fatigue');
                 const text = template.replace('{part}', hit).replace('{rec}', rec);
                 
                 App.showTyping();
@@ -492,8 +492,8 @@ window.ViewChat = {
                     App.typeWriter(bubble, text, 30, () => { bubble.style.height = 'auto'; });
                     const optContainer = document.createElement('div');
                     optContainer.innerHTML = `<div class="options-grid">
-                        <div class="opt-chip recommend" onclick="App.handleInput('fatigue_resolution', 'switch', false)">切换为${rec}</div>
-                        <div class="opt-chip secondary" onclick="App.handleInput('fatigue_resolution', 'keep', false)">坚持练${hit}</div>
+                        <div class="opt-chip recommend" onclick="App.handleInput('fatigue_resolution', 'switch', false)">${window.I18n.t('chat_opt_switch', {rec})}</div>
+                        <div class="opt-chip secondary" onclick="App.handleInput('fatigue_resolution', 'keep', false)">${window.I18n.t('chat_opt_keep', {hit})}</div>
                     </div>`;
                     chatHistory.appendChild(optContainer);
                     chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -531,7 +531,7 @@ window.ViewChat = {
         const activeChips = Array.from(optContainer.querySelectorAll('.opt-chip.active')).filter(c => !c.getAttribute('onclick').includes('confirmMulti'));
         
         let active = activeChips.map(e => e.querySelector('span') ? e.querySelector('span').innerText : e.innerText);
-        if(!active.length) return App.showToast("请至少选择一项");
+        if(!active.length) return App.showToast(window.I18n.t("chat_msg_select_one"));
         
         App.handleInput(key, active, false);
     },
@@ -541,8 +541,8 @@ window.ViewChat = {
         const step = window.store.step;
         
         const unitsMap = {
-            'course': { 2: '分钟' },
-            'plan': { 0: '周', 2: '分钟' }
+            'course': { 2: window.I18n.t('common_unit_min') },
+            'plan': { 0: window.I18n.t('common_unit_week'), 2: window.I18n.t('common_unit_min') }
         };
         const unit = (unitsMap[flow] && unitsMap[flow][step]) ? unitsMap[flow][step] : '';
 
@@ -577,7 +577,7 @@ window.ViewChat = {
         const summary = document.getElementById('chat-summary');
         summary.innerHTML = '';
         Object.values(inputs).forEach(val => {
-            const txt = Array.isArray(val) ? val.join('+') : val;
+            const txt = Array.isArray(val) ? val.map(v => window.I18n.t('enum_' + v)).join('+') : (typeof val === 'string' && isNaN(parseInt(val)) ? window.I18n.t('enum_' + val) : val);
             summary.innerHTML += `<div class="summary-tag">${txt}</div>`;
         });
     }

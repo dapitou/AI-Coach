@@ -9,22 +9,22 @@ window.ViewReasoning = {
         const flow = window.store.flow;
         
         const logs = [];
-        logs.push(`读取档案: ${user.gender} / ${user.level} / ${user.goal}`);
+        logs.push(`${window.I18n.t('reasoning_log_read')}: ${user.gender} / ${user.level} / ${user.goal}`);
         
         if (flow === 'course') {
             const targets = Array.isArray(inputs.targets) ? inputs.targets.join(',') : inputs.targets;
-            logs.push(`解析需求: ${inputs.type} / ${targets}`);
+            logs.push(`${window.I18n.t('reasoning_log_parse')}: ${inputs.type} / ${targets}`);
         } else {
             const daysCount = (inputs.days || []).length;
-            logs.push(`解析计划: ${inputs.cycle}周 / ${daysCount}天频次`);
+            logs.push(`${window.I18n.t('reasoning_log_parse')}: ${inputs.cycle}周 / ${daysCount}天频次`);
         }
         
-        if (user.pain && user.pain.length) logs.push(`风控过滤: 避开${user.pain.join('、')}`);
-        else logs.push(`风控扫描: 无禁忌部位`);
+        if (user.pain && user.pain.length) logs.push(`${window.I18n.t('reasoning_log_risk')}: 避开${user.pain.join('、')}`);
+        else logs.push(`${window.I18n.t('reasoning_log_risk')}: 无禁忌部位`);
         
-        logs.push(`匹配策略: ${CONFIG.STRATEGY[user.goal]?.strategy || '智能推荐'}模型`);
-        logs.push(`构建课程: 动作库 Top-K 筛选`);
-        logs.push(`生成方案: 计算容量与负荷...`);
+        logs.push(`${window.I18n.t('reasoning_log_strategy')}: ${CONFIG.STRATEGY[user.goal]?.strategy || '智能推荐'}模型`);
+        logs.push(`${window.I18n.t('reasoning_log_build')}: 动作库 Top-K 筛选`);
+        logs.push(`${window.I18n.t('reasoning_log_gen')}: 计算容量与负荷...`);
 
         const logContainer = document.getElementById('reasoning-log');
         logContainer.innerHTML = '';

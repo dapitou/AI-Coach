@@ -4,23 +4,23 @@ window.ViewResult = {
         const ctx = {
             source: 'Custom',
             meta: {
-                type: '自定义',
+                type: 'Custom',
                 targets: [],
                 duration: 0,
                 level: window.store.user.level,
                 goal: window.store.user.goal
             },
             phases: [
-                { type: '热身', duration: 0, actions: [], paradigm: '流式范式', strategy: { rest: 0, sets: 1, intensity: 0.4 } },
-                { type: '主训', duration: 0, actions: [], paradigm: '抗阻范式', strategy: { rest: 60, restRound: 90, sets: 3, intensity: 0.75, loopMode: '常规' } },
-                { type: '放松', duration: 0, actions: [], paradigm: '流式范式', strategy: { rest: 0, sets: 1, intensity: 0.3 } }
+                { type: 'Warmup', duration: 0, actions: [], paradigm: 'Flow', strategy: { rest: 0, sets: 1, intensity: 0.4 } },
+                { type: 'Main', duration: 0, actions: [], paradigm: 'Resistance', strategy: { rest: 60, restRound: 90, sets: 3, intensity: 0.75, loopMode: 'Regular' } },
+                { type: 'Cooldown', duration: 0, actions: [], paradigm: 'Flow', strategy: { rest: 0, sets: 1, intensity: 0.3 } }
             ]
         };
         
         window.store.flow = 'custom';
         window.currentCtx = ctx;
         window.store.activePhaseIdx = 1; // Default to Main
-        window.store.courseSettings = { loopMode: '常规', loadStrategy: '推荐' }; 
+        window.store.courseSettings = { loopMode: 'Regular', loadStrategy: 'Recommended' }; 
 
         App.showResult();
     },
@@ -38,7 +38,7 @@ window.ViewResult = {
         
         if (flow === 'course' || flow === 'custom') {
             document.getElementById('view-result').classList.add('plan-mode');
-            btnMain.innerText = '开始训练';
+            btnMain.innerText = window.I18n.t('result_btn_start');
             btnMain.onclick = () => {
                 window.ViewWorkout.start(window.currentCtx);
             };
@@ -52,26 +52,26 @@ window.ViewResult = {
             if (flow === 'course') {
                 try {
                     ctx = window.Logic.genCourse(inputs);
-                    window.store.courseSettings = { loopMode: '常规', loadStrategy: '推荐' };
+                    window.store.courseSettings = { loopMode: 'Regular', loadStrategy: 'Recommended' };
                     window.currentCtx = ctx;
                 } catch (e) {
                     console.error("Course Generation Failed:", e);
-                    window.App.showToast("生成失败，请重试");
+                    window.App.showToast(window.I18n.t('msg_gen_fail'));
                     return;
                 }
                 
-                const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
+                const mainIdx = ctx.phases.findIndex(p => p.type === 'Main');
                 window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
             }
 
             App.recalculateDurations(ctx); // FIX: Recalculate durations before rendering UI to avoid "locked" 5min
-            App.setupCourseResultUI(ctx, `${inputs.type}训练`);
+            App.setupCourseResultUI(ctx, window.I18n.t('course_title_suffix', {type: window.I18n.t('enum_' + inputs.type)}));
             App.renderFineTuning(ctx);
             App.initResultScroll();
             
         } else {
             document.getElementById('view-result').classList.add('plan-mode');
-            btnMain.innerText = '加入日程';
+            btnMain.innerText = window.I18n.t('result_btn_schedule');
             btnMain.onclick = () => App.openScheduleModal();
             
             // UI Toggle
@@ -85,47 +85,48 @@ window.ViewResult = {
             
             // 1. Plan Name: {Level} + {FuncGoal} + "计划"
             const u = window.store.user;
-            const levelMap = { 'L1':'初级', 'L2':'初级', 'L3':'中级', 'L4':'中级', 'L5':'高级' };
-            const levelText = levelMap[u.level] || '初级';
-            const funcGoal = u.funcGoal || u.goal || '增肌';
+            const toEn = (val) => (window.CONSTANTS && window.CONSTANTS.CN_TO_EN && window.CONSTANTS.CN_TO_EN[val]) ? window.CONSTANTS.CN_TO_EN[val] : val;
+            const levelMap = { 'L1':'Beginner', 'L2':'Beginner', 'L3':'Intermediate', 'L4':'Intermediate', 'L5':'Advanced' };
+            const levelText = levelMap[u.level] || 'Beginner';
+            const funcGoal = toEn(u.funcGoal) || toEn(u.goal) || 'Muscle Gain';
             
             // 3. Plan Intro
             const introMap = {
-                '增肌': {
-                    people: '体型单薄或渴望肌肉线条的人群',
-                    pain: '突破增肌平台期，解决力量增长停滞',
-                    desc: '采用科学的分化训练体系，结合渐进超负荷原则',
-                    effect: '有效促进肌肉肥大与力量增长'
+                'Muscle Gain': {
+                    people: window.I18n.t('plan_intro_muscle_people'),
+                    pain: window.I18n.t('plan_intro_muscle_pain'),
+                    desc: window.I18n.t('plan_intro_muscle_desc'),
+                    effect: window.I18n.t('plan_intro_muscle_effect')
                 },
-                '减重': {
-                    people: '体脂较高或需要体重管理的人群',
-                    pain: '解决代谢缓慢、体脂难以顽固堆积的问题',
-                    desc: '结合高强度间歇(HIIT)与有氧训练，最大化运动后过量氧耗(EPOC)',
-                    effect: '快速燃烧脂肪，重塑紧致身材'
+                'Weight Loss': {
+                    people: window.I18n.t('plan_intro_weight_people'),
+                    pain: window.I18n.t('plan_intro_weight_pain'),
+                    desc: window.I18n.t('plan_intro_weight_desc'),
+                    effect: window.I18n.t('plan_intro_weight_effect')
                 },
-                '健康': {
-                    people: '久坐少动或亚健康人群',
-                    pain: '改善体能下降、易疲劳及体态问题',
-                    desc: '注重全身功能性训练，平衡柔韧、协调与心肺能力',
-                    effect: '提升综合体能，焕发身体活力'
+                'Health': {
+                    people: window.I18n.t('plan_intro_health_people'),
+                    pain: window.I18n.t('plan_intro_health_pain'),
+                    desc: window.I18n.t('plan_intro_health_desc'),
+                    effect: window.I18n.t('plan_intro_health_effect')
                 }
             };
             // Fallback to '增肌' if goal not found, or map based on main goal
-            const mapKey = introMap[u.goal] ? u.goal : '增肌';
+            const mapKey = introMap[toEn(u.goal)] ? toEn(u.goal) : 'Muscle Gain';
             const curIntro = introMap[mapKey];
             
             const planHero = `
                 <div class="plan-hero">
-                    <div class="plan-hero-title">${levelText}${funcGoal}计划</div>
+                    <div class="plan-hero-title">${window.I18n.t('enum_' + u.level)} ${window.I18n.t('enum_' + funcGoal)} ${window.I18n.t('plan_title_suffix')}</div>
                     <div class="plan-hero-tags">
-                        <div class="ph-tag">${u.level}</div>
-                        <div class="ph-tag">${inputs.cycle}周</div>
-                        <div class="ph-tag">${inputs.days.length}天/周</div>
+                        <div class="ph-tag">${window.I18n.t('enum_' + u.level)}</div>
+                        <div class="ph-tag">${inputs.cycle} ${window.I18n.t('common_unit_week')}</div>
+                        <div class="ph-tag">${inputs.days.length} ${window.I18n.t('common_unit_week').replace('Wks', 'Days')}/Wk</div>
                     </div>
                     <div class="plan-hero-intro">
-                        <div style="margin-bottom:4px"><b>适应人群</b>${curIntro.people}</div>
-                        <div style="margin-bottom:4px"><b>解决痛点</b>${curIntro.pain}</div>
-                        <div><b>预期效果</b>${curIntro.effect}</div>
+                        <div style="margin-bottom:4px"><b>${window.I18n.t('plan_intro_label_people')}</b>${curIntro ? curIntro.people : ''}</div>
+                        <div style="margin-bottom:4px"><b>${window.I18n.t('plan_intro_label_pain')}</b>${curIntro ? curIntro.pain : ''}</div>
+                        <div><b>${window.I18n.t('plan_intro_label_effect')}</b>${curIntro ? curIntro.effect : ''}</div>
                     </div>
                 </div>`;
             
@@ -152,8 +153,8 @@ window.ViewResult = {
                 const weeks = phases[pName].length;
                 const intensity = phases[pName][0].intensity;
                 topHtml += `<div class="plan-flow-item ${idx===0?'active':''}" id="flow-item-${idx}" onclick="App.switchPlanPhase(${idx})" style="flex:${weeks}; min-width:0;">
-                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pName.substr(0,4)}</div>
-                    <div style="font-size:9px; opacity:0.8;">${weeks}周 | ${intensity}</div>
+                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${window.I18n.t('enum_' + pName)}</div>
+                    <div style="font-size:9px; opacity:0.8;">${weeks} ${window.I18n.t('common_unit_week')} | ${intensity}</div>
                 </div>`;
                 if (idx < phaseOrder.length - 1) topHtml += `<div class="plan-flow-arrow" style="font-size:10px; color:#444;">→</div>`;
             });
@@ -163,7 +164,7 @@ window.ViewResult = {
 
             topHtml += `
                 <div class="plan-calendar-header">
-                    <div>周一</div><div>周二</div><div>周三</div><div>周四</div><div>周五</div><div>周六</div><div>周日</div>
+                    <div>${window.I18n.t('common_weekday_Mon')}</div><div>${window.I18n.t('common_weekday_Tue')}</div><div>${window.I18n.t('common_weekday_Wed')}</div><div>${window.I18n.t('common_weekday_Thu')}</div><div>${window.I18n.t('common_weekday_Fri')}</div><div>${window.I18n.t('common_weekday_Sat')}</div><div>${window.I18n.t('common_weekday_Sun')}</div>
                 </div>
             </div>`;
 
@@ -204,7 +205,7 @@ window.ViewResult = {
         const totalDelta = targetW - startW;
         
         // Phase weight simulation
-        const phaseWeights = { '适应': 0.1, '进阶': 0.3, '增长': 0.3, '突破': 0.4, '减载': 0.05, '恢复': 0.05 };
+        const phaseWeights = { 'Adaptation': 0.1, 'Progression': 0.3, 'Growth': 0.3, 'Peak': 0.4, 'Deload': 0.05, 'Recovery': 0.05 };
         let totalPhaseWeight = 0;
         
         order.forEach(pName => {
@@ -260,7 +261,7 @@ window.ViewResult = {
         return `
         <div id="plan-weight-chart-container" style="margin:0 24px 5px 24px; padding-top:5px;">
             <div style="font-size:10px; color:#666; margin-bottom:5px; display:flex; justify-content:space-between;">
-                <span>体重预测 (${unit})</span>
+                <span>${window.I18n.t('plan_chart_title')} (${unit})</span>
             </div>
             <svg viewBox="0 0 100 30" style="width:100%; overflow:visible;">
                 <defs>
@@ -321,10 +322,10 @@ window.ViewResult = {
         // Update Description
         const pName = window.store.phaseOrder[idx];
         let pDesc = "";
-        if (pName.includes("适应")) pDesc = "建立神经适应，激活目标肌群，为后续高强度训练打基础。";
-        else if (pName.includes("增长")) pDesc = "增加训练容量，最大化代谢压力，促进肌肉肥大。";
-        else if (pName.includes("突破")) pDesc = "提高训练强度，冲击力量瓶颈，突破平台期。";
-        else if (pName.includes("恢复")) pDesc = "降低负荷，消除积累疲劳，实现超量恢复。";
+        if (pName.includes("Adaptation")) pDesc = window.I18n.t('phase_desc_adaptation');
+        else if (pName.includes("Progression")) pDesc = window.I18n.t('phase_desc_progression');
+        else if (pName.includes("Peak")) pDesc = window.I18n.t('phase_desc_peak');
+        else if (pName.includes("Deload") || pName.includes("Recovery")) pDesc = window.I18n.t('phase_desc_recover');
         
         const descContainer = document.getElementById('plan-phase-desc-container');
         if(descContainer) descContainer.innerHTML = `<div class="plan-phase-desc-static">${pDesc}</div>`;
@@ -350,11 +351,11 @@ window.ViewResult = {
         let daysHtml = '';
         
         let phaseSuffix = "";
-        if (w.phase.includes("适应")) phaseSuffix = "激活";
-        else if (w.phase.includes("增长")) phaseSuffix = "增长";
-        else if (w.phase.includes("突破")) phaseSuffix = "突破";
-        else if (w.phase.includes("恢复")) phaseSuffix = "恢复";
-        else phaseSuffix = "训练";
+        if (w.phase.includes("Adaptation")) phaseSuffix = window.I18n.t('suffix_activation');
+        else if (w.phase.includes("Progression")) phaseSuffix = window.I18n.t('suffix_growth');
+        else if (w.phase.includes("Peak")) phaseSuffix = window.I18n.t('suffix_peak');
+        else if (w.phase.includes("Deload") || w.phase.includes("Recovery")) phaseSuffix = window.I18n.t('suffix_recovery');
+        else phaseSuffix = window.I18n.t('suffix_training');
 
         const level = window.store.user.level;
 
@@ -366,15 +367,14 @@ window.ViewResult = {
             
             let content = '';
             if (day.isTraining) {
-                let baseTitle = day.title.replace('力量','').replace('训练','');
-                if(baseTitle.length > 4) baseTitle = baseTitle.substr(0,4);
+                let baseTitle = window.I18n.t('enum_' + day.title) || window.I18n.t(day.title) || day.title;
                 
                 content = `
-                    <div class="pdc-title">${baseTitle}${phaseSuffix}</div>
-                    <div class="pdc-sub">${level}</div>
+                    <div class="pdc-title">${baseTitle}</div>
+                    <div class="pdc-sub">${window.I18n.t('enum_' + level)}</div>
                 `;
             } else {
-                content = `<div class="pdc-title" style="font-weight:400; color:#888;">休息</div>`;
+                content = `<div class="pdc-title" style="font-weight:400; color:#888;">${window.I18n.t('common_status_rest')}</div>`;
             }
 
             daysHtml += `
@@ -383,7 +383,7 @@ window.ViewResult = {
             </div>`;
         });
         return `<div style="margin-bottom:10px;">
-                    <div style="font-size:10px;color:#666;margin-bottom:4px;padding-left:4px;">第 ${w.week} 周</div>
+                    <div style="font-size:10px;color:#666;margin-bottom:4px;padding-left:4px;">${window.I18n.t('plan_week_num', {n: w.week})}</div>
                     <div class="plan-week-row">${daysHtml}</div>
                 </div>`;
     },
@@ -404,11 +404,11 @@ window.ViewResult = {
             }
         }
 
-        const planContext = { type: '力量', targets: targets, duration: parseInt(inputs.duration), title: `${dayName}训练`, phase: { intensity: pIntensity, volume: pVolume }, goal: window.store.user.goal };
+        const planContext = { type: 'Strength', targets: targets, duration: parseInt(inputs.duration), title: window.I18n.t('plan_day_title', {day: window.I18n.t('enum_' + dayName)}), phase: { intensity: pIntensity, volume: pVolume }, goal: window.store.user.goal };
         const ctx = window.Logic.runPipeline(null, planContext);
-        const mainIdx = ctx.phases.findIndex(p => p.type === '主训');
+        const mainIdx = ctx.phases.findIndex(p => p.type === 'Main');
         window.store.activePhaseIdx = mainIdx >= 0 ? mainIdx : 0;
-        window.store.courseSettings = { loopMode: '常规组', loadStrategy: '推荐' };
+        window.store.courseSettings = { loopMode: 'Regular', loadStrategy: 'Recommended' };
         
         // Switch to Course View inside Result
         document.getElementById('view-result').classList.add('plan-mode');
@@ -433,42 +433,43 @@ window.ViewResult = {
     setupCourseResultUI: (ctx, title) => {
         const u = window.store.user;
         const isCustom = ctx.source === 'Custom';
+        const toEn = (val) => (window.CONSTANTS && window.CONSTANTS.CN_TO_EN && window.CONSTANTS.CN_TO_EN[val]) ? window.CONSTANTS.CN_TO_EN[val] : val;
         
         let hero = '';
         if (isCustom) {
             hero = `
             <div class="plan-hero" style="padding-top:60px; padding-bottom:0;">
                 <div class="plan-hero-title" style="display:flex; align-items:center; gap:8px;" onclick="App.expandHeader()">
-                    <span id="custom-course-title" contenteditable="true" style="border-bottom:1px dashed rgba(255,255,255,0.3); outline:none;" onblur="window.currentCtx.meta.title = this.innerText">自定义课程</span>
+                    <span id="custom-course-title" contenteditable="true" style="border-bottom:1px dashed rgba(255,255,255,0.3); outline:none;" onblur="window.currentCtx.meta.title = this.innerText">${window.I18n.t('result_title_custom')}</span>
                     <i style="font-size:14px; color:#666; font-style:normal; cursor:pointer;" onclick="document.getElementById('custom-course-title').focus()">✎</i>
                 </div>
                 <!-- No Tags, No Intro -->
             </div>`;
             // Update header title to match
-            document.getElementById('res-title').innerText = '自定义课程';
-            document.getElementById('res-sub').innerText = '自由编排';
+            document.getElementById('res-title').innerText = window.I18n.t('result_title_custom');
+            document.getElementById('res-sub').innerText = window.I18n.t('result_sub_custom');
         } else {
             hero = `
                 <div class="plan-hero">
                     <div class="plan-hero-title" onclick="App.expandHeader()">${title}</div>
                     <div class="plan-hero-tags">
-                        <div class="ph-tag">${u.level}</div>
-                        <div class="ph-tag">${ctx.meta.duration}分钟</div>
-                        <div class="ph-tag">${ctx.meta.targets.join('、')}</div>
+                        <div class="ph-tag">${window.I18n.t('enum_' + u.level)}</div>
+                        <div class="ph-tag">${ctx.meta.duration}${window.I18n.t('common_unit_min')}</div>
+                        <div class="ph-tag">${ctx.meta.targets.map(t => window.I18n.t('enum_' + t)).join('、')}</div>
                     </div>
                     <div class="plan-hero-intro">
-                        <div style="margin-bottom:4px"><b>训练目标</b>${ctx.meta.goal}</div>
-                        <div><b>课程简介</b>本课程针对${ctx.meta.targets.join('、')}设计，旨在通过${ctx.meta.type}训练提升${ctx.meta.goal}能力。</div>
+                        <div style="margin-bottom:4px"><b>${window.I18n.t('result_intro_label_goal')}</b>${window.I18n.t('enum_' + toEn(ctx.meta.goal))}</div>
+                        <div><b>${window.I18n.t('result_intro_label_desc')}</b>${window.I18n.t('result_intro_label_desc')}</div>
                     </div>
                 </div>`;
         }
 
         const stats = `
             <div class="stats-bar" id="res-stats" style="background:transparent; border-bottom:1px solid rgba(255,255,255,0.1);">
-                <div>时长 <span class="stat-val" id="st-time">--</span></div>
-                <div>动作 <span class="stat-val" id="st-count">--</span></div>
-                <div>容量 <span class="stat-val" id="st-vol">--</span></div>
-                <div>消耗 <span class="stat-val" id="st-cal">--</span></div>
+                <div>${window.I18n.t('result_stats_time')} <span class="stat-val" id="st-time">--</span></div>
+                <div>${window.I18n.t('result_stats_count')} <span class="stat-val" id="st-count">--</span></div>
+                <div>${window.I18n.t('result_stats_vol')} <span class="stat-val" id="st-vol">--</span></div>
+                <div>${window.I18n.t('result_stats_cal')} <span class="stat-val" id="st-cal">--</span></div>
             </div>`;
 
         const flowTabs = `<div id="course-flow-tabs" class="plan-flow-container" style="padding:15px 24px 5px 24px; gap:4px;"></div>`;
@@ -496,7 +497,7 @@ window.ViewResult = {
         const resContent = document.getElementById('res-phase-content');
         const resControls = document.getElementById('course-phase-controls');
         const settings = window.store.courseSettings;
-        const opts = (arr, val) => arr.map(o => `<option ${o===val?'selected':''}>${o}</option>`).join('');
+        const opts = (arr, val) => arr.map(o => `<option value="${o}" ${o===val?'selected':''}>${window.I18n.t('enum_' + o)}</option>`).join('');
         const unit = window.store.unit || 'kg';
 
         // Update Flow Tabs
@@ -507,8 +508,8 @@ window.ViewResult = {
                 const isActive = idx === window.store.activePhaseIdx;
                 const dur = p.duration || 0;
                 tabsHtml += `<div class="plan-flow-item ${isActive?'active':''}" onclick="App.switchPhase(${idx})" style="flex:${p.duration || 1}; min-width:0;">
-                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.type}</div>
-                    <div style="font-size:9px; opacity:0.8;">${dur}min</div>
+                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${window.I18n.t('common_phase_' + (p.type === 'Warmup' ? 'warmup' : p.type === 'Main' ? 'main' : 'cooldown'))}</div>
+                    <div style="font-size:9px; opacity:0.8;">${dur}${window.I18n.t('common_unit_min')}</div>
                 </div>`;
                 if (idx < ctx.phases.length - 1) tabsHtml += `<div class="plan-flow-arrow" style="font-size:10px; color:#444;">→</div>`;
             });
@@ -522,9 +523,9 @@ window.ViewResult = {
         
         // Update Phase Description
         let phaseIntro = '';
-        if (p.type === '热身') phaseIntro = '通过低强度动态动作激活目标肌群，提升核心体温，为正式训练做好准备。';
-        else if (p.type === '主训') phaseIntro = '本课程的核心训练环节，请保持专注，控制动作节奏，感受肌肉发力。';
-        else if (p.type === '放松') phaseIntro = '通过静态拉伸缓解肌肉紧张，促进代谢废物排出，加速身体恢复。';
+        if (p.type === 'Warmup') phaseIntro = window.I18n.t('phase_intro_warmup');
+        else if (p.type === 'Main') phaseIntro = window.I18n.t('phase_intro_main');
+        else if (p.type === 'Cooldown') phaseIntro = window.I18n.t('phase_intro_cooldown');
         
         const descContainer = document.getElementById('course-phase-desc');
         if (descContainer) {
@@ -537,28 +538,28 @@ window.ViewResult = {
             // Unified Controls for ALL phases
             const rest = p.strategy?.rest || 0;
             const restRound = p.strategy?.restRound || 0;
-            const pLoadStrategy = p.strategy?.loadStrategy || '推荐';
-            const pLoopMode = p.strategy?.loopMode || '常规';
+            const pLoadStrategy = p.strategy?.loadStrategy || 'Recommended';
+            const pLoopMode = p.strategy?.loopMode || 'Regular';
             const disabledAttr = ''; // Always enabled
             
             controlsHtml = `
             <div class="phase-controls-row">
                 <div class="control-group">
-                    <span class="cg-label">负荷</span>
+                    <span class="cg-label">${window.I18n.t('result_control_load')}</span>
                     <select class="phase-select" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'loadStrategy', this.value)">
                         ${opts(CONSTANTS.ENUMS.LOAD_STRATEGY, pLoadStrategy)}
                     </select>
                 </div>
                 <div class="control-group">
-                    <span class="cg-label">模式</span>
+                    <span class="cg-label">${window.I18n.t('result_control_mode')}</span>
                     <select class="phase-select" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'loopMode', this.value)">${opts(CONSTANTS.ENUMS.LOOP_MODE, pLoopMode)}</select>
                 </div>
                 <div class="control-group">
-                    <span class="cg-label">组间</span>
+                    <span class="cg-label">${window.I18n.t('result_control_rest')}</span>
                     <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${rest}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'rest', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                 </div>
                 <div class="control-group">
-                    <span class="cg-label">轮间</span>
+                    <span class="cg-label">${window.I18n.t('result_control_round')}</span>
                     <input type="number" class="phase-select" style="width:38px; text-align:center; padding:2px;" value="${restRound}" step="5" ${disabledAttr} onchange="App.updatePhaseParam(${pIdx}, 'restRound', this.value)"><span style="font-size:10px; color:#666; margin-left:-1px;">s</span>
                 </div>
             </div>`;
@@ -566,7 +567,7 @@ window.ViewResult = {
             if (resControls) {
                 resControls.innerHTML = `
             <div class="phase-header-row" style="justify-content:flex-end; margin-bottom:10px;">
-                <button class="ad-add-btn" onclick="App.addAction(${pIdx})" style="margin-top:0; width:auto; padding:6px 12px;">＋ 添加动作</button>
+                <button class="ad-add-btn" onclick="App.addAction(${pIdx})" style="margin-top:0; width:auto; padding:6px 12px;">${window.I18n.t('result_btn_add_action')}</button>
             </div>
             ${controlsHtml}`;
             }
@@ -574,7 +575,7 @@ window.ViewResult = {
             let listHtml = `<div class="action-list">`;
             
             if (p.actions.length === 0) {
-                listHtml += `<div style="text-align:center; padding:30px 0; color:#666; font-size:12px; border:1px dashed #333; border-radius:8px; margin-bottom:10px; cursor:pointer;" onclick="App.addAction(${pIdx})">点击添加动作</div>`;
+                listHtml += `<div style="text-align:center; padding:30px 0; color:#666; font-size:12px; border:1px dashed #333; border-radius:8px; margin-bottom:10px; cursor:pointer;" onclick="App.addAction(${pIdx})">${window.I18n.t('result_msg_add_action')}</div>`;
             }
 
             p.actions.forEach((a, aIdx) => {
@@ -585,12 +586,12 @@ window.ViewResult = {
                     }
                 }
 
-                const isResistance = a.paradigm === '抗阻范式';
-                const isWarmup = p.type === '热身' || p.type === '放松';
-                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
-                const hasPower = a.powerModule === '是';
+                const isResistance = a.paradigm === 'Resistance';
+                const isWarmup = p.type === 'Warmup' || p.type === 'Cooldown';
+                const isTimeBased = a.paradigm === 'Interval' || a.paradigm === 'Flow' || a.measure === 'Time';
+                const hasPower = a.powerModule === 'Yes';
                 const isMirror = a.mirror;
-                const repUnit = isTimeBased ? 's' : '次';
+                const repUnit = isTimeBased ? window.I18n.t('common_unit_sec') : window.I18n.t('common_unit_rep');
 
                 const expanded = a.expanded ? 'block' : 'none';
                 const arrow = a.expanded ? '▲' : '▼';
@@ -648,7 +649,7 @@ window.ViewResult = {
                         inputs = `
                             ${stepper(s.load, 'load')} <span style="color:#666;font-size:10px;">${unit}</span>
                             <span style="color:#444; margin:0 5px;">x</span>
-                            ${stepper(s.reps, 'reps')} <span style="color:#666;font-size:10px;">次</span>${mirrorLabel}
+                            ${stepper(s.reps, 'reps')} <span style="color:#666;font-size:10px;">${repUnit}</span>${mirrorLabel}
                         `;
                     } else {
                         inputs = `
@@ -718,7 +719,7 @@ window.ViewResult = {
             action.sets = action.setDetails.length;
             const loads = action.setDetails.map(s => parseFloat(s.load)||0);
             action.load = Math.max(...loads);
-            window.App.showToast('已重置为推荐参数');
+            window.App.showToast(window.I18n.t('toast_reset_recommended'));
             App.renderFineTuning(window.currentCtx);
         }
     },
@@ -741,7 +742,7 @@ window.ViewResult = {
             if (key === 'loadStrategy') {
                 // FIX: 切换策略时，立即基于当前第1组数据应用新梯度，而不是清空重算
                 App.applyStrategyToPhase(pIdx, val);
-                window.App.showToast(`负荷策略切换为“${val}”`);
+                window.App.showToast(window.I18n.t('toast_strategy_switch', {val: window.I18n.t('enum_' + val)}));
             } else {
                 App.renderFineTuning(window.currentCtx);
             }
@@ -754,13 +755,13 @@ window.ViewResult = {
         if (!phase || !phase.actions) return;
         
         // 1. 自定义模式：不做任何联动
-        if (strategy === '自定义') return;
+        if (strategy === 'Custom') return;
 
         phase.actions.forEach(a => {
             if (!a.setDetails || a.setDetails.length === 0) return;
             
             // 0. 推荐模式：重置为 AI 推荐值
-            if (strategy === '推荐') {
+            if (strategy === 'Recommended') {
                 if (a.recommendedSetDetails) {
                     a.setDetails = JSON.parse(JSON.stringify(a.recommendedSetDetails));
                     a.sets = a.setDetails.length;
@@ -770,8 +771,8 @@ window.ViewResult = {
                 return;
             }
 
-            const isPower = a.powerModule === '是';
-            const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
+            const isPower = a.powerModule === 'Yes';
+            const isTimeBased = a.paradigm === 'Interval' || a.paradigm === 'Flow' || a.measure === 'Time';
 
             // 1. 获取锚点：取当前所有组中的最大值作为目标负荷 (Peak Load)
             // 这样可以确保无论从递增还是递减切换过来，都以用户设定的"最重一组"为基准
@@ -799,7 +800,7 @@ window.ViewResult = {
             
             const setsCnt = a.setDetails.length;
 
-            if (strategy === '恒定') {
+            if (strategy === 'Constant') {
                 // 恒定：所有组 = 目标重量
                 a.setDetails.forEach(s => {
                     if (isPower) {
@@ -809,7 +810,7 @@ window.ViewResult = {
                         s.reps = targetVal;
                     }
                 });
-            } else if (strategy === '递增') {
+            } else if (strategy === 'Progressive') {
                 // 递增：以目标负荷为终点 (End at Target)
                 a.setDetails.forEach((s, i) => {
                     let val = targetVal - (setsCnt - 1 - i) * step;
@@ -820,7 +821,7 @@ window.ViewResult = {
                         s.reps = Math.max(minStep, Math.round(val));
                     }
                 });
-            } else if (strategy === '递减') {
+            } else if (strategy === 'Regressive') {
                 // 递减：以目标负荷为起点 (Start at Target)
                 a.setDetails.forEach((s, i) => {
                     let val = targetVal - i * step;
@@ -851,7 +852,7 @@ window.ViewResult = {
             
             p.actions.forEach((a, aIdx) => {
                 let actionSeconds = 0;
-                const isTimeBased = a.paradigm === '间歇范式' || a.paradigm === '流式范式' || a.measure === '计时';
+                const isTimeBased = a.paradigm === 'Interval' || a.paradigm === 'Flow' || a.measure === 'Time';
                 const singleDur = a.singleDur || 3;
                 
                 // Ensure setDetails exists
@@ -884,7 +885,7 @@ window.ViewResult = {
             });
             
             // [FIX] Warmup/Relax: Perfect dynamic match (Round). Main: Looser (Ceil).
-            if (p.type === '主训') {
+            if (p.type === 'Main') {
                 p.duration = Math.ceil(phaseSeconds / 60);
             } else {
                 p.duration = Math.round(phaseSeconds / 60);
@@ -904,7 +905,7 @@ window.ViewResult = {
         let step = 1;
         if (field === 'load') step = unit === 'kg' ? 0.5 : 1;
         else if (field === 'reps') {
-            const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式';
+            const isTimeBased = action.paradigm === 'Interval' || action.paradigm === 'Flow';
             step = isTimeBased ? 5 : 1;
         }
         
@@ -924,10 +925,10 @@ window.ViewResult = {
         if (isNaN(numVal)) numVal = 0;
         
         if (action.setDetails && action.setDetails[sIdx]) {
-            let strat = phase.strategy.loadStrategy || '推荐';
+            let strat = phase.strategy.loadStrategy || 'Recommended';
             
             // 1. 自定义模式：不做任何联动
-            if (strat === '自定义') {
+            if (strat === 'Custom') {
                 action.setDetails[sIdx][field] = numVal;
                 if (field === 'load') {
                     const loads = action.setDetails.map(s => parseFloat(s.load)||0);
@@ -938,19 +939,19 @@ window.ViewResult = {
             }
 
             // FIX: Auto-switch '推荐' to '递增' on manual edit
-            if (field === 'load' && strat === '推荐') {
-                strat = '递增';
-                phase.strategy.loadStrategy = '递增';
-                window.App.showToast('已切换为递增策略');
+            if (field === 'load' && strat === 'Recommended') {
+                strat = 'Progressive';
+                phase.strategy.loadStrategy = 'Progressive';
+                window.App.showToast(window.I18n.t('toast_auto_switch_progressive'));
             }
 
             action.setDetails[sIdx][field] = numVal;
             
             if (field === 'load') {
                 // 2. Apply Strategy Logic (Interpolation)
-                if (strat === '恒定') {
+                if (strat === 'Constant') {
                     action.setDetails.forEach(s => s[field] = numVal);
-                } else if (strat === '递增' || strat === '递减') {
+                } else if (strat === 'Progressive' || strat === 'Regressive') {
                     const sets = action.setDetails.length;
                     if (sets > 2) {
                         const startVal = parseFloat(action.setDetails[0][field]);
@@ -968,8 +969,8 @@ window.ViewResult = {
                 
                 // 3. RM Recalculation (Load -> Reps)
                 // Apply to ALL sets if load changed, regardless of phase type (if it's resistance and not time-based)
-                const isTimeBased = action.paradigm === '间歇范式' || action.paradigm === '流式范式' || action.measure === '计时';
-                if (!isTimeBased && action.paradigm === '抗阻范式') {
+                const isTimeBased = action.paradigm === 'Interval' || action.paradigm === 'Flow' || a.measure === 'Time';
+                if (!isTimeBased && action.paradigm === 'Resistance') {
                     const base1RM = action.demoUser1RM || window.UserAbility.oneRM[action.part] || window.UserAbility.oneRM['全身'] || 20;
                     action.setDetails.forEach((s, idx) => {
                         if (s.load > 0) s.reps = window.Logic.calcRepsFromLoad(s.load, base1RM);
@@ -1065,8 +1066,8 @@ window.ViewResult = {
         action.setDetails.push({ ...lastSet });
         
         // Re-apply strategy when adding a set
-        const strat = window.currentCtx.phases[pIdx].strategy.loadStrategy || '恒定';
-        if (strat === '递增' || strat === '递减') {
+        const strat = window.currentCtx.phases[pIdx].strategy.loadStrategy || 'Constant';
+        if (strat === 'Progressive' || strat === 'Regressive') {
              const sets = action.setDetails.length;
              if (sets > 2) {
                 const startVal = parseFloat(action.setDetails[0].load);
@@ -1080,7 +1081,7 @@ window.ViewResult = {
                 // Actually, if we copy last, the slope flattens at the end. 
                 // Let's leave it as copy for now, user can adjust last set to fix slope.
              }
-             if (strat === '恒定') {
+             if (strat === 'Constant') {
                  action.setDetails[action.setDetails.length-1].load = action.setDetails[0].load;
              }
         }
@@ -1118,8 +1119,8 @@ window.ViewResult = {
         const totalDur = ctx.meta.duration || ctx.phases.reduce((acc, p) => acc + (p.duration || 0), 0);
         
         document.getElementById('st-time').innerText = totalDur + 'min';
-        document.getElementById('st-count').innerText = totalActions + '个';
-        document.getElementById('st-vol').innerText = totalSets + '组';
+        document.getElementById('st-count').innerText = totalActions + ' ' + window.I18n.t('common_unit_moves');
+        document.getElementById('st-vol').innerText = totalSets + ' ' + window.I18n.t('common_unit_set');
         document.getElementById('st-cal').innerText = Math.floor(4.5 * window.store.user.weight * (totalDur/60)) + 'kcal';
     },
 
@@ -1138,7 +1139,7 @@ window.ViewResult = {
     confirmSchedule: () => {
         const activeChips = document.querySelectorAll('#schedule-days-list .opt-chip.active');
         const days = Array.from(activeChips).map(c => c.innerText);
-        if (days.length === 0) return App.showToast("请至少选择一天");
+        if (days.length === 0) return App.showToast(window.I18n.t('msg_select_day'));
         window.store.inputs.days = days;
         document.getElementById('modal-schedule').classList.remove('active');
         App.switchView('view-schedule');
@@ -1146,7 +1147,7 @@ window.ViewResult = {
 
     deleteAction: (pIdx, aIdx) => {
         if (!window.currentCtx) return;
-        App.openConfirmModal('确定要删除该动作吗？', () => {
+        App.openConfirmModal(window.I18n.t('confirm_delete_action'), () => {
             try {
                 const p = window.currentCtx.phases[pIdx];
                 if (p && p.actions) {
@@ -1190,7 +1191,7 @@ window.ViewResult = {
     },
 
     saveTemplate: () => {
-        App.showToast('课程已保存到“我的模板”');
+        App.showToast(window.I18n.t('app_toast_template_saved'));
     },
 
     initResultScroll: () => {

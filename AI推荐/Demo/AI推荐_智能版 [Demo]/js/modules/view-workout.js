@@ -74,11 +74,11 @@ window.ViewWorkout = {
         if(header) {
             header.innerHTML = `
                 <div class="wk-header-left">
-                    <div class="wk-close-btn" onclick="App.openConfirmModal('确定要结束训练吗？', () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕</div>
+                    <div class="wk-close-btn" onclick="App.openConfirmModal(window.I18n.t('workout_confirm_end'), () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕</div>
                 </div>
                 <div class="wk-header-center">
                     <div class="wk-progress-container">
-                        <div class="wk-progress-info"><span>课程进度</span><span id="wk-prog-text">0%</span></div>
+                        <div class="wk-progress-info"><span>${window.I18n.t('workout_progress_label')}</span><span id="wk-prog-text">0%</span></div>
                         <div class="wk-progress-track"><div class="wk-progress-fill" id="wk-prog-fill"></div></div>
                     </div>
                 </div>
@@ -95,10 +95,10 @@ window.ViewWorkout = {
             pauseOverlay.className = 'wk-paused-overlay';
             pauseOverlay.innerHTML = `
                 <div class="wk-pause-icon">⏸</div>
-                <div class="wk-pause-title">已暂停</div>
-                <div class="wk-pause-sub">休息一下，调整状态</div>
-                <div class="wk-pause-btn" onclick="window.ViewWorkout.resume()">继续运动</div>
-                <div class="wk-pause-btn secondary" onclick="App.openConfirmModal('确定要结束训练吗？', () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">结束训练</div>
+                <div class="wk-pause-title">${window.I18n.t('workout_pause_title')}</div>
+                <div class="wk-pause-sub">${window.I18n.t('workout_pause_sub')}</div>
+                <div class="wk-pause-btn" onclick="window.ViewWorkout.resume()">${window.I18n.t('workout_btn_resume')}</div>
+                <div class="wk-pause-btn secondary" onclick="App.openConfirmModal(window.I18n.t('workout_confirm_end'), () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">${window.I18n.t('workout_btn_finish')}</div>
             `;
             document.querySelector('.wk-video-area').appendChild(pauseOverlay);
         }
@@ -109,11 +109,11 @@ window.ViewWorkout = {
         
         // Inject Sim Controls UI
         const simHTML = `
-            <div class="sim-hint">键盘模拟</div>
-            <div class="sim-btn">按住 Z (左侧)</div>
-            <div class="sim-btn">按住 C (右侧)</div>
-            <div class="sim-hint" style="margin-top:5px">松开回程计次</div>
-            <div class="sim-btn" onclick="window.ViewWorkout.simTime()" style="margin-top:10px;">>> 加速 (X)</div>
+            <div class="sim-hint">${window.I18n.t('workout_sim_hint')}</div>
+            <div class="sim-btn">${window.I18n.t('workout_sim_left')}</div>
+            <div class="sim-btn">${window.I18n.t('workout_sim_right')}</div>
+            <div class="sim-hint" style="margin-top:5px">${window.I18n.t('workout_sim_release')}</div>
+            <div class="sim-btn" onclick="window.ViewWorkout.simTime()" style="margin-top:10px;">${window.I18n.t('workout_sim_speed')}</div>
         `;
         const simContainer = document.querySelector('.sim-controls');
         if(simContainer) simContainer.innerHTML = simHTML;
@@ -247,7 +247,7 @@ window.ViewWorkout = {
         const s = ViewWorkout.state;
         const phase = s.ctx.phases[s.phaseIdx];
         const action = phase.actions[s.actionIdx];
-        const loopMode = phase.strategy.loopMode || '常规组';
+        const loopMode = phase.strategy.loopMode || 'Regular';
         
         // Handle Mirrored Sets (L -> R)
         if (action.mirror && s.side === 'L') {
@@ -271,7 +271,7 @@ window.ViewWorkout = {
         // If restRound is undefined, fallback to rest (or 0 if rest is 0)
         const strategyRestRound = (phase.strategy.restRound !== undefined && phase.strategy.restRound !== "") ? parseInt(phase.strategy.restRound) : strategyRest;
 
-        if (loopMode === '循环组' || loopMode === '超级组') {
+        if (loopMode === 'Circuit' || loopMode === 'Superset') {
             // Circuit Logic: Rest between actions, RestRound after full cycle
             // Check if this is the last action in the phase
             const isLastActionInPhase = s.actionIdx >= phase.actions.length - 1;
@@ -302,7 +302,7 @@ window.ViewWorkout = {
         let nextP = s.phaseIdx, nextA = s.actionIdx, nextS = s.setIdx;
         let finished = false;
 
-        if (loopMode === '循环组' || loopMode === '超级组') {
+        if (loopMode === 'Circuit' || loopMode === 'Superset') {
              nextA++;
              if (nextA >= phase.actions.length) {
                  nextA = 0;
@@ -349,9 +349,9 @@ window.ViewWorkout = {
         s.status = 'transition';
 
         const phase = s.ctx.phases[s.phaseIdx];
-        const loopMode = phase.strategy.loopMode || '常规组';
+        const loopMode = phase.strategy.loopMode || 'Regular';
 
-        if (loopMode === '循环组' || loopMode === '超级组') {
+        if (loopMode === 'Circuit' || loopMode === 'Superset') {
             // Circuit: Action -> Action -> ... -> Next Set
             // Find next valid action that has sets remaining
             let nextA = s.actionIdx + 1;
@@ -579,19 +579,20 @@ window.ViewWorkout = {
         }
         
         let nameSuffix = '';
-        if (s.side === 'L') nameSuffix = ' (左侧)';
-        if (s.side === 'R') nameSuffix = ' (右侧)';
+        if (s.side === 'L') nameSuffix = ` (${window.I18n.t('common_left')})`;
+        if (s.side === 'R') nameSuffix = ` (${window.I18n.t('common_right')})`;
         
         const targetStr = isTimeBased ? `${s.targetReps}s` : `${s.targetReps}次`;
+        const phaseType = window.I18n.t('common_phase_' + phase.type.toLowerCase());
         
         topInfo.innerHTML = `
-            <div class="wk-phase-label">${phase.type}</div>
+            <div class="wk-phase-label">${phaseType}</div>
             <div class="wk-main-title">${action.name}${nameSuffix}</div>
-            <div class="wk-sub-info">第 ${s.setIdx + 1} / ${action.sets} 组 · 目标 ${targetStr}</div>
+            <div class="wk-sub-info">${window.I18n.t('common_unit_set')} ${s.setIdx + 1} / ${action.sets} · ${window.I18n.t('common_target')} ${targetStr}</div>
         `;
 
         // Update Action List Overlay
-        document.getElementById('wk-al-name').innerText = phase.type;
+        document.getElementById('wk-al-name').innerText = phaseType;
         document.getElementById('wk-al-set').innerText = `${action.name} ${s.setIdx + 1}/${action.sets}`;
         
         // Calculate completed sets
@@ -785,7 +786,7 @@ window.ViewWorkout = {
         
         // Inject Toast
         if (!wrapper.querySelector('.wk-dial-toast')) {
-            wrapper.insertAdjacentHTML('beforeend', '<div class="wk-dial-toast" id="wk-dial-toast">已为你推荐重量</div>');
+            wrapper.insertAdjacentHTML('beforeend', `<div class="wk-dial-toast" id="wk-dial-toast">${window.I18n.t('workout_toast_weight')}</div>`);
         }
 
         const track = wrapper.querySelector('.wk-dial-track');
@@ -970,10 +971,10 @@ window.ViewWorkout = {
         
         let html = '';
         ctx.phases.forEach((p, pIdx) => {
-            html += `<div class="wk-al-phase">${p.type}</div>`;
+            html += `<div class="wk-al-phase">${window.I18n.t('common_phase_' + p.type.toLowerCase())}</div>`;
             p.actions.forEach((a, aIdx) => {
                 const isActive = (pIdx === currentP && aIdx === currentA);
-                const mirrorBadge = a.mirror ? '<span class="wk-al-badge">镜像</span>' : '';
+                const mirrorBadge = a.mirror ? `<span class="wk-al-badge">${I18n.t('common_tag_mirror')}</span>` : '';
                 
                 // Calculate completed sets
                 let completed = 0;
@@ -1000,5 +1001,58 @@ window.ViewWorkout = {
         s.setIdx = 0;
         ViewWorkout.prepareSet();
         ViewWorkout.collapseActionList();
+    },
+
+    refreshUI: () => {
+        // Re-inject Header to update translations
+        const header = document.querySelector('.wk-header');
+        if(header) {
+            header.innerHTML = `
+                <div class="wk-header-left">
+                    <div class="wk-close-btn" onclick="App.openConfirmModal(window.I18n.t('workout_confirm_end'), () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">✕</div>
+                </div>
+                <div class="wk-header-center">
+                    <div class="wk-progress-container">
+                        <div class="wk-progress-info"><span>${window.I18n.t('workout_progress_label')}</span><span id="wk-prog-text">0%</span></div>
+                        <div class="wk-progress-track"><div class="wk-progress-fill" id="wk-prog-fill"></div></div>
+                    </div>
+                </div>
+                <div class="wk-header-right">
+                    <div class="wk-time-badge" id="wk-total-time">00:00</div>
+                </div>
+            `;
+        }
+        
+        // Update Overlays
+        const pauseOverlay = document.getElementById('wk-overlay-paused');
+        if (pauseOverlay) {
+             pauseOverlay.innerHTML = `
+                <div class="wk-pause-icon">⏸</div>
+                <div class="wk-pause-title">${window.I18n.t('workout_pause_title')}</div>
+                <div class="wk-pause-sub">${window.I18n.t('workout_pause_sub')}</div>
+                <div class="wk-pause-btn" onclick="window.ViewWorkout.resume()">${window.I18n.t('workout_btn_resume')}</div>
+                <div class="wk-pause-btn secondary" onclick="App.openConfirmModal(window.I18n.t('workout_confirm_end'), () => { window.ViewWorkout.finishWorkout(); App.closeConfirmModal(); })">${window.I18n.t('workout_btn_finish')}</div>
+            `;
+        }
+        
+        const restOverlay = document.getElementById('wk-overlay-rest');
+        if (restOverlay) {
+             const timerVal = document.getElementById('wk-rest-time') ? document.getElementById('wk-rest-time').innerText : '30';
+             restOverlay.innerHTML = `
+                <div style="color:#888; font-size:16px;" data-i18n="workout_overlay_rest">${window.I18n.t('workout_overlay_rest')}</div>
+                <div class="wk-count-num" id="wk-rest-time" style="color:#fff;">${timerVal}</div>
+                <div class="sim-btn" onclick="window.ViewWorkout.nextSet()" style="margin-top:20px; padding:10px 30px; font-size:14px;" data-i18n="workout_btn_skip_rest">${window.I18n.t('workout_btn_skip_rest')}</div>
+            `;
+        }
+
+        // Update Charts Titles
+        const powerTitle = document.querySelector('.wk-dash-col:first-child .wk-chart-title');
+        if(powerTitle) powerTitle.innerText = window.I18n.t('workout_chart_title_power');
+        
+        const strokeTitle = document.querySelector('.wk-dash-col:last-child .wk-chart-title');
+        if(strokeTitle) strokeTitle.innerText = window.I18n.t('workout_chart_title_stroke');
+
+        // Re-render main content
+        ViewWorkout.render();
     }
 };
