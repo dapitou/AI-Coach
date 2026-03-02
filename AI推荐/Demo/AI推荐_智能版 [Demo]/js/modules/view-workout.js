@@ -583,7 +583,7 @@ window.ViewWorkout = {
         if (s.side === 'R') nameSuffix = ` (${window.I18n.t('common_right')})`;
         
         const targetStr = isTimeBased ? `${s.targetReps}s` : `${s.targetReps}次`;
-        const phaseType = window.I18n.t('common_phase_' + phase.type.toLowerCase());
+        const phaseType = window.I18n.t('common_phase_' + phase.type.toLowerCase()) || phase.type;
         
         topInfo.innerHTML = `
             <div class="wk-phase-label">${phaseType}</div>
@@ -676,7 +676,7 @@ window.ViewWorkout = {
         if (isTimeBased) {
             counterVal = Math.ceil(s.targetReps - s.setTimer) + '<span style="font-size:0.5em; color:#888; margin-left:2px;">s</span>';
         } else {
-            counterVal = `${s.currentReps}<span style="font-size:0.5em; color:#888; margin-left:4px;">/ ${s.targetReps} Rep</span>`;
+            counterVal = `${s.currentReps}<span style="font-size:0.5em; color:#888; margin-left:4px;">/ ${s.targetReps} ${window.I18n.t('common_unit_rep')}</span>`;
         }
         
         // Inject counter into dashboard if not present

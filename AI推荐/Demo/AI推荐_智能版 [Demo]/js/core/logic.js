@@ -1,13 +1,14 @@
 // d:\AEKE Projects\AI Coach\AI推荐\Demo\AI推荐_智能版 [Demo]\js\core\logic.js
 
 window.Logic = {
-    // ... (保持 createContext, confirmCourse, planPhases 不变) ...
+    // Node 1: Input & Context
     createContext: (input, planContext = null) => {
         const user = window.store.user;
-        // [SYNC] Use STATUS_CONFIG for fatigue mapping
         const statusConfig = CONFIG.STATUS_CONFIG || [];
         const fatigueScore = Math.max(0, 100 - (user.fatigue * 8)); // Simple mapping for now
         const bodyStatus = fatigueScore;
+        
+        // Step 1: Intent Parsing
         const rawTargets = input ? input.targets : null;
         const targets = (Array.isArray(rawTargets) && rawTargets.length > 0) ? rawTargets : (rawTargets ? [rawTargets] : ['Full Body']);
 
@@ -15,14 +16,14 @@ window.Logic = {
         const bmi = user.weight / ((user.height / 100) ** 2);
 
         // [SYNC] 1. Dynamic Equipment List (Source of Truth: CONSTANTS)
-        const allEquips = CONSTANTS.MAPPINGS.EQUIPMENT_LIST || ['Bodyweight'];
+        const allEquips = CONSTANTS.MAPPINGS.EQUIPMENT_LIST || ['Bodyweight', 'Barbell', 'Dumbbell', 'Bench', 'Foam Roller', 'Ankle Strap', 'Yoga Mat', 'Yoga Block', 'Rope'];
         const availableEquip = allEquips.filter(e => !user.missing.includes(e));
 
         // [SYNC] 2. Local Fatigue Analysis (Mocking part status based on global fatigue for now, ideally needs part-level data)
-        // In a real app, this would read from user.partFatigue
         const exhaustedParts = bodyStatus < 30 ? targets : []; // Mock: if global is low, target is exhausted
         const suggestedParts = bodyStatus > 85 ? ['Full Body'] : [];
 
+        // Step 2: Constraints & Step 3: Data Cleaning
         return {
             source: planContext ? 'Plan' : 'Single',
             planContext: planContext,
@@ -39,7 +40,7 @@ window.Logic = {
             constraints: { 
                 availableEquip: availableEquip,
                 forbiddenParts: [...user.pain, ...exhaustedParts], // [SYNC] Include exhausted parts
-                downgrade: bodyStatus < 55,
+                downgrade: bodyStatus < 55, // Global Fatigue Risk
                 bmi: bmi,
                 pain: user.pain,
                 suggestedParts: suggestedParts
@@ -49,6 +50,7 @@ window.Logic = {
         };
     },
 
+    // Node 2: Course Confirmation
     confirmCourse: (ctx) => {
         const user = window.store.user;
         let finalTargets = [...ctx.meta.targets];
@@ -59,6 +61,16 @@ window.Logic = {
             else ctx.constraints.downgrade = true; // Single mode: Downgrade
         }
 
+        // Step 4: Anatomy Parsing (Mode -> Part)
+        finalTargets = finalTargets.map(t => {
+            if (CONSTANTS.MAPPINGS.MODE_TO_PART[t]) return CONSTANTS.MAPPINGS.MODE_TO_PART[t];
+            if (t === 'Cardio' || t === 'HIIT') return 'Full Body';
+            return t;
+        });
+        // De-duplicate
+        finalTargets = [...new Set(finalTargets)];
+
+        // Step 2: Difficulty Grading
         let levelStr = user.level;
         if (ctx.constraints.downgrade) {
             const currentLvl = CONSTANTS.LEVEL_MAP[levelStr];
@@ -72,6 +84,7 @@ window.Logic = {
         };
     },
 
+    // Node 3: Phase Confirmation
     planPhases: (ctx) => {
         const { duration, type, goal, level } = ctx.meta;
         
@@ -97,14 +110,17 @@ window.Logic = {
         const paradigmName = paradigmConfig.name;
 
         // 4. 构建环节 (Build Phases)
-        const phaseCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
+        const planCoeffs = ctx.planContext ? ctx.planContext.phase : { intensity:1.0, volume:1.0 };
         
         // [SYNC] Apply Level Coefficients
-        const levelConfig = CONFIG.LEVELS.find(l => l.level === level) || { coeff: 1.0 };
-        const levelCoeff = levelConfig.coeff;
+        const levelConfig = CONFIG.LEVELS.find(l => l.level === level) || CONFIG.LEVELS[2];
+        
+        // [SYNC] Apply Status Coefficients
+        const statusConfig = CONFIG.STATUS_CONFIG.find(s => ctx.status.fatigue >= s.range[0] && ctx.status.fatigue <= s.range[1]) || CONFIG.STATUS_CONFIG[1];
 
-        const mainSets = Math.round(mainStrategy.sets * phaseCoeffs.volume * levelCoeff); // Scale volume by level? Usually intensity, but let's scale sets slightly or keep as is. PRD says "Level Coeff" scales "Benchmark Params".
-        const mainIntensity = mainStrategy.intensity * phaseCoeffs.intensity * levelCoeff;
+        // Combined Coefficients: Base * Plan * Level * Status
+        const mainSets = Math.max(1, Math.round(mainStrategy.sets * planCoeffs.volume * levelConfig.capacity * statusConfig.capacity));
+        const mainIntensity = Math.min(1.0, mainStrategy.intensity * planCoeffs.intensity * levelConfig.intensity * statusConfig.intensity);
 
         // [SYNC] Apply Paradigm Constraints (Flow Paradigm -> Sets=1, Rest=0)
         const applyParadigmConstraints = (baseStrat, pType) => {
@@ -130,8 +146,8 @@ window.Logic = {
         // Regular Mode (Strength/Hypertrophy): Transition time >= Set Rest time
         // Circuit Mode (HIIT): Round Rest > Station Rest (usually double)
         let mainRestRound = 60;
-        if (mainStrategy.mode === 'Circuit') mainRestRound = Math.max(60, (mainStrategy.rest || 30) * 2);
-        else mainRestRound = mainStrategy.rest || 60;
+        const baseRest = (mainStrategy.rest || 60) * levelConfig.rest;
+        if (mainStrategy.mode === 'Circuit') mainRestRound = Math.max(60, baseRest * 2);
 
         const cdRestRound = 0;
 
@@ -159,7 +175,7 @@ window.Logic = {
                     loadStrategy: mainStrategy.strategy,
                     restRound: mainRestRound
                 },
-                coeffs: phaseCoeffs
+                coeffs: { intensity: mainIntensity / mainStrategy.intensity, volume: mainSets / mainStrategy.sets }
             },
             { 
                 type: 'Cooldown', 
@@ -186,6 +202,7 @@ window.Logic = {
         return ctx;
     },
 
+    // Node 4: Action Confirmation
     selectActions: (ctx) => {
         const { constraints, meta } = ctx;
         if (DB.length === 0) DB = FALLBACK_DB;
@@ -232,7 +249,7 @@ window.Logic = {
             // 1. 寻找环节模板
             let tpl = null;
             const targetPart = meta.targets[0]; 
-            
+
             // Exact Match
             tpl = CONFIG.SEGMENT_TEMPLATES.find(t => 
                 t.type === p.type && 
@@ -289,7 +306,7 @@ window.Logic = {
             
             let pool = DB.filter(a => {
                 if (a.equip && a.equip.some(e => !constraints.availableEquip.includes(e))) return false;
-                if (a.pain && a.pain.some(pt => constraints.forbiddenParts.includes(pt))) return false;
+                if (a.pain && a.pain.some(pt => constraints.forbiddenParts.includes(pt))) return false; // Pain & Exhausted
                 if (a.impact === '高冲击' && isHighImpactRisk) return false;
                 return true;
             });
@@ -408,16 +425,6 @@ window.Logic = {
                     return false;
                 });
                 
-                // [SYNC] Apply Difficulty Filter based on Probability
-                // Instead of strict filtering, we sort by difficulty match? 
-                // Or filter candidates to match target diff?
-                // Let's try to pick candidates that match target diff first.
-                // Since we pick multiple, let's just sort candidates by how close they are to user level, 
-                // but allow some variance.
-                // Actually, let's use the probability to filter the pool for this slot.
-                // But pool is small. Let's just sort by score which includes difficulty match.
-                // PRD says: "Based on [3.2 Difficulty Distribution], determine target difficulty".
-                
                 const picked = pickFuzzy(candidates, count);
                 picked.forEach(a => { selected.push(a); usedIds.add(a.id); });
             });
@@ -506,21 +513,19 @@ window.Logic = {
         return 0;
     },
 
+    // Node 5: Action Instantiation & Duration Correction
     instantiate: (ctx) => {
         ctx.phases.forEach(phase => {
-            const { strategy, coeffs } = phase;
-            const iCoeff = coeffs ? coeffs.intensity : 1.0;
-            const vCoeff = coeffs ? coeffs.volume : 1.0;
+            const { strategy } = phase;
 
             phase.actions = phase.actions.map(a => {
                 const actionParadigm = CONSTANTS.COURSE_TYPES[a.courseType] || '抗阻范式';
                 const isLoadPriority = actionParadigm === '抗阻范式' && a.measure !== '计时';
-                // [SYNC] Level Adaptation
                 const level = ctx.meta.level || 'L3';
                 const intensityConfig = CONSTANTS.MAPPINGS.INTENSITY[level] || CONSTANTS.MAPPINGS.INTENSITY['L3'];
 
-                let sets = Math.round(strategy.sets * vCoeff) || 3;
-                let intensity = strategy.intensity * iCoeff;
+                let sets = strategy.sets || 3;
+                let intensity = strategy.intensity;
                 let load = 0;
                 let reps = isLoadPriority ? '12' : (intensityConfig.time || '30');
                 let base1RM = 20;
@@ -581,7 +586,72 @@ window.Logic = {
                 };
             });
         });
+
+        // [Node 5 Step 5] Duration Correction Loop
+        const targetDuration = ctx.meta.duration * 60; // seconds
+        let currentDuration = window.Logic.calculateTotalDuration(ctx);
+        let iterations = 0;
+        const mainPhase = ctx.phases.find(p => p.type === 'Main');
+
+        while (Math.abs(currentDuration - targetDuration) > 60 && iterations < 5 && mainPhase && mainPhase.actions.length > 0) {
+            const diff = currentDuration - targetDuration;
+            
+            if (diff > 60) {
+                // Too long: Reduce sets from action with most sets
+                const candidates = mainPhase.actions.filter(a => a.sets > 2);
+                if (candidates.length > 0) {
+                    // Sort by sets desc, then duration desc
+                    candidates.sort((a, b) => b.sets - a.sets);
+                    const target = candidates[0];
+                    target.sets--;
+                    target.setDetails.pop();
+                } else {
+                    break; // Cannot reduce further
+                }
+            } else {
+                // Too short: Add sets to action with highest score/priority
+                // Sort by score desc
+                const candidates = [...mainPhase.actions].sort((a, b) => (b.score||0) - (a.score||0));
+                const target = candidates[0];
+                target.sets++;
+                // Add set logic (copy last)
+                const last = target.setDetails[target.setDetails.length-1];
+                target.setDetails.push({...last});
+            }
+            
+            currentDuration = window.Logic.calculateTotalDuration(ctx);
+            iterations++;
+        }
+
         return ctx;
+    },
+
+    calculateTotalDuration: (ctx) => {
+        let total = 0;
+        ctx.phases.forEach(p => {
+            let pDur = 0;
+            const rest = p.strategy.rest || 0;
+            const restRound = p.strategy.restRound || 0;
+            p.actions.forEach((a, i) => {
+                let aDur = 0;
+                const singleDur = a.singleDur || 3;
+                const isTimeBased = a.paradigm === 'Interval' || a.paradigm === 'Flow' || a.measure === '计时';
+                
+                a.setDetails.forEach((s, si) => {
+                    let setTime = isTimeBased ? (parseInt(s.reps)||30) : (parseInt(s.reps)||12) * singleDur;
+                    if (a.mirror) setTime = setTime * 2 + 5; // 5s switch buffer
+                    aDur += setTime;
+                    if (si < a.setDetails.length - 1) aDur += rest;
+                });
+                
+                pDur += aDur;
+                if (i < p.actions.length - 1) pDur += restRound;
+            });
+            p.duration = Math.ceil(pDur / 60);
+            total += pDur;
+        });
+        ctx.meta.duration = Math.ceil(total / 60);
+        return total;
     },
 
     runPipeline: (input, planContext) => {

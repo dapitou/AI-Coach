@@ -13,7 +13,7 @@
 
 .chat-summary { position: absolute; bottom: 140px; left: 0; width: 100%; padding: 0 20px; display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; z-index: 25; pointer-events: none; }
 .summary-tag { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 11px; color: #ccc; backdrop-filter: blur(5px); animation: fadeIn 0.5s; }
-.chat-bubble { max-width: 85%; padding: 14px 18px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; animation: slideUp 0.4s var(--ease-out); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.chat-bubble { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; position: relative; animation: slideUp 0.4s var(--ease-out); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
 .chat-ai { background: #1a1a1a; color: #eee; border-bottom-left-radius: 4px; align-self: flex-start; border: 1px solid #333; }
 .chat-user { background: var(--primary); color: #000; border-bottom-right-radius: 4px; align-self: flex-end; font-weight: 600; }
 .chat-user.interim { background: rgba(50, 196, 140, 0.2); color: #fff; border: 1px solid var(--primary); }

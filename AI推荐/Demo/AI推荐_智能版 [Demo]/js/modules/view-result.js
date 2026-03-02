@@ -124,9 +124,9 @@ window.ViewResult = {
                         <div class="ph-tag">${inputs.days.length} ${window.I18n.t('common_unit_week').replace('Wks', 'Days')}/Wk</div>
                     </div>
                     <div class="plan-hero-intro">
-                        <div style="margin-bottom:4px"><b>${window.I18n.t('plan_intro_label_people')}</b>${curIntro ? curIntro.people : ''}</div>
-                        <div style="margin-bottom:4px"><b>${window.I18n.t('plan_intro_label_pain')}</b>${curIntro ? curIntro.pain : ''}</div>
-                        <div><b>${window.I18n.t('plan_intro_label_effect')}</b>${curIntro ? curIntro.effect : ''}</div>
+                        <div class="phi-row"><div class="phi-label">${window.I18n.t('plan_intro_label_people')}</div><div class="phi-val">${curIntro ? curIntro.people : ''}</div></div>
+                        <div class="phi-row"><div class="phi-label">${window.I18n.t('plan_intro_label_pain')}</div><div class="phi-val">${curIntro ? curIntro.pain : ''}</div></div>
+                        <div class="phi-row"><div class="phi-label">${window.I18n.t('plan_intro_label_effect')}</div><div class="phi-val">${curIntro ? curIntro.effect : ''}</div></div>
                     </div>
                 </div>`;
             
@@ -148,7 +148,7 @@ window.ViewResult = {
             // 2. Top Section HTML (Tabs + Desc + Calendar)
             let topHtml = `<div class="plan-tabs-wrapper" style="padding-top:0;">`;
             
-            topHtml += `<div class="plan-flow-container" style="padding:5px 24px 5px 24px; gap:4px;">`;
+            topHtml += `<div class="plan-flow-container" style="padding:5px 20px 5px 20px; gap:4px;">`;
             phaseOrder.forEach((pName, idx) => {
                 const weeks = phases[pName].length;
                 const intensity = phases[pName][0].intensity;
@@ -160,7 +160,7 @@ window.ViewResult = {
             });
             topHtml += `</div>`;
 
-            topHtml += `<div id="plan-phase-desc-container" style="padding: 0 24px 5px 24px;"></div>`;
+            topHtml += `<div id="plan-phase-desc-container" style="padding: 0 20px 5px 20px;"></div>`;
 
             topHtml += `
                 <div class="plan-calendar-header">
@@ -370,7 +370,7 @@ window.ViewResult = {
                 let baseTitle = window.I18n.t('enum_' + day.title) || window.I18n.t(day.title) || day.title;
                 
                 content = `
-                    <div class="pdc-title">${baseTitle}</div>
+                    <div class="pdc-title">${baseTitle}${phaseSuffix}</div>
                     <div class="pdc-sub">${window.I18n.t('enum_' + level)}</div>
                 `;
             } else {
@@ -449,17 +449,27 @@ window.ViewResult = {
             document.getElementById('res-title').innerText = window.I18n.t('result_title_custom');
             document.getElementById('res-sub').innerText = window.I18n.t('result_sub_custom');
         } else {
+            const separator = window.I18n.t('common_list_separator');
+            const targetStr = ctx.meta.targets.map(t => window.I18n.t('enum_' + toEn(t))).join(separator);
+            const typeStr = window.I18n.t('enum_' + toEn(ctx.meta.type));
+            const goalStr = window.I18n.t('enum_' + toEn(ctx.meta.goal));
+            
+            const introText = window.I18n.t('result_intro_content_template')
+                .replace('{target}', targetStr)
+                .replace('{type}', typeStr)
+                .replace('{goal}', goalStr);
+
             hero = `
                 <div class="plan-hero">
                     <div class="plan-hero-title" onclick="App.expandHeader()">${title}</div>
                     <div class="plan-hero-tags">
                         <div class="ph-tag">${window.I18n.t('enum_' + u.level)}</div>
                         <div class="ph-tag">${ctx.meta.duration}${window.I18n.t('common_unit_min')}</div>
-                        <div class="ph-tag">${ctx.meta.targets.map(t => window.I18n.t('enum_' + t)).join('、')}</div>
+                        <div class="ph-tag">${ctx.meta.targets.map(t => window.I18n.t('enum_' + toEn(t))).join(separator)}</div>
                     </div>
                     <div class="plan-hero-intro">
-                        <div style="margin-bottom:4px"><b>${window.I18n.t('result_intro_label_goal')}</b>${window.I18n.t('enum_' + toEn(ctx.meta.goal))}</div>
-                        <div><b>${window.I18n.t('result_intro_label_desc')}</b>${window.I18n.t('result_intro_label_desc')}</div>
+                        <div class="phi-row"><div class="phi-label">${window.I18n.t('result_intro_label_goal')}</div><div class="phi-val">${window.I18n.t('enum_' + toEn(ctx.meta.goal))}</div></div>
+                        <div class="phi-row"><div class="phi-label">${window.I18n.t('result_intro_label_desc')}</div><div class="phi-val">${introText}</div></div>
                     </div>
                 </div>`;
         }
@@ -472,8 +482,8 @@ window.ViewResult = {
                 <div>${window.I18n.t('result_stats_cal')} <span class="stat-val" id="st-cal">--</span></div>
             </div>`;
 
-        const flowTabs = `<div id="course-flow-tabs" class="plan-flow-container" style="padding:15px 24px 5px 24px; gap:4px;"></div>`;
-        const phaseDesc = `<div id="course-phase-desc" style="padding: 0 24px 15px 24px;"></div>`;
+        const flowTabs = `<div id="course-flow-tabs" class="plan-flow-container" style="padding:15px 20px 5px 20px; gap:4px;"></div>`;
+        const phaseDesc = `<div id="course-phase-desc" style="padding: 0 20px 15px 20px;"></div>`;
         const phaseControls = `<div id="course-phase-controls" style="padding: 0 20px 10px 20px;"></div>`;
         const content = `<div id="res-phase-content" class="plan-scroll-area" style="padding:0 20px 50vh 20px;"></div>`;
 
@@ -586,10 +596,10 @@ window.ViewResult = {
                     }
                 }
 
-                const isResistance = a.paradigm === 'Resistance';
+                const isResistance = a.paradigm === 'Resistance' || a.paradigm === '抗阻范式';
                 const isWarmup = p.type === 'Warmup' || p.type === 'Cooldown';
                 const isTimeBased = a.paradigm === 'Interval' || a.paradigm === 'Flow' || a.measure === 'Time';
-                const hasPower = a.powerModule === 'Yes';
+                const hasPower = a.powerModule === 'Yes' || a.powerModule === '是';
                 const isMirror = a.mirror;
                 const repUnit = isTimeBased ? window.I18n.t('common_unit_sec') : window.I18n.t('common_unit_rep');
 
@@ -617,9 +627,9 @@ window.ViewResult = {
 
                 let summary = '';
                 if (isResistance && !isWarmup && !isTimeBased && hasPower) {
-                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets} ${window.I18n.t('common_unit_set')}</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 } else {
-                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets}组</span> <span class="ac-tag">${setDetailsStr}</span>`;
+                    summary = `<span class="ac-tag" style="color:var(--primary)">${a.sets} ${window.I18n.t('common_unit_set')}</span> <span class="ac-tag">${setDetailsStr}</span>`;
                 }
 
                 let setsHtml = '';
@@ -666,7 +676,7 @@ window.ViewResult = {
                     `;
                 });
 
-                setsHtml += `<div class="add-set-btn" onclick="App.addSet(${pIdx}, ${aIdx})">+ 加一组</div>`;
+                setsHtml += `<div class="add-set-btn" onclick="App.addSet(${pIdx}, ${aIdx})">+ ${window.I18n.t('result_btn_add_set')}</div>`;
                 
                 listHtml += `
                 <div class="action-card-pro">
@@ -694,13 +704,13 @@ window.ViewResult = {
                             ${setsHtml}
                         </div>
                         <div class="ac-footer">
-                            <span>强度: ${(a.load > 0 && CONSTANTS.ENUMS.ONE_RM[a.part]) ? Math.round(a.load / CONSTANTS.ENUMS.ONE_RM[a.part] * 100) : '-'}%</span>
+                            <span>${window.I18n.t('result_label_intensity')}: ${(a.load > 0 && CONSTANTS.ENUMS.ONE_RM[a.part]) ? Math.round(a.load / CONSTANTS.ENUMS.ONE_RM[a.part] * 100) : '-'}%</span>
                             <span>RPE: ${a.rpe || 8}</span>
-                            <span>组间: ${p.strategy?.rest || 60}s</span>
-                            <span style="margin-left:auto; color:var(--primary); cursor:pointer; font-weight:600;" onclick="App.resetActionParams(${pIdx}, ${aIdx})">↺ 重置</span>
+                            <span>${window.I18n.t('result_label_rest')}: ${p.strategy?.rest || 60}s</span>
+                            <span style="margin-left:auto; color:var(--primary); cursor:pointer; font-weight:600;" onclick="App.resetActionParams(${pIdx}, ${aIdx})">↺ ${window.I18n.t('common_btn_reset')}</span>
                         </div>
                         <div class="ac-detail-link" onclick="App.openActionDetail('${a.id}', 'result')">
-                            查看动作详情 >
+                            ${window.I18n.t('result_link_detail')}
                         </div>
                     </div>
                 </div>`;
@@ -727,6 +737,8 @@ window.ViewResult = {
     switchPhase: (idx) => {
         window.store.activePhaseIdx = idx;
         App.renderFineTuning(window.currentCtx);
+        const content = document.getElementById('res-phase-content');
+        if (content) content.scrollTop = 0;
     },
     
     updatePhaseParam: (pIdx, key, val) => {

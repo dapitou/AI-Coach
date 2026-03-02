@@ -154,23 +154,24 @@
     font-weight: 800;
     margin-bottom: 5px;
     line-height: 1.2;
-    white-space: normal;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .wk-sub-info {
     font-size: var(--fs-lg);
     color: rgba(255,255,255,0.9);
     font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .wk-dashboard {
     height: 260px;
     background: #0a0a0a;
     border-top: 1px solid #222;
-    padding: 15px;
+    padding: 16px;
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 12px;
     position: relative;
 }
 
@@ -468,6 +469,7 @@
     cursor: pointer;
     display: flex;
     justify-content: space-between;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .wk-al-item:hover {

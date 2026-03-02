@@ -66,11 +66,11 @@ window.CONFIG = {
 
     // 1.4 等级强度系数 (Levels)
     LEVELS: [
-        { level: 'L1', coeff: 0.5 },
-        { level: 'L2', coeff: 0.8 },
-        { level: 'L3', coeff: 1.0 },
-        { level: 'L4', coeff: 1.2 },
-        { level: 'L5', coeff: 1.5 }
+        { level: 'L1', capacity: 0.6, intensity: 0.6, rest: 1.5, strategy: 'Constant' },
+        { level: 'L2', capacity: 0.8, intensity: 0.8, rest: 1.2, strategy: 'Constant' },
+        { level: 'L3', capacity: 1.0, intensity: 1.0, rest: 1.0, strategy: 'Progressive' },
+        { level: 'L4', capacity: 1.2, intensity: 1.1, rest: 0.8, strategy: 'Progressive' },
+        { level: 'L5', capacity: 1.4, intensity: 1.2, rest: 0.6, strategy: 'Regressive' }
     ],
 
     // 3.2 难度分布 (Difficulty Distribution)
@@ -130,10 +130,10 @@ window.CONFIG = {
 
     // 4.1 状态适配 (Status)
     STATUS_CONFIG: [
-        { range: [85, 100], label: 'Recovered', intensity: 1.0, volume: 1.0 },
-        { range: [55, 84], label: 'Recovering', intensity: 0.9, volume: 1.0 },
-        { range: [30, 54], label: 'Fatigued', intensity: 0.8, volume: 0.8 },
-        { range: [0, 29], label: 'Exhausted', intensity: 0.5, volume: 0.5 }
+        { range: [85, 100], label: 'Recovered', capacity: 1.1, intensity: 1.1 },
+        { range: [55, 84], label: 'Recovering', capacity: 1.0, intensity: 1.0 },
+        { range: [30, 54], label: 'Fatigued', capacity: 0.8, intensity: 0.8 },
+        { range: [0, 29], label: 'Exhausted', capacity: 0.5, intensity: 0.5 }
     ],
 
     // 交互流程配置 (Flows)

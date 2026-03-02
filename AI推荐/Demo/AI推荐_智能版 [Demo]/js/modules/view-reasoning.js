@@ -7,24 +7,29 @@ window.ViewReasoning = {
         const user = window.store.user;
         const inputs = window.store.inputs;
         const flow = window.store.flow;
+        const toEn = (val) => (window.CONSTANTS && window.CONSTANTS.CN_TO_EN && window.CONSTANTS.CN_TO_EN[val]) ? window.CONSTANTS.CN_TO_EN[val] : val;
         
         const logs = [];
-        logs.push(`${window.I18n.t('reasoning_log_read')}: ${user.gender} / ${user.level} / ${user.goal}`);
+        logs.push(`${window.I18n.t('reasoning_log_read')}: ${window.I18n.t('enum_' + toEn(user.gender))} / ${window.I18n.t('enum_' + user.level)} / ${window.I18n.t('enum_' + toEn(user.goal))}`);
         
         if (flow === 'course') {
-            const targets = Array.isArray(inputs.targets) ? inputs.targets.join(',') : inputs.targets;
-            logs.push(`${window.I18n.t('reasoning_log_parse')}: ${inputs.type} / ${targets}`);
+            const targets = Array.isArray(inputs.targets) ? inputs.targets : [inputs.targets];
+            const targetStr = targets.map(t => window.I18n.t('enum_' + toEn(t))).join('、');
+            logs.push(`${window.I18n.t('reasoning_log_parse')}: ${window.I18n.t('enum_' + toEn(inputs.type))} / ${targetStr}`);
         } else {
             const daysCount = (inputs.days || []).length;
-            logs.push(`${window.I18n.t('reasoning_log_parse')}: ${inputs.cycle}周 / ${daysCount}天频次`);
+            logs.push(`${window.I18n.t('reasoning_log_parse')}: ${inputs.cycle} ${window.I18n.t('common_unit_week')} / ${daysCount} ${window.I18n.t('reasoning_log_freq')}`);
         }
         
-        if (user.pain && user.pain.length) logs.push(`${window.I18n.t('reasoning_log_risk')}: 避开${user.pain.join('、')}`);
-        else logs.push(`${window.I18n.t('reasoning_log_risk')}: 无禁忌部位`);
+        if (user.pain && user.pain.length) logs.push(`${window.I18n.t('reasoning_log_risk')}: ${window.I18n.t('reasoning_log_avoid')} ${user.pain.map(p => window.I18n.t('enum_' + toEn(p))).join('、')}`);
+        else logs.push(`${window.I18n.t('reasoning_log_risk')}: ${window.I18n.t('reasoning_log_no_risk')}`);
         
-        logs.push(`${window.I18n.t('reasoning_log_strategy')}: ${CONFIG.STRATEGY[user.goal]?.strategy || '智能推荐'}模型`);
-        logs.push(`${window.I18n.t('reasoning_log_build')}: 动作库 Top-K 筛选`);
-        logs.push(`${window.I18n.t('reasoning_log_gen')}: 计算容量与负荷...`);
+        const stratObj = CONFIG.STRATEGY.find(s => s.target === toEn(user.goal));
+        const stratName = stratObj ? stratObj.strategy : 'Recommended';
+        logs.push(`${window.I18n.t('reasoning_log_strategy')}: ${window.I18n.t('enum_' + stratName)} ${window.I18n.t('reasoning_log_model')}`);
+        
+        logs.push(`${window.I18n.t('reasoning_log_build')}: ${window.I18n.t('reasoning_log_topk')}`);
+        logs.push(`${window.I18n.t('reasoning_log_gen')}: ${window.I18n.t('reasoning_log_calc')}`);
 
         const logContainer = document.getElementById('reasoning-log');
         logContainer.innerHTML = '';

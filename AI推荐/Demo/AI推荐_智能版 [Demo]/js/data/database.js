@@ -46,6 +46,7 @@ let DB = [];
             equip: translateArr(a.equip || []),
             pain: translateArr(a.pain || []),
             subPart: translateArr(a.subPart || []),
+            courseType: translate(a.courseType),
             difficulty: translate(a.level), // Map level to difficulty
             impact: translate(a.impact),
             construct: translate(a.construct),
