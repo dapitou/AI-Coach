@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="power_safe_handoff_dialog_adjust_warn_title">重量調節過大存在風險\n確認調節？</string>
+</resources>

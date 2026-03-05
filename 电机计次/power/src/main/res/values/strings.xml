@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="power_safe_handoff_dialog_adjust_warn_title">The adjustment range is large\nFor your safty, confirm adjustment?</string>
+</resources>
