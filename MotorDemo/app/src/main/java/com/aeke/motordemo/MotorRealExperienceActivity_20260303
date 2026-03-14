@@ -8,8 +8,6 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
 import android.os.Bundle
-import android.os.Process
-import android.net.Uri
 import android.graphics.drawable.GradientDrawable
 import android.media.ToneGenerator
 import android.media.AudioManager
@@ -17,6 +15,7 @@ import android.app.AlertDialog
 import android.util.AttributeSet
 import android.graphics.drawable.StateListDrawable
 import android.animation.ValueAnimator
+import android.content.res.ColorStateList
 import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
@@ -40,17 +39,11 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.appcompat.app.AppCompatActivity
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope // KE-ZL-202309-0
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.util.ArrayDeque
-import java.text.SimpleDateFormat
-import java.util.Date
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import java.io.File
@@ -64,14 +57,12 @@ import kotlin.math.max
 import kotlin.math.sin
 import kotlin.math.hypot
 import kotlin.math.round
-import kotlin.math.sqrt
-import java.util.Locale
 
 /**
  * AEKE 智能电机真实硬件体验 Demo
  * 适配：Android 竖屏大屏设备
  * 协议：基于 Ak21BenMoPowerHelper (38字节数据帧)
- * 算法：AI识别_电机纠错配置架构 V11.4 (工业级终极版)
+ * 算法：AI识别_电机纠错配置架构 V11.2 (彻底重构版)
  */
 class MotorRealExperienceActivity : AppCompatActivity() {
 
@@ -85,8 +76,8 @@ class MotorRealExperienceActivity : AppCompatActivity() {
     private lateinit var userStatePanel: UserStatePanel
     private lateinit var chartContainer: LinearLayout
     private lateinit var consoleText: TextView
+    private lateinit var tvTotalCount: TextView
     private var settingsOverlay: View? = null // 配置页视图引用
-    private val btnModes = mutableListOf<TextView>() // 提为全局变量以支持 UI 自动刷新
 
     // --- 核心逻辑 ---
     private lateinit var forceCurveView: RealtimeCurveView // 实时行程/力曲线
@@ -112,16 +103,6 @@ class MotorRealExperienceActivity : AppCompatActivity() {
     private val colorSurface = "#1C1C1E".toColorInt() // 基础层级
     private val colorSurfaceLight = "#2C2C2E".toColorInt() // 浮层/卡片
 
-    // --- 导入导出回调 (SAF) ---
-    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        uri?.let { saveConfigToJson(it) }
-    }
-
-    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { loadConfigFromJson(it) }
-    }
-    private var lastRenderedModeIndex = -1 // 用于UI自动同步行程模式状态
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -142,6 +123,9 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         circularKnobView.setActiveState(false)
         // [UI Feature] 初始化显示阻力模式
         circularKnobView.setModeName(getModeName(motorConfig.modeCode))
+        
+        // [Feature] 初始化音效
+        initSoundEffects()
     }
 
     override fun onDestroy() {
@@ -150,10 +134,15 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         commandJob?.cancel() // Stop heartbeat
     }
 
+    private fun initSoundEffects() {
+        // 使用 ToneGenerator 替代文件加载，确保零依赖且立即响应
+    }
+    
     private fun playTone(active: Boolean) {
         // 简单使用 ToneGenerator 产生提示音
         try {
             val toneType = if (active) ToneGenerator.TONE_PROP_BEEP else ToneGenerator.TONE_PROP_NACK
+            // [Fix 1] 使用 STREAM_MUSIC 以获得更大音量 (媒体音量通常大于通知音量)
             val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 100)
             tg.startTone(toneType, 150)
             tg.release()
@@ -174,7 +163,8 @@ class MotorRealExperienceActivity : AppCompatActivity() {
     }
 
     // --- 纯代码 UI 构建 (专业数据看板风格) ---
-    private fun setupProfessionalUI() { 
+    private fun setupProfessionalUI() { // KE-ZL-202309-0
+        // [Fix 1] 使用 FrameLayout 作为根容器，确保设置页能全屏覆盖且滑动正常
         val rootFrame = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
             setBackgroundColor(Color.BLACK) // 纯黑底色防止透光
@@ -190,9 +180,10 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(32, 24, 32, 24)
             gravity = Gravity.CENTER_VERTICAL
-            background = getRoundedBg(colorSurface, 0f, 0f, 24f, 24f)
+            background = getRoundedBg(colorSurface, 0f, 0f, 24f, 24f) // [UI] 统一 Header 背景
         }
         
+        // [Feature] 3. 左上角退出按钮
         val btnBack = TextView(this).apply {
             text = "✕"
             textSize = 28f
@@ -200,6 +191,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(48, 48)
             setOnClickListener { 
+                // 安全退出逻辑
                 Toast.makeText(context, "正在安全退出...", Toast.LENGTH_SHORT).show()
                 lifecycleScope.launch {
                     forceSafeUnload() // 强制卸力
@@ -210,7 +202,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
 
         val tvTitle = TextView(this).apply {
-            text = "AEKE 智能电机算法引擎 V11.4"
+            text = "AEKE 智能电机算法引擎 V11.4" // [汉化]
             textSize = 20f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
@@ -219,6 +211,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             }
         }
 
+        // [Fix 1] 找回“重置原点”按钮，并添加点击反馈
         val btnReset = TextView(this).apply {
             text = "⟲ 重置原点"
             textSize = 14f
@@ -233,20 +226,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             }
         }
 
-        val btnResetCount = TextView(this).apply {
-            text = "↻ 计次初始化"
-            textSize = 14f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            setPadding(24, 8, 24, 8)
-            background = getPressableBg(Color.DKGRAY, 16f)
-            layoutParams = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = 16 }
-            setOnClickListener {
-                algorithmEngine.resetCounters()
-                Toast.makeText(context, "计次逻辑已清零并初始化", Toast.LENGTH_SHORT).show()
-            }
-        }
-
+        // [Feature] 新增设置按钮
         val btnSettings = TextView(this).apply {
             text = "⚙ 电机配置"
             textSize = 14f
@@ -254,99 +234,18 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setPadding(24, 8, 24, 8)
             background = getPressableBg("#333333".toColorInt(), 16f)
-            layoutParams = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = 16 }
             setOnClickListener {
-                showSettingsPage(rootFrame)
+                showSettingsPage(rootFrame) // [Fix 1] 添加到 FrameLayout 根容器
             }
-        }
-        
-        val btnExport = TextView(this).apply {
-            text = "⎘ 配置导出"
-            textSize = 14f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            setPadding(24, 8, 24, 8)
-            background = getPressableBg(Color.DKGRAY, 16f)
-            layoutParams = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = 16 }
-            setOnClickListener { exportLauncher.launch("AEKE_Motor_Config_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.json") }
-        }
-        
-        val btnImport = TextView(this).apply {
-            text = "⎗ 配置导入"
-            textSize = 14f
-            setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER
-            setPadding(24, 8, 24, 8)
-            background = getPressableBg(Color.DKGRAY, 16f)
-            layoutParams = LinearLayout.LayoutParams(-2, -2)
-            setOnClickListener { importLauncher.launch(arrayOf("application/json", "*/*")) }
         }
         
         header.addView(btnBack)
         header.addView(tvTitle)
-        header.addView(btnResetCount)
         header.addView(btnReset)
         header.addView(btnSettings)
-        header.addView(btnExport)
-        header.addView(btnImport)
+        // header.addView(btnEnable) // 移除手动上电，改为自动
+        
         root.addView(header)
-
-        // [Feature 1] 用户体征上下文与自由训练面板
-        val contextPanel = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(32, 16, 32, 16)
-            gravity = Gravity.CENTER_VERTICAL
-            background = getRoundedBg(colorSurfaceLight, 16f)
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(16, 8, 16, 8)
-            }
-        }
-        
-        // 性别切换
-        val tvGender = TextView(this).apply {
-            text = "👨 性别: 男"; textSize = 14f; setTextColor(Color.WHITE); setPadding(16,8,16,8)
-            background = getPressableBg(Color.DKGRAY, 8f)
-            layoutParams = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = 16 }
-            setOnClickListener {
-                StrokeConfig.userGender = if (StrokeConfig.userGender == 0) 1 else 0
-                text = if (StrokeConfig.userGender == 0) "👨 性别: 男" else "👩 性别: 女"
-                Toast.makeText(context, "已切换基准，将影响底层算法", Toast.LENGTH_SHORT).show()
-            }
-        }
-        
-        // 身高调节
-        val tvHeightLabel = TextView(this).apply { text = "身高: 180cm"; textSize = 14f; setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(-2,-2).apply { marginEnd = 8 } }
-        val sbHeight = SeekBar(this).apply {
-            max = 70 // 140 到 210
-            progress = 40 // 180
-            layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(p0: SeekBar?, v: Int, p2: Boolean) {
-                    StrokeConfig.userHeight = 140f + v
-                    tvHeightLabel.text = "身高: ${StrokeConfig.userHeight.toInt()}cm"
-                }
-                override fun onStartTrackingTouch(p0: SeekBar?) {}
-                override fun onStopTrackingTouch(p0: SeekBar?) {}
-            })
-        }
-
-        // 自由训练开关
-        val freeTrainLabel = TextView(this).apply { text = "自由训练(自适应)"; textSize = 14f; setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(-2,-2).apply { marginStart = 16 } }
-        val swFreeTrain = SwitchCompat(this).apply {
-            isChecked = StrokeConfig.isFreeTraining
-            setOnCheckedChangeListener { _, isChecked ->
-                StrokeConfig.isFreeTraining = isChecked
-                btnModes.forEach { it.isEnabled = !isChecked; it.alpha = if (isChecked) 0.5f else 1.0f }
-                Toast.makeText(context, if(isChecked) "已开启: 将通过CV匹配算法自动切换" else "已关闭: 将锁定当前意图状态机", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        contextPanel.addView(tvGender)
-        contextPanel.addView(tvHeightLabel)
-        contextPanel.addView(sbHeight)
-        contextPanel.addView(freeTrainLabel)
-        contextPanel.addView(swFreeTrain)
-        root.addView(contextPanel)
 
         // [Feature 2 & 3] 动作行程模式选择与阈值设置面板
         val strokePanel = LinearLayout(this).apply {
@@ -355,33 +254,28 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             background = getRoundedBg(colorSurface, 0f)
         }
-        
-        fun updateModeButtonsStyle() {
-            btnModes.forEachIndexed { i, b -> 
-                b.setTextColor(if (i == StrokeConfig.currentIndex) Color.BLACK else Color.WHITE)
-                b.background = getRoundedBg(if (i == StrokeConfig.currentIndex) Color.CYAN else Color.DKGRAY, 16f)
-            }
-        }
-        
-        val policyNames = listOf("超短行程", "短行程", "中行程", "长行程")
-        policyNames.forEachIndexed { index, name ->
+        val btnModes = mutableListOf<TextView>()
+        StrokeConfig.policies.forEachIndexed { index, policy ->
             val btn = TextView(this).apply {
-                text = name
+                text = policy.name
                 textSize = 14f
                 setPadding(24, 12, 24, 12)
                 gravity = Gravity.CENTER
+                setTextColor(if (index == StrokeConfig.currentIndex) Color.BLACK else Color.WHITE)
+                background = getRoundedBg(if (index == StrokeConfig.currentIndex) Color.CYAN else Color.DKGRAY, 16f)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = 8 }
                 setOnClickListener {
                     StrokeConfig.currentIndex = index
-                    updateModeButtonsStyle()
-                    Toast.makeText(context, "已强制锁定意图: $name", Toast.LENGTH_SHORT).show()
+                    btnModes.forEachIndexed { i, b -> 
+                        b.setTextColor(if (i == index) Color.BLACK else Color.WHITE)
+                        b.background = getRoundedBg(if (i == index) Color.CYAN else Color.DKGRAY, 16f)
+                    }
+                    Toast.makeText(context, "已切换为: ${policy.name}", Toast.LENGTH_SHORT).show()
                 }
             }
             btnModes.add(btn)
             strokePanel.addView(btn)
         }
-        updateModeButtonsStyle()
-
         val btnStrokeSettings = TextView(this).apply {
             text = "⚙ 阈值设置"
             textSize = 14f
@@ -393,20 +287,30 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         strokePanel.addView(btnStrokeSettings)
         root.addView(strokePanel)
 
-        // 2. 数据监控区 (左右分栏 + 中间用户状态)
+        // [Feature 2] 移除独立的总次数模块，将其合入 UserStatePanel
+        // 腾出空间给波形图，整体向上适配
+        
+        // 2. 数据监控区 (左右分栏 + 中间用户状态) [Layout Fix] 使用 weight 适配屏幕高度
         val motorContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             weightSum = 3f
+            // [UI Fix] 屏幕适配: 进一步减小顶部权重 (1.2 -> 1.0)，为调力盘腾出核心空间
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f).apply {
                 setMargins(16, 16, 16, 0)
             }
         }
         
-        leftMotorPanel = MotorDetailPanel(this, "左侧电机（m1）", "#00BCD4".toColorInt())
+        // 左电机卡片
+        leftMotorPanel = MotorDetailPanel(this, "左侧电机（m1）", "#00BCD4".toColorInt()) // [汉化] Cyan
+        // [UI Fix 1] 左右对称，中间留白
         val paramL = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginEnd = 8 }
         motorContainer.addView(leftMotorPanel, paramL)
 
+        // 中间用户行为卡片
         userStatePanel = UserStatePanel(this).apply {
+             // [UI Fix] 适配宽度，保持三列平衡 (1:1:1 或 1:0.8:1)
+             // [Fix 1] 三列均分，占满屏幕宽度
+             // [UI Optimization] Align with motor panels
              val paramCenter = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { 
                  marginEnd = 8
                  marginStart = 8
@@ -415,30 +319,36 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
         motorContainer.addView(userStatePanel)
 
-        rightMotorPanel = MotorDetailPanel(this, "右侧电机（m2）", "#E040FB".toColorInt())
+        // 右电机卡片
+        rightMotorPanel = MotorDetailPanel(this, "右侧电机（m2）", "#E040FB".toColorInt()) // [汉化] Magenta
         val paramR = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { marginStart = 8 }
         motorContainer.addView(rightMotorPanel, paramR)
         
         root.addView(motorContainer)
         
-        // 4. 图表区
+        // 4. 图表区 (曲线 + 功率柱状图)
         chartContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            // [UI Fix] 适配高度: 压缩图表区 (1.5 -> 1.2)
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.2f).apply {
                 setMargins(16, 16, 16, 16)
             }
-            background = getRoundedBg(colorSurface, 16f)
+            background = getRoundedBg(colorSurface, 16f) // [UI] 统一图表底色
             setPadding(16, 16, 16, 16)
         }
 
+        // 4.1 力/行程 曲线
+        // [Feature] 改名 "双侧阻力曲线"，单位小写，括号中文
         val tvChartTitle = TextView(this).apply { text = "双侧阻力曲线（kg）"; setTextColor(Color.GRAY); textSize = 12f; typeface = Typeface.DEFAULT_BOLD }
-        chartContainer.addView(tvChartTitle)
+        chartContainer.addView(tvChartTitle) // KE-ZL-202309-0
 
-        forceCurveView = RealtimeCurveView(this).apply { 
+        forceCurveView = RealtimeCurveView(this).apply { // 使用我们自定义的高性能View
+            // [Fix 3] 高度均分
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
         }
         chartContainer.addView(forceCurveView)
 
+        // [New Feature] 4.1.5 双侧行程曲线
         val tvStrokeTitle = TextView(this).apply { text = "双侧行程曲线（cm）"; setTextColor(Color.GRAY); textSize = 12f; setPadding(0,10,0,0); typeface = Typeface.DEFAULT_BOLD }
         chartContainer.addView(tvStrokeTitle)
         strokeCurveView = RealtimeCurveView(this).apply {
@@ -446,35 +356,47 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
         chartContainer.addView(strokeCurveView)
 
+        // 4.2 功率柱状图
         val tvPowerTitle = TextView(this).apply { text = "功率输出趋势（w）"; setTextColor(Color.GRAY); textSize = 12f; setPadding(0,10,0,0); typeface = Typeface.DEFAULT_BOLD }
-        chartContainer.addView(tvPowerTitle)
+        chartContainer.addView(tvPowerTitle) // KE-ZL-202309-0
 
         powerBarView = RealtimeBarView(this).apply {
+            // [Fix 3] 高度均分，与上方曲线一致
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f) 
         }
         chartContainer.addView(powerBarView)
         root.addView(chartContainer)
 
-        // 5. 控制面板
+        // 5. 控制面板 (环形调力盘 + 状态控制)
         val controlPanel = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            background = getRoundedBg(colorSurface, 32f, 32f, 0f, 0f)
-            setPadding(32, 8, 32, 8)
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.8f) 
-        }
+            gravity = Gravity.CENTER // [UI Fix] 1. 调力盘完全居中
+            background = getRoundedBg(colorSurface, 32f, 32f, 0f, 0f) // [UI] 统一底部控制区
+            setPadding(32, 16, 32, 16)
+            // [UI Fix] 大幅增加底部占比 (1.5 -> 2.0)，防止刻度数字被上下截断，确保操作舒适
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 2.0f) 
+        } // KE-ZL-202309-0
         
+        // 5.1 环形调力盘
         circularKnobView = CircularForceKnobView(this).apply {
+            // [UI Fix] 宽度改为 MATCH_PARENT，充分利用左右空间，防止边缘遮挡
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT) 
+            // 设置回调
             setOnValueChangedListener { value ->
+                // [Feature 2] 非原点调力自动卸力
+                // 判定非原点: 任一侧行程 > 3cm (给予一定死区容错)
                 val isNotAtOrigin = algorithmEngine.leftStroke > 3.0f || algorithmEngine.rightStroke > 3.0f
+                
                 if (isMotorActive && isNotAtOrigin) {
-                    toggleMotorActiveState()
+                    toggleMotorActiveState() // 触发卸力 (会自动执行缓速逻辑)
                     Toast.makeText(context, "非原点调力：已自动安全卸力", Toast.LENGTH_SHORT).show()
                 }
+                
                 targetWeight = value
+                // [Fix 2] 实时生效: 统一走 updateMotorOutput，不再使用错误的 sendCommandSetWeight
+                // 仅当仍在激活状态 (即在原点调力) 时，实时生效
                 if (isMotorActive) {
-                    lifecycleScope.launch(Dispatchers.IO) {
+                    lifecycleScope.launch(Dispatchers.IO) { // Immediate update on change
                         updateMotorOutput()
                     }
                 }
@@ -484,6 +406,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             }
         }
         controlPanel.addView(circularKnobView)
+
         root.addView(controlPanel)
 
         // 6. 底部日志
@@ -501,90 +424,27 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         setContentView(rootFrame)
     }
     
+    // [UI Helper] 生成圆角背景
     private fun getRoundedBg(color: Int, vararg radii: Float): GradientDrawable {
         return GradientDrawable().apply {
             setColor(color)
             if (radii.size == 1) cornerRadius = radii[0]
-            else if (radii.size == 4) cornerRadii = floatArrayOf(radii[2], radii[2], radii[3], radii[3], radii[1], radii[1], radii[0], radii[0])
+            else if (radii.size == 4) cornerRadii = floatArrayOf(radii[2], radii[2], radii[3], radii[3], radii[1], radii[1], radii[0], radii[0]) // TL, TR, BR, BL order varies, using standard
+            // Simple corner radius
             if (radii.size == 1) cornerRadius = radii[0]
         }
     }
 
-    private fun saveConfigToJson(uri: Uri) {
-        try {
-            val json = JSONObject().apply {
-                put("modeCode", motorConfig.modeCode)
-                put("param1", motorConfig.param1)
-                put("param2", motorConfig.param2)
-                put("isSmooth", motorConfig.isSmooth)
-                put("activationSmoothRate", motorConfig.activationSmoothRate)
-                put("unloadDuration", motorConfig.unloadDuration.toDouble())
-                put("returnRatio", motorConfig.returnRatio.toDouble())
-                put("releaseProtectEnable", motorConfig.releaseProtectEnable)
-                put("releaseSpeedLimit", motorConfig.releaseSpeedLimit)
-                put("releaseDuration", motorConfig.releaseDuration)
-                put("pullComp", motorConfig.pullComp)
-                put("returnComp", motorConfig.returnComp)
-                put("balanceSwitch", motorConfig.balanceSwitch)
-                put("userGender", StrokeConfig.userGender)
-                put("userHeight", StrokeConfig.userHeight.toDouble())
-                put("strokeCurrentIndex", StrokeConfig.currentIndex)
-                put("isFreeTraining", StrokeConfig.isFreeTraining)
-            }
-            contentResolver.openOutputStream(uri)?.use { it.write(json.toString(4).toByteArray()) }
-            Toast.makeText(this, "配置导出成功", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "导出失败: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun loadConfigFromJson(uri: Uri) {
-        try {
-            val sb = StringBuilder()
-            contentResolver.openInputStream(uri)?.use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                    var line: String? = reader.readLine()
-                    while (line != null) { sb.append(line); line = reader.readLine() }
-                }
-            }
-            val json = JSONObject(sb.toString())
-            
-            motorConfig.apply {
-                modeCode = json.optInt("modeCode", modeCode)
-                param1 = json.optInt("param1", param1)
-                param2 = json.optInt("param2", param2)
-                isSmooth = json.optBoolean("isSmooth", isSmooth)
-                activationSmoothRate = json.optInt("activationSmoothRate", activationSmoothRate)
-                unloadDuration = json.optDouble("unloadDuration", unloadDuration.toDouble()).toFloat()
-                returnRatio = json.optDouble("returnRatio", returnRatio.toDouble()).toFloat()
-                releaseProtectEnable = json.optBoolean("releaseProtectEnable", releaseProtectEnable)
-                releaseSpeedLimit = json.optInt("releaseSpeedLimit", releaseSpeedLimit)
-                releaseDuration = json.optInt("releaseDuration", releaseDuration)
-                pullComp = json.optInt("pullComp", pullComp)
-                returnComp = json.optInt("returnComp", returnComp)
-                balanceSwitch = json.optBoolean("balanceSwitch", balanceSwitch)
-            }
-            StrokeConfig.apply {
-                userGender = json.optInt("userGender", userGender)
-                userHeight = json.optDouble("userHeight", userHeight.toDouble()).toFloat()
-                currentIndex = json.optInt("strokeCurrentIndex", currentIndex)
-                isFreeTraining = json.optBoolean("isFreeTraining", isFreeTraining)
-            }
-            
-            applySettings()
-            Toast.makeText(this, "配置导入成功并已下发", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "导入失败: 格式错误", Toast.LENGTH_SHORT).show()
-        }
-    }
-
+    // --- 设置页逻辑 (Settings Page) ---
     private fun showSettingsPage(root: ViewGroup) {
+        // 如果已存在则移除 (防连点)
         settingsOverlay?.let { root.removeView(it) }
 
+        // [Feature 3] 统一 UI 风格
         val overlay = ScrollView(this).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            background = getRoundedBg(colorBackground, 0f)
-            isClickable = true
+            background = getRoundedBg(colorBackground, 0f) // 使用统一底色
+            isClickable = true // 拦截点击
         }
 
         val container = LinearLayout(this).apply {
@@ -592,6 +452,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             setPadding(32, 32, 32, 32)
         }
 
+        // 标题栏
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -600,14 +461,18 @@ class MotorRealExperienceActivity : AppCompatActivity() {
                 text = "电机配置"; textSize = 24f; setTextColor(Color.WHITE); typeface = Typeface.DEFAULT_BOLD 
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
+            // 关闭按钮
             addView(Button(this@MotorRealExperienceActivity).apply { 
                 text = "取消"; setOnClickListener { root.removeView(overlay); settingsOverlay = null } 
                 background = getPressableBg(Color.DKGRAY, 16f); setTextColor(Color.WHITE)
             })
+            // 保存按钮
             addView(Button(this@MotorRealExperienceActivity).apply { 
                 text = "保存并生效"; setTextColor(Color.WHITE); background = getPressableBg(Color.DKGRAY, 16f)
+                // [UI] 增加左边距
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = 16 }
                 setOnClickListener {
+                    // [Safety Check] 校验参数合理性
                     applySettings()
                     root.removeView(overlay)
                     settingsOverlay = null
@@ -617,12 +482,15 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
         container.addView(header)
 
+        // --- 动态视图引用 (用于联动) ---
         var param1Row: View? = null
         var param2Row: View? = null
         var param1Label: TextView? = null
         var param2Label: TextView? = null
-        var ratioRow: View? = null
+        var ratioRow: View? = null // [Fix 3] 找回标准模式参数
 
+        // [UI Fix] 2. 改名 "阻力模式"
+        // [UI Polish] 将模式说明的问号移至标题旁，防止被下拉框挤到最右侧
         container.addView(createSectionHeader("阻力模式", "核心模式说明",
             "00 标准: 恒定阻力，支持离心/向心变力。\n" +
             "01 等速: 设定最高速度，用力越猛阻力越大，保持恒速。\n" +
@@ -631,7 +499,9 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             "05 重力: 模拟物理惯性，加速重/减速轻。"))
             
         val modeSpinner = Spinner(this).apply {
+            // [UI Fix] 1. 自定义 Adapter 解决文字太暗问题 (强制白色)
             val modes = arrayOf("00: 标准模式 (恒力/离向心)", "01: 等速模式 (速度环)", "02: 弹力模式 (胡克定律)", "03: 划船模式 (流体阻力)", "04: 平衡模式 (杆铃)", "05: 重力模式 (惯性模拟)")
+            // [UI Fix] 使用 simple_spinner_item 作为主视图，解决高度对其问题
             adapter = object : ArrayAdapter<String>(this@MotorRealExperienceActivity, android.R.layout.simple_spinner_item, modes) {
                 override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                     val v = super.getView(position, convertView, parent)
@@ -642,7 +512,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
                 override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                     val v = super.getDropDownView(position, convertView, parent)
                     (v as? TextView)?.setTextColor(Color.WHITE)
-                    v.setBackgroundColor(Color.DKGRAY)
+                    v.setBackgroundColor(Color.DKGRAY) // [Fix 7] 下拉框背景深色，防止白字看不清
                     return v
                 }
             }
@@ -651,13 +521,16 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(p0: AdapterView<*>?, p1: View?, pos: Int, p3: Long) {
                     motorConfig.modeCode = pos
+                    // [Interaction] 模式切换联动：更新参数含义
                     updateParamLabels(pos, param1Row, param2Row, param1Label, param2Label, ratioRow)
+                    // [Fix] 模式切换立即生效
                     if (isMotorActive) applySettings()
                 }
                 override fun onNothingSelected(p0: AdapterView<*>?) {}
             }
         }
         
+        // [UI Polish] 下拉框独占一行，间距调整
         val modeLayout = LinearLayout(this).apply { 
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, 16)
@@ -665,19 +538,26 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         modeLayout.addView(modeSpinner, LinearLayout.LayoutParams(0, -2, 1f))
         container.addView(modeLayout)
 
+        // 2. 运动参数微调 (统一格式)
         container.addView(createSectionHeader("运动参数微调（依模式生效）"))
         
+        // 辅助函数: 创建带Label的输入行
+        // [UI Polish] 优化布局结构，确保问号不被遮挡，且位于文本右上角
         fun createInputRow(label: String, initVal: Int, maxVal: Int, helpTitle: String, helpText: String, descProvider: (Int) -> String, onValChange: (Int) -> Unit): Pair<LinearLayout, TextView> {
             val wrapper = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, 24, 0, 0) }
+            
+            // Label + ? Container
             val labelContainer = LinearLayout(this).apply { 
                 orientation = LinearLayout.HORIZONTAL
+                // [Fix] 宽度自适应，不要撑满导致问号跑最右边
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
                 gravity = Gravity.CENTER_VERTICAL
             }
             
-            val tvLabel = TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f }
+            val tvLabel = TextView(this).apply { text = label; setTextColor(Color.WHITE); textSize = 14f } // [UI Fix] 亮色文本
             labelContainer.addView(tvLabel)
             
+            // [UI Fix] 4. 优化 "?" 按钮样式：更小，位置紧跟参数名
             val helpBtn = TextView(this).apply {
                 text = "?"
                 textSize = 10f
@@ -704,6 +584,8 @@ class MotorRealExperienceActivity : AppCompatActivity() {
                 setPadding(20,0,20,0)
             }
             val valText = TextView(this).apply { text = "$initVal"; setTextColor(Color.CYAN); width = 100; gravity = Gravity.END }
+            
+            // [Feature] 动态说明文本
             val descText = TextView(this).apply { 
                 text = descProvider(initVal)
                 textSize = 12f
@@ -711,11 +593,13 @@ class MotorRealExperienceActivity : AppCompatActivity() {
                 setPadding(8, 4, 8, 8)
             }
             
+            // Link Text update
             seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(p0: SeekBar?, v: Int, p2: Boolean) { 
                     onValChange(v)
                     valText.text = "$v"
                     descText.text = descProvider(v)
+                    // [Fix] 实时生效: 如果电机已激活，立即下发新参数 (实现“所调即所得”)
                     if (isMotorActive) {
                         lifecycleScope.launch(Dispatchers.IO) { updateMotorOutput(silent = true) }
                     }
@@ -726,18 +610,23 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             
             rowControl.addView(seekBar)
             rowControl.addView(valText)
+            
             wrapper.addView(rowControl)
             wrapper.addView(descText)
+            
             container.addView(wrapper)
             return Pair(wrapper, tvLabel)
         }
 
+        // [UI Polish] 辅助函数: 创建统一风格的 Switch 行
         fun createSwitchRow(label: String, helpTitle: String, helpText: String, isChecked: Boolean, onCheckedChange: (Boolean) -> Unit): LinearLayout {
             val wrapper = LinearLayout(this).apply { 
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(0, 24, 0, 0)
             }
+            
+            // 左侧：Label + 问号
             val leftContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -748,6 +637,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             leftContainer.addView(createHelpButton(helpTitle, helpText))
             wrapper.addView(leftContainer)
 
+            // 右侧：Switch + 状态文本
             val switchStatus = TextView(this).apply { text = if(isChecked) "开启" else "关闭"; setTextColor(if(isChecked) Color.GREEN else Color.GRAY); textSize=12f; setPadding(0,0,16,0) }
             val switchView = SwitchCompat(this).apply {
                 this.isChecked = isChecked
@@ -762,57 +652,70 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             return wrapper
         }
 
-        val p1 = createInputRow(
+        val p1 = createInputRow( // [Fix 4] 统一格式：参数名称（单位）
             "系数 1（DATA 8）", motorConfig.param1, 255, "模式参数 1", "DATA[8]\n等速模式: 限制速度 (cm/s)\n弹簧模式: 弹簧行程 (cm)",
             { v -> if(motorConfig.modeCode==1) "限速: $v cm/s" else if(motorConfig.modeCode==2) "行程: $v cm" else "值: $v" }
         ) { motorConfig.param1 = it }
         param1Row = p1.first; param1Label = p1.second
         
-        val p2 = createInputRow(
+        val p2 = createInputRow( // [Fix 4] 统一格式
             "系数 2（DATA 9）", motorConfig.param2, 255, "模式参数 2", "DATA[9]\n等速模式: 强度系数K\n弹簧模式: 劲度系数K",
             { v -> "强度系数: $v" }
         ) { motorConfig.param2 = it }
         param2Row = p2.first; param2Label = p2.second
 
+        // [Fix 3] 找回标准模式参数: 离心/向心比例. 总是添加，通过 visibility 控制
+        // 使用 createInputRow 保持格式统一
         val rRow = createInputRow(
             "离心/向心力比例", ((motorConfig.returnRatio - 0.5f) * 100).toInt(), 100,
             "离心力比例", "标准模式下，离心力相对于向心力(设定力)的比例。\n范围 0.5 - 1.5 倍。",
-            { p -> String.format(Locale.US, "比例: %.1f", 0.5f + p / 100f) }
+            { p -> "比例: %.1f".format(0.5f + p / 100f) }
         ) { p -> 
             motorConfig.returnRatio = 0.5f + (p / 100f)
-            if (isMotorActive) logUI(String.format(Locale.US, "实时调整比例: %.1f", motorConfig.returnRatio))
+            if (isMotorActive) logUI("实时调整比例: %.1f".format(motorConfig.returnRatio))
         }
         ratioRow = rRow.first
 
+        // 初始化 Label 和 Visibility
         updateParamLabels(motorConfig.modeCode, param1Row, param2Row, param1Label, param2Label, ratioRow)
 
+        // 3. 缓速与质感 (Damping)
         container.addView(createSectionHeader("质感与阻尼"))
+        // [UI Polish] 使用统一 Switch 组件
         val smoothRow = createSwitchRow("启用缓速变力", "缓速变力 (DATA[12])", "开启后，力值的变化将具有平滑过渡效果，避免突变带来的顿挫感。", motorConfig.isSmooth) { c ->
             motorConfig.isSmooth = c
         }
         container.addView(smoothRow)
 
+        // [Feature] 激活缓速速率 (改名)
         val (rateRow, _) = createInputRow(
             "激活力变化速率", motorConfig.activationSmoothRate, 250, "激活速率 (DATA[13])", "点击“激活”按钮时，力值增加的快慢。\n数值越大越快。\n默认: 14",
             { v -> "力变化速率: $v (数值越大越硬)" }
         ) { motorConfig.activationSmoothRate = it }
         
-        createInputRow(
+        // [Feature] 卸力时长 (新增)
+        // [Fix 1] 统一格式：使用 createInputRow 替换手动构建，范围 0.1s (1) - 5.0s (50)
+        val (unloadRow, _) = createInputRow(
             "卸力过渡时长", (motorConfig.unloadDuration * 10).toInt(), 50,
             "卸力时长", "当点击卸力或触发安全保护时，力值从当前值降至2.5kg所需的时间。\n默认: 0.5秒。",
-            { v -> String.format(Locale.US, "时长: %.1f s", max(1, v) / 10f) }
+            { v -> "时长: %.1f s".format(max(1, v) / 10f) }
         ) { v -> motorConfig.unloadDuration = max(1, v) / 10f }
         
+        // [Dependency] 联动逻辑
+        // 重新绑定监听，因为 view 是新建的
         (smoothRow.getChildAt(2) as SwitchCompat).setOnCheckedChangeListener { _, c ->
             motorConfig.isSmooth = c
             rateRow.alpha = if(c) 1.0f else 0.3f
-            rateRow.isEnabled = c 
+            rateRow.isEnabled = c // 虽Layout不可禁用，但视觉变灰提示
             (smoothRow.getChildAt(1) as TextView).text = if(c) "开启" else "关闭"
             (smoothRow.getChildAt(1) as TextView).setTextColor(if(c) Color.GREEN else Color.GRAY)
         }
+        // Init state
         rateRow.alpha = if(motorConfig.isSmooth) 1.0f else 0.3f
 
+        // 4. 安全保护 (0xA0)
         container.addView(createSectionHeader("安全保护（脱手检测）"))
+        // [UI Polish] 使用统一 Switch 组件
         val releaseRow = createSwitchRow("启用脱手保护", "脱手保护 (Cmd 0xA0)", "当检测到回绳速度过快（失控）时，电机自动卸力保护。\n保护结束后1s自动恢复。", motorConfig.releaseProtectEnable) { c ->
             motorConfig.releaseProtectEnable = c
         }
@@ -821,6 +724,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         val (relSpeedRow, _) = createInputRow("触发速度阈值（cm/s）", motorConfig.releaseSpeedLimit, 300, "速度限制", "回绳速度超过此值触发保护。\n范围: 10-300 cm/s\n建议: 100 cm/s", { "速度 > $it cm/s 触发" }) { motorConfig.releaseSpeedLimit = it }
         val (relTimeRow, _) = createInputRow("持续判定时间（50ms）", motorConfig.releaseDuration, 20, "时间窗口", "超速状态持续多少个50ms周期才触发。\n范围: 0-20 (0-1000ms)\n建议: 2 (100ms)", { "持续时间: ${it*50} ms" }) { motorConfig.releaseDuration = it }
 
+        // [Dependency]
         (releaseRow.getChildAt(2) as SwitchCompat).setOnCheckedChangeListener { _, c ->
             motorConfig.releaseProtectEnable = c
             (releaseRow.getChildAt(1) as TextView).text = if(c) "开启" else "关闭"
@@ -831,23 +735,27 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         relSpeedRow.alpha = if(motorConfig.releaseProtectEnable) 1.0f else 0.3f
         relTimeRow.alpha = if(motorConfig.releaseProtectEnable) 1.0f else 0.3f
 
+        // 5. 力量补偿 (0x06)
         container.addView(createSectionHeader("静态摩擦力补偿"))
+        // [UI Fix] 亮色文本
         createInputRow("拉力补偿（正向）", motorConfig.pullComp, 200, "拉力补偿 (DATA[6-7])", "正向拉出时的额外补偿力，用于抵消机械静摩擦。\n设置过大会导致自动拉出。", { "补偿力: ${it/100.0} kg" }) { motorConfig.pullComp = it }
         createInputRow("回力补偿（反向）", motorConfig.returnComp, 200, "回力补偿 (DATA[4-5])", "反向回绳时的额外补偿力。\n通常设置为0。", { "补偿力: ${it/100.0} kg" }) { motorConfig.returnComp = it }
 
+        // 6. 其他开关 (0xA2)
         container.addView(createSectionHeader("其他功能"))
         val balanceRow = createSwitchRow("开启双侧平衡辅助", "平衡辅助 (Cmd 0xA2)", "开启后，左右电机会互相参照速度，模拟杆铃连接效果。\n注意：开启后无法使用平衡模式(0x04)。", motorConfig.balanceSwitch) { c ->
             motorConfig.balanceSwitch = c
         }
         container.addView(balanceRow)
 
+        // 7. 系统维护
         container.addView(createSectionHeader("系统维护"))
         var restartClickCount = 0
         var lastClickTime = 0L
         val btnRestart = Button(this).apply {
-            text = "重启电机（连按3次）"
+            text = "重启电机（连按3次）" // [Feature 3] 移除英文
             setTextColor(Color.WHITE)
-            background = getPressableBg(Color.RED, 16f) 
+            background = getPressableBg(Color.RED, 16f) // [UI Fix] 8. 统一按钮样式
             setOnClickListener {
                 val now = System.currentTimeMillis()
                 if (now - lastClickTime > 1000) {
@@ -874,6 +782,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         settingsOverlay = overlay
     }
 
+    // [Feature 3] 行程阈值配置策略页面
     private fun showStrokeSettingsPage(root: ViewGroup) {
         settingsOverlay?.let { root.removeView(it) }
         val overlay = ScrollView(this).apply {
@@ -885,6 +794,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 32, 32, 32)
         }
+        // Header
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -903,109 +813,56 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
         container.addView(header)
 
-        var editingGender = 0 
-        val contentBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        
-        val tabRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(0,0,0,16) }
-        val btnMale = TextView(this).apply { text = "男版基准 (180cm)"; textSize = 16f; setPadding(24,12,24,12); layoutParams = LinearLayout.LayoutParams(0,-2,1f); gravity = Gravity.CENTER }
-        val btnFemale = TextView(this).apply { text = "女版基准 (160cm)"; textSize = 16f; setPadding(24,12,24,12); layoutParams = LinearLayout.LayoutParams(0,-2,1f); gravity = Gravity.CENTER }
-        
-        fun renderContent() {
-            contentBox.removeAllViews()
-            val policies = if (editingGender == 0) StrokeConfig.malePolicies else StrokeConfig.femalePolicies
-            val bounds = if (editingGender == 0) StrokeConfig.maleBounds else StrokeConfig.femaleBounds
-            
-            contentBox.addView(createSectionHeader("自由训练行程推断边界 (链式自适应)"))
-            val sbs = arrayOfNulls<SeekBar>(3)
-            val tvs = arrayOfNulls<TextView>(3)
-            
-            fun createBoundRow(idx: Int, label: String) {
-                val row = LinearLayout(this@MotorRealExperienceActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, 8, 0, 8) }
-                val tvLabel = TextView(this@MotorRealExperienceActivity).apply { text = label; setTextColor(Color.WHITE); layoutParams = LinearLayout.LayoutParams(0, -2, 1f) }
-                tvs[idx] = TextView(this@MotorRealExperienceActivity).apply { text = String.format(Locale.US, "%.1f cm", bounds[idx]); setTextColor(Color.CYAN); width = 120; gravity = Gravity.END }
-                sbs[idx] = SeekBar(this@MotorRealExperienceActivity).apply {
-                    max = 1200; progress = (bounds[idx]*10).toInt(); layoutParams = LinearLayout.LayoutParams(0, -2, 2f); setPadding(20,0,20,0)
+        StrokeConfig.policies.forEach { policy ->
+            container.addView(createSectionHeader("${policy.name} (参考行程: ${policy.refStroke}cm)"))
+            fun createFloatRow(label: String, initVal: Float, maxVal: Float, onValChange: (Float) -> Unit) {
+                val row = LinearLayout(this@MotorRealExperienceActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, 16, 0, 16) }
+                val tvLabel = TextView(this@MotorRealExperienceActivity).apply { text = label; setTextColor(Color.LTGRAY); layoutParams = LinearLayout.LayoutParams(0, -2, 1.3f) }
+                val tvVal = TextView(this@MotorRealExperienceActivity).apply { text = String.format("%.1f cm", initVal); setTextColor(Color.CYAN); layoutParams = LinearLayout.LayoutParams(0, -2, 0.6f); gravity = Gravity.END }
+                val sb = SeekBar(this@MotorRealExperienceActivity).apply {
+                    max = (maxVal * 10).toInt(); progress = (initVal * 10).toInt(); layoutParams = LinearLayout.LayoutParams(0, -2, 1f); setPadding(20,0,20,0)
                     setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                        override fun onProgressChanged(p0: SeekBar?, v: Int, p2: Boolean) { 
-                            bounds[idx] = v / 10f; tvs[idx]?.text = String.format(Locale.US, "%.1f cm", bounds[idx])
-                            if (idx == 0 && bounds[0] > bounds[1]) sbs[1]?.progress = v
-                            if (idx == 1 && bounds[1] < bounds[0]) sbs[0]?.progress = v
-                            if (idx == 1 && bounds[1] > bounds[2]) sbs[2]?.progress = v
-                            if (idx == 2 && bounds[2] < bounds[1]) sbs[1]?.progress = v
-                        }
-                        override fun onStartTrackingTouch(p0: SeekBar?) {}
-                        override fun onStopTrackingTouch(p0: SeekBar?) {}
+                        override fun onProgressChanged(p0: SeekBar?, progress: Int, p2: Boolean) { val v = progress / 10f; tvVal.text = String.format("%.1f cm", v); onValChange(v) }
+                        override fun onStartTrackingTouch(p0: SeekBar?) {}; override fun onStopTrackingTouch(p0: SeekBar?) {}
                     })
                 }
-                row.addView(tvLabel); row.addView(sbs[idx]); row.addView(tvs[idx]); contentBox.addView(row)
+                row.addView(tvLabel); row.addView(sb); row.addView(tvVal); container.addView(row)
             }
-            createBoundRow(0, "边界: 超短 ↔ 短")
-            createBoundRow(1, "边界: 短 ↔ 中")
-            createBoundRow(2, "边界: 中 ↔ 长")
-
-            policies.forEach { policy ->
-                contentBox.addView(createSectionHeader("${policy.name} (不含硬件死区缩放)"))
-                fun createFloatRow(label: String, initVal: Float, maxVal: Float, onValChange: (Float) -> Unit) {
-                    val row = LinearLayout(this@MotorRealExperienceActivity).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, 16, 0, 16) }
-                    val tvLabel = TextView(this@MotorRealExperienceActivity).apply { text = label; setTextColor(Color.LTGRAY); layoutParams = LinearLayout.LayoutParams(0, -2, 1.3f) }
-                    val tvVal = TextView(this@MotorRealExperienceActivity).apply { text = String.format(Locale.US, "%.1f cm", initVal); setTextColor(Color.CYAN); layoutParams = LinearLayout.LayoutParams(0, -2, 0.6f); gravity = Gravity.END }
-                    val sb = SeekBar(this@MotorRealExperienceActivity).apply {
-                        max = (maxVal * 10).toInt(); progress = (initVal * 10).toInt(); layoutParams = LinearLayout.LayoutParams(0, -2, 1f); setPadding(20,0,20,0)
-                        setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                            override fun onProgressChanged(p0: SeekBar?, progress: Int, p2: Boolean) { val v = progress / 10f; tvVal.text = String.format(Locale.US, "%.1f cm", v); onValChange(v) }
-                            override fun onStartTrackingTouch(p0: SeekBar?) {}; override fun onStopTrackingTouch(p0: SeekBar?) {}
-                        })
-                    }
-                    row.addView(tvLabel); row.addView(sb); row.addView(tvVal); contentBox.addView(row)
-                }
-                createFloatRow("参考行程 (Ref)", policy.refStroke, 120f) { policy.refStroke = it }
-                createFloatRow("触发向心 (Trigger)", policy.triggerThreshold, 30f) { policy.triggerThreshold = it }
-                createFloatRow("退顶峰回程 (Return)", policy.returnThreshold, 30f) { policy.returnThreshold = it }
-            }
+            createFloatRow("静止区阈值 (Static Zone)", policy.staticZone, 15f) { policy.staticZone = it }
+            createFloatRow("抖动区阈值 (Jitter Zone)", policy.jitterZone, 20f) { policy.jitterZone = it }
+            createFloatRow("触发向心阈值 (Trigger)", policy.triggerThreshold, 30f) { policy.triggerThreshold = it }
+            createFloatRow("退顶峰回程阈值 (Return)", policy.returnThreshold, 20f) { policy.returnThreshold = it }
         }
-        
-        fun updateTabs() {
-            btnMale.background = getRoundedBg(if(editingGender==0) Color.CYAN else Color.DKGRAY, 16f)
-            btnMale.setTextColor(if(editingGender==0) Color.BLACK else Color.WHITE)
-            btnFemale.background = getRoundedBg(if(editingGender==1) Color.MAGENTA else Color.DKGRAY, 16f)
-            btnFemale.setTextColor(if(editingGender==1) Color.BLACK else Color.WHITE)
-            renderContent()
-        }
-        btnMale.setOnClickListener { editingGender = 0; updateTabs() }
-        btnFemale.setOnClickListener { editingGender = 1; updateTabs() }
-        
-        tabRow.addView(btnMale); tabRow.addView(btnFemale)
-        container.addView(tabRow)
-        container.addView(contentBox)
-        updateTabs()
-
         overlay.addView(container)
         root.addView(overlay)
         settingsOverlay = overlay
     }
 
+    // [Logic] 根据模式更新参数标签
     private fun updateParamLabels(mode: Int, r1: View?, r2: View?, l1: TextView?, l2: TextView?, ratioRow: View?) {
         r1?.visibility = View.VISIBLE
         r2?.visibility = View.VISIBLE
         ratioRow?.visibility = View.GONE
         
         when(mode) {
-            0 -> { 
+            0 -> { // 标准
                 r1?.visibility = View.GONE; r2?.visibility = View.GONE 
                 ratioRow?.visibility = View.VISIBLE
             }
-            1 -> { 
+            1 -> { // 等速
+                // [Fix 5] 单位小写
                 l1?.text = "限制速度（cm/s）"; l2?.text = "强度系数 K"
             }
-            2 -> { 
+            2 -> { // 弹簧
                 l1?.text = "弹簧行程（cm）"; l2?.text = "劲度系数 K"
             }
-            3, 4, 5 -> { 
+            3, 4, 5 -> { // 划船, 平衡, 重力 (通常无Param控制，或使用默认)
                 r1?.visibility = View.GONE; r2?.visibility = View.GONE
             }
         }
     }
 
+    // [UI Component] 创建帮助按钮
     private fun createHelpButton(title: String, content: String): View {
         return TextView(this).apply {
             text = "?"
@@ -1024,6 +881,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
     }
 
+    // [UI Polish] 重构 SectionHeader，支持右侧添加问号，防止问号跑偏
     private fun createSectionHeader(title: String, helpTitle: String? = null, helpText: String? = null): LinearLayout {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -1039,6 +897,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         container.addView(tv)
         
         if (helpTitle != null && helpText != null) {
+            // 复用 createHelpButton，但需要微调 margin
             val helpBtn = createHelpButton(helpTitle, helpText)
             (helpBtn.layoutParams as LinearLayout.LayoutParams).apply {
                 marginStart = 12
@@ -1049,37 +908,65 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         return container
     }
 
+    // 下发所有配置
     private fun applySettings() {
+        // [Fix 3] 移除 isMotorActive 限制，允许在待机状态下下发配置参数 (如保护阈值、模式参数)
         lifecycleScope.launch(Dispatchers.IO) {
+            // 1. 下发模式与主参数 (Command 0x01) - 统一调用 updateMotorOutput
+            // [Fix] 消除 applySettings 和 updateMotorOutput 的逻辑差异
+            // 确保 "保存并生效" 按钮执行的逻辑与 "旋钮调力" 完全一致
             updateMotorOutput(silent = false)
+            
+            // [Fix] 增加延时，确保主指令被处理后再发送次要指令
+            // 避免指令堆积导致丢包
             delay(150)
+
+            // 2. 下发脱手保护 (0xA0)
             powerHelper.setReleaseProtection(motorConfig.releaseProtectEnable, motorConfig.releaseSpeedLimit, motorConfig.releaseDuration)
             delay(50)
+
+            // 3. 下发力量补偿 (0x06)
             powerHelper.setForceCompensation(motorConfig.pullComp, motorConfig.returnComp)
             delay(50)
+
+            // 4. 下发平衡开关 (0xA2)
             powerHelper.setBalanceSwitch(motorConfig.balanceSwitch)
+            
+            // [UI Fix] 3. 首页实时更新阻力模式显示
             runOnUiThread { circularKnobView.setModeName(getModeName(motorConfig.modeCode)) }
         }
     }
 
+    // [Fix] 统一的电机输出更新逻辑 (Centralized Logic)
+    // 确保无论是“激活时”还是“旋钮调力时”，都使用完全相同的配置参数
     private fun updateMotorOutput(silent: Boolean = false) {
-        val pullVal = max(2.5f, targetWeight) 
+        // 1. 计算拉力和回力 (应用离心比例)
+        // 注意: 仅在标准模式(00)下应用离心比例，其他模式通常 Base力(DATA[4]) = 设定力
+        val pullVal = max(2.5f, targetWeight) // 最小力保护
+        
+        // [Fix] 确保 returnRatio 正确应用，且保留一位小数精度，防止计算误差
         val returnVal = if (motorConfig.modeCode == 0) {
             val r = pullVal * motorConfig.returnRatio
-            max(2.5f, r) 
+            max(2.5f, r) // 保持最小 2.5kg 安全力
         } else {
             pullVal
         }
         
+        // [Fix] 移除 Hex String 中间态，直接使用 Int (单位 0.01kg, 即 5kg = 500)
+        // 协议 DATA[4]/[6] 为基础力/拉力/回力，单位通常匹配显示精度
         val pullInt = (pullVal * 100).toInt()
         val returnInt = (returnVal * 100).toInt()
 
+        // 2. 设置平滑参数
         powerHelper.isSmooth = motorConfig.isSmooth
         powerHelper.smoothRate = motorConfig.activationSmoothRate
 
+        // [Fix] 清洗参数：标准模式下，param1/param2 应为 0，避免协议混淆
         val p1 = if (motorConfig.modeCode == 0) 0 else motorConfig.param1
         val p2 = if (motorConfig.modeCode == 0) 0 else motorConfig.param2
 
+        // 3. 下发指令 (使用当前配置的模式)
+        // 协议映射: huiLiHex -> DATA[4](回力/基础力), pullHex -> DATA[6](拉力)
         powerHelper.setFullMotorModeInt(
             motorConfig.modeCode, 
             returnInt, 
@@ -1088,9 +975,10 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             p2
         )
         
-        if (!silent) logUI(String.format(Locale.US, "设定[%d]: 拉力%.1fkg(%d) / 回力%.1fkg(%d) P1=%d P2=%d", motorConfig.modeCode, pullVal, pullInt, returnVal, returnInt, p1, p2))
+        if (!silent) logUI("设定[${motorConfig.modeCode}]: 拉力%.1fkg(%d) / 回力%.1fkg(%d) P1=$p1 P2=$p2".format(pullVal, pullInt, returnVal, returnInt))
     }
 
+    // [Helper] 获取模式中文简写
     private fun getModeName(code: Int): String {
         return when(code) {
             0 -> "标准"
@@ -1103,65 +991,102 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
     }
 
+    // [Logic Fix] 完整的激活/卸力 闭环逻辑
     private fun toggleMotorActiveState() {
+        // [Fix] 1. 硬件未就绪拦截，防止初始化期间点击无效
         if (!isHardwareReady) {
             Toast.makeText(this, "正在连接电机，请稍候...", Toast.LENGTH_SHORT).show()
-            initHardware() 
+            initHardware() // Retry init if clicked while not ready
             return
         }
 
+        // [Fix 1] 立即取消之前的任务，防止快速点击导致的时序错乱 (Race Condition)
         activationJob?.cancel()
         
         isMotorActive = !isMotorActive
         circularKnobView.setActiveState(isMotorActive)
         
+        // [Feature] 播放音效
         playTone(isMotorActive)
 
         activationJob = lifecycleScope.launch(Dispatchers.IO) {
             powerHelper.isSmooth = true
 
             if (isMotorActive) {
+                // === 激活逻辑 ===
+                // [Fix] 移除重复使能指令，防止触发固件原点重置。
+                // 激活状态仅需启动心跳并下发目标力值。
+                // [Bug Fix] Start heartbeat loop to prevent motor timeout (Jitter fix)
                 startCommandLoop()
+
+                // 3. 下发目标参数
                 updateMotorOutput()
             } else {
-                val currentKg = targetWeight 
+                // === 卸力逻辑 (Requirements: 0.5s unload) ===
+                // 1. 计算卸力速率: Rate = CurrentWeight / Duration
+                // 公式: 缓速速率 = 当前重量(kg) / 时长(s)
+                // 例如: 30kg / 0.5s = 60. 协议值直接填 60.
+                // 注意: 协议 DATA[13] 范围 1-250.
+                val currentKg = targetWeight // 假设当前已达到目标力，或者直接从当前设定力开始卸
                 val rawRate = (currentKg / motorConfig.unloadDuration).toInt()
                 val unloadRate = max(1, min(250, rawRate))
                 powerHelper.smoothRate = unloadRate
+
+                // 2. 下发 2.5kg (安全基础力)
                 powerHelper.setFullMotorModeInt(0x00, 250, 250, 0, 0)
                 logUI("卸力: 2.5kg (Rate: $unloadRate)")
-                commandJob?.cancel() 
+                commandJob?.cancel() // Stop heartbeat on unload
             }
         }
     }
 
+    // --- 硬件与数据流 ---
+
     private fun initHardware() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // 1. 权限预检 (针对工程机环境的自动提权)
                 requestRootPermission()
-                delay(500) 
+                
+                delay(500) // [Fix] 等待 su 提权完成
+
+                // 2. 初始化 PowerHelper (使用 power 模块的标准实现)
                 powerHelper.init()
                 logUI("PowerHelper 初始化中... 等待数据流")
                 
+                // [Fix] 初始发送 Enable，防止电机处于 55 失能状态
                 delay(200)
                 sendCommandEnable()
                 
-                delay(200) 
+                // [Fix] 初始设置为 2.5kg (卸力状态)
+                delay(200) // [Fix] 增加延时至 200ms，确保初始化指令不冲突
                 powerHelper.isSmooth = true
                 powerHelper.smoothRate = 20
                 powerHelper.setFullMotorModeInt(0x00, 250, 250, 0, 0)
                 logUI("初始化完成: 待机 2.5kg")
-                isHardwareReady = true 
+                isHardwareReady = true // [Fix] 标记就绪
                 
+                // [Bug Fix] Start Loop immediately if needed, or wait for toggle
+                // Here we wait for user toggle to start active command loop
+
+                // 3. 注册观察者 (连接算法引擎)
+                // 注意: update 回调可能在 IO 线程，适合直接进行算法计算
                 powerHelper.setOnDataListener listener@{ model ->
                     if (!isRunning) return@listener
+
+                    // [Fast Track] 1. 算法解算 (零GC)
                     algorithmEngine.process(model)
+
+                    // [Fast Track] 2. 图表直接更新
                     forceCurveView.addPoint(algorithmEngine.filteredM1Force, algorithmEngine.filteredM2Force)
-                    strokeCurveView.addPoint(algorithmEngine.leftStroke, algorithmEngine.rightStroke) 
+                    strokeCurveView.addPoint(algorithmEngine.leftStroke, algorithmEngine.rightStroke) // [New Feature]
                     powerBarView.addPoint(algorithmEngine.m1PowerWatts, algorithmEngine.m2PowerWatts)
                 }
 
                 isRunning = true
+
+                // [Architecture Change] Start independent UI refresh loop (Slow Track)
+                // Decouples text layout updates from high-frequency data processing
                 startUiRefreshLoop()
 
             } catch (e: Throwable) {
@@ -1178,6 +1103,7 @@ class MotorRealExperienceActivity : AppCompatActivity() {
                 val p = Runtime.getRuntime().exec("su")
                 val os = p.outputStream
                 os.write("chmod 666 $serialPortPath\n".toByteArray())
+                // Ak21 需要 57600
                 os.write("stty -F $serialPortPath $baudRate raw -echo\n".toByteArray())
                 os.write("exit\n".toByteArray())
                 os.flush()
@@ -1189,32 +1115,43 @@ class MotorRealExperienceActivity : AppCompatActivity() {
         }
     }
 
+    // [Core Refactor] Low-Frequency UI Loop (Slow Track - 20 FPS)
+    // Solves "Layout Thrashing" and Main Thread Jitter
     private fun startUiRefreshLoop() {
         lifecycleScope.launch(Dispatchers.Main) {
             while (true) {
                 if (isRunning) {
                     updateTextUI()
                 }
-                delay(50) 
+                delay(50) // 50ms = 20 FPS. Smooth for text, easy on CPU.
             }
         }
     }
 
+    // [Bug Fix] Heartbeat Loop (5Hz)
+    // Prevents motor from relaxing due to lack of commands (Watchdog)
     private fun startCommandLoop() {
         commandJob?.cancel()
         commandJob = lifecycleScope.launch(Dispatchers.IO) {
             while (isMotorActive && isActive) {
                 if (isRunning) {
+                    // Silent update to keep motor alive
                     updateMotorOutput(silent = true)
                 }
-                delay(200) 
+                delay(200) // 200ms interval
             }
         }
     }
 
     private fun updateTextUI() {
         val engine = algorithmEngine
+        
+        // Update User State
+        // Use the latest event stored in engine (which might be latched logic inside engine)
+        // [Feature 2] 同时更新状态和总次数
         userStatePanel.update(engine.userStateStr, engine.totalCount) 
+        
+        // Update Motor Panels with COMPLETE data (Data Recovery)
         leftMotorPanel.update(
             engine.filteredM1Force, engine.leftStroke, engine.leftStateStr, 
             engine.m1PowerWatts, engine.leftRawCount,
@@ -1227,30 +1164,33 @@ class MotorRealExperienceActivity : AppCompatActivity() {
             engine.rightConcentricTime, engine.rightEccentricTime,
             engine.m2Temp, engine.m2ErrorCode, engine.m2AbsPos, engine.m2Speed
         )
+
+        // [Feature 5] 移交 UserStatePanel 处理动画
         userStatePanel.animateCountIfChanged(engine.totalCount)
         
-        // [Fix 6] 自动同步自由训练引发的底层行程策略切换
-        if (lastRenderedModeIndex != StrokeConfig.currentIndex) {
-            lastRenderedModeIndex = StrokeConfig.currentIndex
-            btnModes.forEachIndexed { i, b -> 
-                b.setTextColor(if (i == StrokeConfig.currentIndex) Color.BLACK else Color.WHITE)
-                b.background = getRoundedBg(if (i == StrokeConfig.currentIndex) Color.CYAN else Color.DKGRAY, 16f)
-            }
-        }
         
         if (engine.currentEvent.isNotEmpty()) {
             consoleText.text = "EVENT: ${engine.currentEvent}"
         }
     }
+    
+    // Removed old updateUI method
+    
+    // --- 指令发送 (全面接管 Ak21BenMoPowerHelper) ---
 
     private fun sendCommandEnable() {
         powerHelper.setEnablePowerMode()
         logUI("CMD: 发送使能 (AA)")
     }
     
+    // 强制安全卸力 (2.5kg)
     private fun forceSafeUnload() {
+        // [Optimization] 移除未使用的 hexStr 变量
+        // 开启平滑 (isSmooth = true), 需先设置属性
         powerHelper.isSmooth = true
-        powerHelper.smoothRate = motorConfig.activationSmoothRate 
+        powerHelper.smoothRate = motorConfig.activationSmoothRate // [Fix] Use config
+        
+        // [Fix] 使用 Int 接口
         powerHelper.setFullMotorModeInt(0x00, 250, 250, 0, 0)
     }
 
@@ -1265,8 +1205,10 @@ class MotorRealExperienceActivity : AppCompatActivity() {
 
     private fun stopHardware() {
         isRunning = false
+        // [Fix] 2. 退出时改为卸力 (2.5kg) 而非失能，保持拉索张力
         powerHelper.isSmooth = true
         powerHelper.smoothRate = 20
+        // 使用同步方式或确保在退出前发送 (此处直接调用 write，SerialManager.write 是同步的)
         powerHelper.setFullMotorModeInt(0x00, 250, 250, 0, 0)
         logUI("系统退出: 已重置为 2.5kg")
     }
@@ -1274,16 +1216,17 @@ class MotorRealExperienceActivity : AppCompatActivity() {
     private fun safeExit() {
         stopHardware()
         finish()
-        Process.killProcess(Process.myPid())
+        android.os.Process.killProcess(android.os.Process.myPid())
     }
 
     private fun logUI(msg: String) {
         runOnUiThread {
             consoleText.text = msg
             Log.d("MotorReal", msg)
+            }
         }
-    }
 }
+
 // 配置数据类 (保存用户设置)
 data class MotorConfig(
     var modeCode: Int = 0, // 00 标准
@@ -1350,7 +1293,6 @@ class V11AlgorithmEngine {
     // 事件标志位 (用于锁存)
     var currentEvent: String = ""
     var hasNewEvent: Boolean = false // 标记当前帧是否产生了新事件
-    
 
     // 时间追踪 (用于计算 dt)
     private var lastProcessTime = 0L
@@ -1406,24 +1348,11 @@ class V11AlgorithmEngine {
         lastM1Force = sm1Force
         lastM2Force = sm2Force
 
-        // [Architecture] 侧向抑制与动态意图判断 (单侧锁定保护)
-        var m1Inhibited = false
-        var m2Inhibited = false
-        val m1Active = m1Processor.ctx.state in listOf(SingleMotorProcessor.MotorState.CONCENTRIC, SingleMotorProcessor.MotorState.PEAK, SingleMotorProcessor.MotorState.ECCENTRIC) && m1Processor.ctx.realStroke > 10f
-        val m2Active = m2Processor.ctx.state in listOf(SingleMotorProcessor.MotorState.CONCENTRIC, SingleMotorProcessor.MotorState.PEAK, SingleMotorProcessor.MotorState.ECCENTRIC) && m2Processor.ctx.realStroke > 10f
-
-        if (m1Active && !m2Active) {
-            m2Inhibited = !(m2P - m2Processor.ctx.startPos > 15f && abs(m2V) > 20f)
-        } else if (m2Active && !m1Active) {
-            m1Inhibited = !(m1P - m1Processor.ctx.startPos > 15f && abs(m1V) > 20f)
-        }
-        m1Processor.isLockedToPrepare = m1Inhibited
-        m2Processor.isLockedToPrepare = m2Inhibited
-
         // 1. 物理层处理 (Motor Physics Layer)
         val p1 = m1Processor.update(sm1Force, m1P, m1V, safeDt)
         val p2 = m2Processor.update(sm2Force, m2P, m2V, safeDt)
         
+        // KE-ZL-202309-0
         // 2. 用户行为层处理 (User Behavior Layer)
         // 融合双电机数据，判定用户当前处于什么阶段
         val userStateResult = userProcessor.update(p1, p2)
@@ -1431,8 +1360,8 @@ class V11AlgorithmEngine {
         // 更新公共字段 (无内存分配)
         leftStateStr = p1.state.cnName
         rightStateStr = p2.state.cnName
-        leftStroke = m1Processor.concentricStroke // [Fix] 从处理器中直接获取向心行程记录
-        rightStroke = m2Processor.concentricStroke
+        leftStroke = p1.realStroke
+        rightStroke = p2.realStroke
         userStateStr = userStateResult.stateName
         totalCount = userProcessor.totalCount
         m1PowerWatts = power1
@@ -1441,12 +1370,6 @@ class V11AlgorithmEngine {
         filteredM2Force = sm2Force
         leftRawCount = m1Processor.rawCount
         rightRawCount = m2Processor.rawCount
-
-        // 捕获疲劳宽容事件
-        if (p1.isFatigueTolerated || p2.isFatigueTolerated) {
-            currentEvent = "疲劳宽容计次: 幅度不足/力竭半程"
-            hasNewEvent = true
-        }
 
         // Update Durations
         leftConcentricTime = m1Processor.concentricDuration
@@ -1468,16 +1391,6 @@ class V11AlgorithmEngine {
         if (userStateResult.event != null) hasNewEvent = true
     }
     
-    // [Feature 2] 彻底重置计次与状态机基准
-    fun resetCounters() {
-        totalCount = 0
-        leftRawCount = 0
-        rightRawCount = 0
-        m1Processor.reset()
-        m2Processor.reset()
-        userProcessor.reset()
-    }
-
     private fun lowPassFilter(current: Float, last: Float): Float {
         if (last == 0f) return current
         return last + filterAlpha * (current - last)
@@ -1526,21 +1439,27 @@ class LocalBenMoPowerHelper {
     fun setUnEnablePowerMode() = sendHex("64020255")
     fun setResetMode() = sendHex("640201FC")
 
+    // [Feature] 设备重启 (指令码 0xFF)
     fun sendDeviceRestart() = sendHex("6402FF")
 
+    // [Protocol Fix] 直接使用 Int 数值，避免 String 转换错误
     fun setFullMotorModeInt(modeCode: Int, huiLi: Int, laLi: Int, param1: Int, param2: Int) {
         val cmd = ByteArray(32)
         cmd[0] = 0x64; cmd[1] = 0x02; cmd[2] = 0x01; cmd[3] = modeCode.toByte()
         
+        // DATA[4]/[5] 回力 (High byte first)
         cmd[4] = ((huiLi shr 8) and 0xFF).toByte()
         cmd[5] = (huiLi and 0xFF).toByte()
         
+        // DATA[6]/[7] 拉力
         cmd[6] = ((laLi shr 8) and 0xFF).toByte()
         cmd[7] = (laLi and 0xFF).toByte()
         
+        // DATA[8], DATA[9] 系数
         cmd[8] = param1.toByte()
         cmd[9] = param2.toByte()
 
+        // 注入平滑参数
         if (isSmooth) {
             cmd[12] = 0x01
             cmd[13] = smoothRate.toByte()
@@ -1551,11 +1470,14 @@ class LocalBenMoPowerHelper {
         serialManager.write(cmd)
     }
 
+    // [Protocol Update] 0xA0 脱手功能设置
     fun setReleaseProtection(enable: Boolean, speed: Int, duration: Int) {
         val cmd = ByteArray(32)
         cmd[0] = 0x64; cmd[1] = 0x02
-        cmd[2] = 0xA0.toByte() 
+        cmd[2] = 0xA0.toByte() // 指令码
         cmd[3] = if (enable) 0x01 else 0x00
+        // [Fix Protocol Unit] 文档: 1-30 (10-300cm/s). 所以 1 unit = 10cm/s.
+        // UI 传入的是 cm/s (e.g. 100), 发送前需 /10.
         val speedVal = (speed / 10).coerceIn(1, 30)
         cmd[4] = speedVal.toByte()
         cmd[5] = duration.toByte()
@@ -1565,13 +1487,16 @@ class LocalBenMoPowerHelper {
         serialManager.write(cmd)
     }
 
+    // [Protocol Update] 0x06 力量补偿设置
     fun setForceCompensation(returnComp: Int, pullComp: Int) {
         val cmd = ByteArray(32)
         cmd[0] = 0x64; cmd[1] = 0x02
         cmd[2] = 0x06.toByte()
         
+        // DATA[4] 回力补偿
         cmd[4] = ((returnComp shr 8) and 0xFF).toByte()
         cmd[5] = (returnComp and 0xFF).toByte()
+        // DATA[6] 拉力补偿
         cmd[6] = ((pullComp shr 8) and 0xFF).toByte()
         cmd[7] = (pullComp and 0xFF).toByte()
 
@@ -1580,6 +1505,7 @@ class LocalBenMoPowerHelper {
         serialManager.write(cmd)
     }
 
+    // [Protocol Update] 0xA2 平衡功能设置
     fun setBalanceSwitch(enable: Boolean) {
         val cmd = ByteArray(32)
         cmd[0] = 0x64; cmd[1] = 0x02
@@ -1599,6 +1525,15 @@ class LocalBenMoPowerHelper {
         cmd[30] = 0x0D; cmd[31] = 0x0A
         serialManager.write(cmd)
     }
+    
+    // 辅助调试：打印 Hex
+    private fun bytesToHex(bytes: ByteArray): String {
+        val sb = StringBuilder()
+        for (b in bytes) {
+            sb.append(String.format("%02X ", b))
+        }
+        return sb.toString()
+    }
 
     private fun readLoop() {
         val buffer = ByteArray(1024)
@@ -1615,8 +1550,8 @@ class LocalBenMoPowerHelper {
     
     private fun fillCRC(cmd: ByteArray) {
         var crc = 0x00
-        for (i in 0 until 29) { 
-            crc = CRC8.compute(crc, cmd[i].toInt() and 0xFF) 
+        for (i in 0 until 29) { // Ak21 CRC range 0..28 (byte 29 is CRC)
+            crc = CRC8.compute(crc, cmd[i].toInt() and 0xFF) // [Fix 2 & 3] 关键修复：Mask to unsigned byte，否则 0xFF 等指令会计算错误
         }
         cmd[29] = crc.toByte()
     }
@@ -1651,18 +1586,27 @@ class ProtocolParser {
         
         val res = ArrayList<PowerControlModelInterface>()
         var ptr = 0
+        // [Critical Fix] 协议规范对应: 健身动力高压IPM模组50kg双驱20250912.md
+        // 帧长度: DATA[0]..DATA[39] = 40 字节
         val frameLen = 40 
         
         while (ptr <= wIdx - frameLen) {
+            // Header: 64 02
             if (buffer[ptr] == 0x64.toByte() && buffer[ptr+1] == 0x02.toByte()) {
+                 // [Fix Data Spikes & Logic] 
+                 // 1. Force 是无符号数 (Unsigned), 且单位是 0.01kg
+                 // Doc: DATA[3] Force. Assuming 2 bytes based on implementation logic.
                  val m1Force = getUInt16(ptr + 3) 
+                 // 2. Speed/Rate 是有符号数 (Signed Short), 必须处理负数! 否则回绳速度变成 65535, 导致状态机死锁
                  val m1Rate = getSInt16(ptr + 5)
+                 // 3. Distance 是有符号数
                  val m1Dist = getSInt16(ptr + 7)
                  
                  val m2Force = getUInt16(ptr + 14)
                  val m2Rate = getSInt16(ptr + 16)
                  val m2Dist = getSInt16(ptr + 18)
                  
+                 // Diagnostics
                  val m1E = buffer[ptr + 25].toInt()
                  val m2E = buffer[ptr + 26].toInt()
                  val m1T = buffer[ptr + 31].toInt()
@@ -1685,15 +1629,17 @@ class ProtocolParser {
         return res
     }
     
+    // 解析无符号 16位 (0 ~ 65535) -> 用于力/Raw值
     private fun getUInt16(idx: Int): Int {
         return ((buffer[idx].toInt() and 0xFF) shl 8) or (buffer[idx+1].toInt() and 0xFF)
     }
 
+    // 解析有符号 16位 (-32768 ~ 32767) -> 用于速度/位置
     private fun getSInt16(idx: Int): Int {
         val high = buffer[idx].toInt() and 0xFF
         val low = buffer[idx+1].toInt() and 0xFF
-        val raw = (high shl 24) or (low shl 16)
-        return raw shr 16 
+        val raw = (high shl 8) or low
+        return raw.toShort().toInt() // 关键: 转为 Short 恢复符号位
     }
 }
 
@@ -1713,7 +1659,7 @@ class SerialManager {
     
     fun read(b: ByteArray): Int = fis?.read(b) ?: 0
     
-    @Synchronized 
+    @Synchronized // [Fix] 线程安全锁，防止多线程写入导致数据包错乱
     fun write(b: ByteArray) {
         try {
             fos?.write(b)
@@ -1734,6 +1680,7 @@ object CRC8 {
 
 // 单电机物理状态机
 class SingleMotorProcessor {
+    // 严格按照文档定义: 准备 | 向心 | 顶峰 | 离心 | 复位 // KE-ZL-202309-0
     enum class MotorState(val cnName: String) {
         PREPARE("准备"),
         CONCENTRIC("向心"),
@@ -1746,299 +1693,219 @@ class SingleMotorProcessor {
         var state: MotorState = MotorState.PREPARE,
         var startPos: Float = 0f,
         var realStroke: Float = 0f,
-        var realVel: Float = 0f, 
+        var realVel: Float = 0f, // cm/s (注意单位统一)
         var stdStroke: Float = 50f,
-        var work: Float = 0f,    
-        var impulse: Float = 0f, 
-        var duration: Float = 0f, 
-        var triggeredValidPeak: Boolean = false, 
-        var isSetupPeak: Boolean = false,        
-        var isFatigueTolerated: Boolean = false, // [Feature] 标记是否为力竭宽容计次
-        var retroactiveCounts: Int = 0           // [Feature] 幽灵补发计次
+        // [Feature] Advanced Metrics
+        var work: Float = 0f,    // 累计做功 (J)
+        var impulse: Float = 0f, // 累计冲量 (N·s)
+        var duration: Float = 0f, // 当前相位时长 (s)
+        var triggeredValidPeak: Boolean = false, // [Fix 3] 标记是否触发有效计次
+        var isSetupPeak: Boolean = false         // [Fix 3] 标记是否为起势动作
     ) // KE-ZL-202309-0
 
-    val ctx = PhysicsContext()
+    private val ctx = PhysicsContext()
     val baseline = DynamicBaseline()
     var rawCount = 0
-    var isLockedToPrepare = false 
     
+    // 过程变量
+    // [Feature] 时长统计
     var concentricDuration = 0f
     var eccentricDuration = 0f
-    var setBestVelocity = 0f
     
-    var concentricStroke = 0f // [Fix] 像时长一样记录向心行程
-    var eccentricStroke = 0f  // [Fix] 像时长一样记录离心行程
-    var peakConcentricStroke = 0f // [Fix] 纯向心行程的相对峰值
-    private var startOfConcentricPos = 0f // [Fix] 记录每次向心的实际物理起点
-    private var lowestPosInPrepare = Float.MAX_VALUE 
-    private var lowestPosInEccentric = Float.MAX_VALUE 
-    private var highestPosInPeak = 0f 
-    private var posAtPhaseStart = 0f // [Fix] 记录相位开始时的绝对位置作为该相位的起点
-    private var eccentricStopFrames = 0 // [Fix 3] 离心超时计数器
-    
-    private var phaseStartTime = 0L 
-    private var workAccumulator = 0f 
-    private var impulseAccumulator = 0f 
-    private var continuousDropFrames = 0 
-    private var lastFrameStroke = 0f     
+    private var peakPosInCycle = 0f // 当前循环的峰值位置 (文档: [峰值位置])
+    private var phaseStartTime = 0L // 相位开始时间戳
+    private var workAccumulator = 0f // 做功累加器
+    private var impulseAccumulator = 0f // 冲量累加器
+    private var continuousDropFrames = 0 // [Fix 2] 防颤抖跌落计数器
+    private var lastFrameStroke = 0f     // [Fix 2] 上一帧行程
 
-    fun reset() {
-        ctx.state = MotorState.PREPARE
-        ctx.work = 0f; ctx.impulse = 0f; ctx.duration = 0f
-        rawCount = 0
-        workAccumulator = 0f; impulseAccumulator = 0f
-        concentricDuration = 0f; eccentricDuration = 0f; setBestVelocity = 0f
-        concentricStroke = 0f; eccentricStroke = 0f
-        peakConcentricStroke = 0f
-        startOfConcentricPos = 0f
-        lowestPosInPrepare = Float.MAX_VALUE
-        lowestPosInEccentric = Float.MAX_VALUE
-        highestPosInPeak = 0f
-        posAtPhaseStart = 0f
-        eccentricStopFrames = 0
-        baseline.reset()
-    }
-
+    // KE-ZL-202309-0
     fun update(force: Float, pos: Float, speed: Float, dt: Float): PhysicsContext {
+        // 速度单位转换: cm/s -> m/s (文档逻辑多用 m/s)
         val speedMps = speed / 100f 
         
+        // 每帧重置瞬发事件
         ctx.triggeredValidPeak = false
         ctx.isSetupPeak = false
-        ctx.isFatigueTolerated = false
-        ctx.retroactiveCounts = 0
 
-        if (isLockedToPrepare) {
-            if (ctx.state != MotorState.PREPARE && ctx.state != MotorState.RESET) transitionTo(MotorState.RESET, pos)
-            ctx.state = MotorState.PREPARE
-            return ctx
-        }
-
+        // 1. 更新动态基准
         baseline.update(force, pos, speedMps, ctx.state)
         
-        ctx.startPos = baseline.stdStartPos 
+        // 2. 计算实时物理量
+        ctx.startPos = baseline.stdStartPos // KE-ZL-202309-0
+        // 文档公式: 实时行程 = 当前位置 - 标准起点
+        // 注意: 拉索拉出，位置增加。若未拉出，pos 可能略小于 startPos (抖动)，取 max(0)
         ctx.realStroke = max(0f, pos - ctx.startPos) 
         ctx.realVel = speed
         ctx.stdStroke = baseline.stdStroke
 
+        // [Feature] 高阶指标积分
+        // 做功 (Work) = Force (N) * Distance (m). Force is kg, so * 9.8.
+        // 简化计算: 仅在向心阶段累加做功 (有效做功)
         if (ctx.state == MotorState.CONCENTRIC) {
-            val dStroke = max(0f, speedMps * dt) 
+            val dStroke = max(0f, speedMps * dt) // m
             val dWork = (force * 9.8f) * dStroke
             workAccumulator += dWork
         }
         
-        if (force > 1.0f) { 
+        // 冲量 (Impulse) = Force (N) * Time (s)
+        if (force > 1.0f) { // 忽略底噪
             impulseAccumulator += (force * 9.8f) * dt
         }
         
+        // 更新上下文输出
         ctx.work = workAccumulator
         ctx.impulse = impulseAccumulator
         ctx.duration = (System.currentTimeMillis() - phaseStartTime) / 1000f
 
-        // 高精度跟踪物理极值点，为相对距离做强力锚点
-        if (ctx.state == MotorState.PREPARE || ctx.state == MotorState.RESET) {
-            if (pos < lowestPosInPrepare) lowestPosInPrepare = pos
-        } else if (ctx.state == MotorState.ECCENTRIC) {
-            if (pos < lowestPosInEccentric) lowestPosInEccentric = pos
-        } else if (ctx.state == MotorState.PEAK) {
-            if (pos > highestPosInPeak) highestPosInPeak = pos
-        }
-
-        // 1. 底层幽灵推演变量（实时跟踪位置供状态机防抖，不受视觉锁定影响）
-        val currentRelStroke = max(0f, pos - startOfConcentricPos)
-
-        // [Fix] 核心修复：10Hz下转折帧的位置必然回落，向心行程绝不可跟随回缩！
-        // 采用单向棘轮机制，强制锁定并展示本次发力的绝对巅峰数值
-        if (ctx.state == MotorState.CONCENTRIC || ctx.state == MotorState.PEAK) {
-            if (currentRelStroke > peakConcentricStroke) {
-                peakConcentricStroke = currentRelStroke
-            }
-            concentricStroke = peakConcentricStroke // 取整个行程中的巅峰数字，1毫米都不会回缩
-            
-            if (ctx.state == MotorState.CONCENTRIC) {
-                concentricDuration = ctx.duration
-            }
+        // [Feature] 更新时长
+        if (ctx.state == MotorState.CONCENTRIC) {
+            concentricDuration = ctx.duration
         } else if (ctx.state == MotorState.ECCENTRIC) {
             eccentricDuration = ctx.duration
-            eccentricStroke = max(0f, posAtPhaseStart - pos) 
         }
 
-        val policy = StrokeConfig.getScaledPolicy() 
+        val policy = StrokeConfig.current // [Feature 2] 获取当前行程策略
 
+        // 3. 状态机流转
         when (ctx.state) {
             MotorState.PREPARE -> {
+                peakPosInCycle = 0f // KE-ZL-202309-0
                 continuousDropFrames = 0
-                
-                // [Fix] 动态相对触发：只要从稳定低点向上拉动了触发阀值即进向心，不再强求回到0
-                val strokeFromLowest = pos - lowestPosInPrepare
-                if (strokeFromLowest > policy.triggerThreshold && speedMps > 0.05f) {
-                    transitionTo(MotorState.CONCENTRIC, pos)
+                // 进入向心条件: 实时行程 > 触发阈值 AND (速度 > 0.05m/s OR 连续增加)
+                if (ctx.realStroke > policy.triggerThreshold && speedMps > 0.05f) {
+                    transitionTo(MotorState.CONCENTRIC)
                 }
             }
             MotorState.CONCENTRIC -> {
-                // [Fix 2] 极其关键：必须用历史峰值来判断高度，防止 10Hz 回落造成的瞬时位置坍塌导致不进顶峰
-                val isHighEnough = peakConcentricStroke > (baseline.stdStroke * 0.4f) || peakConcentricStroke > policy.triggerThreshold 
-                val isTurning = speedMps < 0.0f 
-                val isStatic = abs(speedMps) < 0.05f && peakConcentricStroke > (baseline.stdStroke * 0.7f) 
+                // 更新峰值位置 // KE-ZL-202309-0
+                if (ctx.realStroke > peakPosInCycle) peakPosInCycle = ctx.realStroke
                 
-                if (isHighEnough && (isTurning || isStatic)) { 
-                    transitionTo(MotorState.PEAK, pos)
-                } else if (isTurning && currentRelStroke < policy.staticZone) {
-                    // [Fix 3] 动作打断保护：如果拉起没达标，且回落到底部，直接重置，防止状态机死锁在向心
-                    transitionTo(MotorState.RESET, pos)
+                // 进入顶峰条件:
+                // 1. 自然转折: 速度趋势由正转负 AND 行程 > 50%标准行程
+                // 2. 静态保持: |速度| < 0.05m/s AND 行程 > 80%标准行程
+                
+                // 实战优化: 只要速度明显下降或转负，且行程足够，即视为顶峰或经过顶峰
+                val isHighEnough = ctx.realStroke > (baseline.stdStroke * 0.5f) || ctx.realStroke > 10.0f // 冷启动10cm // KE-ZL-202309-0
+                val isTurning = speedMps < 0.0f // 速度转负 // KE-ZL-202309-0
+                val isStatic = abs(speedMps) < 0.05f && ctx.realStroke > (baseline.stdStroke * 0.8f) // KE-ZL-202309-0
+                
+                if (isHighEnough && (isTurning || isStatic)) { // KE-ZL-202309-0
+                    transitionTo(MotorState.PEAK)
                 }
-                if (speedMps < -1.5f) transitionTo(MotorState.RESET, pos)
+                
+                // [安全边界] 速度异常过快时的保护逻辑 (如失控)
+                // 若速度 < -1.5m/s (极快回弹)，强制重置状态，防止算法错乱
+                if (speedMps < -1.5f) transitionTo(MotorState.RESET)
             }
             MotorState.PEAK -> {
-                if (currentRelStroke < lastFrameStroke) {
+                if (ctx.realStroke > peakPosInCycle) peakPosInCycle = ctx.realStroke // 顶峰偶有更高
+                
+                // [Fix 2] 顶峰退出的连续性误判防范
+                if (ctx.realStroke < lastFrameStroke) {
                     continuousDropFrames++
                 } else {
                     continuousDropFrames = 0
                 }
-                lastFrameStroke = currentRelStroke
+                lastFrameStroke = ctx.realStroke
                 
-                if (continuousDropFrames >= 3 && (peakConcentricStroke - currentRelStroke) > policy.returnThreshold) {
-                    transitionTo(MotorState.ECCENTRIC, pos)
+                if (continuousDropFrames >= 3 && (peakPosInCycle - ctx.realStroke) > policy.returnThreshold) {
+                    transitionTo(MotorState.ECCENTRIC)
                 }
-                if (speedMps > 0.05f && currentRelStroke >= peakConcentricStroke) {
-                    transitionTo(MotorState.CONCENTRIC, pos)
+                // 退出条件2: 假动作回向心
+                if (speedMps > 0.05f && ctx.realStroke > peakPosInCycle) {
+                    transitionTo(MotorState.CONCENTRIC)
                 }
             }
             MotorState.ECCENTRIC -> {
-                if (abs(speedMps) < 0.05f) {
-                    eccentricStopFrames++
-                } else {
-                    eccentricStopFrames = 0
+                // 退出条件1: 复位. 行程 < 静止阈值
+                if (ctx.realStroke < policy.staticZone) {
+                    transitionTo(MotorState.RESET)
                 }
-                
-                // [Fix 4] 复位判定纯相对化，直接利用 concentricStroke (已消除漂移) 替代 realStroke
-                if (currentRelStroke < policy.staticZone || (eccentricStopFrames >= 5 && currentRelStroke < baseline.stdStroke * 0.4f)) {
-                    transitionTo(MotorState.RESET, pos)
-                }
-                val strokeFromLowest = pos - lowestPosInEccentric
-                if (speedMps > 0.05f && strokeFromLowest > policy.triggerThreshold * 0.6f) {
-                    transitionTo(MotorState.CONCENTRIC, pos)
+                // 退出条件2: 连续动作. 速度再次转正 > 0.05m/s 且行程增加
+                if (speedMps > 0.05f) {
+                    transitionTo(MotorState.CONCENTRIC)
                 }
             }
-            MotorState.RESET -> { 
-                transitionTo(MotorState.PREPARE, pos)
+            MotorState.RESET -> { // KE-ZL-202309-0
+                // 动作: 触发计次结算(已在PEAK/ECCENTRIC触发)，流转至 PREPARE
+                // 自动流转回准备
+                transitionTo(MotorState.PREPARE)
             }
         }
 
         return ctx
     }
 
-    private fun transitionTo(newState: MotorState, currentPos: Float) {
+    private fun transitionTo(newState: MotorState) {
         if (ctx.state == newState) return
+        // KE-ZL-202309-0
         val lastState = ctx.state
         ctx.state = newState
         
-        phaseStartTime = if (newState == MotorState.CONCENTRIC) System.currentTimeMillis() - 100 else System.currentTimeMillis()
-        posAtPhaseStart = currentPos // [Fix] 像计时一样，在状态流转时重置此相位的起点快照
+        // [Logic] 重置相位计时器
+        phaseStartTime = System.currentTimeMillis()
         
-        if (newState == MotorState.PREPARE || newState == MotorState.RESET) {
-            lowestPosInPrepare = currentPos
-        } else if (newState == MotorState.ECCENTRIC) {
-            lowestPosInEccentric = currentPos
-            posAtPhaseStart = highestPosInPeak 
-        } else if (newState == MotorState.PEAK) {
-            highestPosInPeak = currentPos
-        }
-        
-        if (newState == MotorState.CONCENTRIC) {
-            if (lastState != MotorState.PEAK) {
-                // 提取出上一个动作真正的波谷极限作为新一轮的向心起点！1毫米都不会吃掉
-                startOfConcentricPos = if (lastState == MotorState.ECCENTRIC) min(lowestPosInEccentric, currentPos) else min(lowestPosInPrepare, currentPos)
-                peakConcentricStroke = 0f 
-                concentricStroke = max(0f, currentPos - startOfConcentricPos) // 瞬间同步已拉出的距离
-                eccentricStroke = 0f
-            }
-        }
-        
+        // [Logic] 复位状态下重置累积指标
         if (newState == MotorState.PREPARE || newState == MotorState.RESET) {
             workAccumulator = 0f
             impulseAccumulator = 0f
-            
-            val currentAvg = peakConcentricStroke / max(0.1f, concentricDuration)
-            if (currentAvg > setBestVelocity) setBestVelocity = currentAvg
         }
         
+        if (newState == MotorState.CONCENTRIC) {
+            peakPosInCycle = ctx.realStroke // 连续动作重置峰值
+        }
+        
+        // 物理计次逻辑: 满足 [单电机计次条件] 时 +1
+        // 触发时机: 向心 -> 顶峰 (或 向心 -> 离心)
         if (lastState == MotorState.CONCENTRIC && (newState == MotorState.PEAK || newState == MotorState.ECCENTRIC)) {
-             val policy = StrokeConfig.getScaledPolicy()
+             val policy = StrokeConfig.current
+             val countThreshold = if (baseline.isCalibrated) (baseline.stdStroke * 0.8f) else min(15.0f, policy.refStroke * 0.5f)
              
-             // [计次闭环修复] 严格按需求文档：计次阈值 = 0.8 * 标准行程。冷启动采用设定参考值的 50%
-             val countThreshold = if (baseline.isCalibrated) (baseline.stdStroke * 0.8f) else (policy.refStroke * 0.5f)
-             
-             // [计次闭环修复] 强制要求绝对行程 > 2.5cm 防伪触发，特别是针对超短行程动作
-             val isStrokeAbsoluteValid = peakConcentricStroke >= 2.5f
-             
-             val currentAvg = peakConcentricStroke / max(0.1f, concentricDuration)
-             val isFatigued = currentAvg < (setBestVelocity * 0.85f) || (ctx.realVel < 5.0f && concentricDuration > 2.0f)
-             
-             if (!baseline.isCalibrated) {
-                 if (peakConcentricStroke >= countThreshold && isStrokeAbsoluteValid) {
-                     ctx.triggeredValidPeak = true
-                     rawCount++
-                     baseline.submitValidStroke(peakConcentricStroke, false)
-                    } else if (peakConcentricStroke > policy.triggerThreshold) { 
-                     // 动作未达 50% 但超过了起势识别阀值，只建库不计次
+             // [Fix 3] 高位起势动作剥离 (第一把不计次只建基准)
+             if (!baseline.isCalibrated && peakPosInCycle > (policy.refStroke * 0.5f)) {
                  ctx.isSetupPeak = true
-                     baseline.submitValidStroke(peakConcentricStroke, false)
-                 }
+                 baseline.forceCalibrate(peakPosInCycle)
              } else {
-                 if (peakConcentricStroke >= countThreshold && isStrokeAbsoluteValid) { 
+                 if (peakPosInCycle >= countThreshold || peakPosInCycle > 5.0f) { 
                      ctx.triggeredValidPeak = true
                      rawCount++
-                     baseline.submitValidStroke(peakConcentricStroke, false)
-                 } else if (peakConcentricStroke >= countThreshold * 0.7f && isFatigued && isStrokeAbsoluteValid) {
-                     ctx.triggeredValidPeak = true
-                     ctx.isFatigueTolerated = true
-                     rawCount++
-                     baseline.submitValidStroke(peakConcentricStroke, false)
-                 }
-                 
-                 // [Fix] 彻底解决自由训练“长程切短程卡死”的 Bug：
-                 // 如果动作被正常阈值拦截（没达标），但幅度 > 8cm（显著的短程动作），
-                 // 独立将其喂给基准池进行 CV 变异分析，强制向下兼容与平滑降级。
-                 if (StrokeConfig.isFreeTraining && peakConcentricStroke < countThreshold && peakConcentricStroke > 8.0f) {
-                      val retro = baseline.submitValidStroke(peakConcentricStroke, true)
-                     if (retro > 0) {
-                         rawCount += retro
-                         ctx.retroactiveCounts = retro
-                     }
+                     if (!baseline.isCalibrated) baseline.forceCalibrate(peakPosInCycle)
                  }
              }
+        }
+        
+        if (newState == MotorState.PEAK) {
+            baseline.setPeakPos(peakPosInCycle + ctx.startPos)
         }
     }
 }
 
+// 用户行为状态机 (业务层)
 class UserStateProcessor {
+    // 文档定义: 准备 | 向心 | 顶峰 | 离心 | 复位 // KE-ZL-202309-0
     enum class UserState(val cnName: String) {
         PREPARE("准备"),
         CONCENTRIC("向心(拉)"),
-        PEAK("顶峰(停)"), 
+        PEAK("顶峰(停)"), // [Feature 4] 汉化 Hold -> 停
         ECCENTRIC("离心(放)"),
         RESET("复位")
     }
     data class StateResult(val stateName: String, val event: String?)
 
     private var state = UserState.PREPARE
-    var totalCount = 0 
+    var totalCount = 0 // KE-ZL-202309-0
     
+    // [Fix 1] 独立计次追踪，解决漏计问题
     private var leftCount = 0
     private var rightCount = 0
     private var lastLeftState = SingleMotorProcessor.MotorState.PREPARE
     private var lastRightState = SingleMotorProcessor.MotorState.PREPARE
     
+    // 同步窗口
     private var lastLeftPeakTime = 0L
     private var lastRightPeakTime = 0L
     private var lastMergedTime = 0L
-
-    fun reset() {
-        state = UserState.PREPARE
-        totalCount = 0; leftCount = 0; rightCount = 0
-        lastLeftState = SingleMotorProcessor.MotorState.PREPARE
-        lastRightState = SingleMotorProcessor.MotorState.PREPARE
-    }
 
     fun update(leftCtx: SingleMotorProcessor.PhysicsContext, rightCtx: SingleMotorProcessor.PhysicsContext): StateResult {
         var event: String? = null
@@ -2046,8 +1913,10 @@ class UserStateProcessor {
         val leftState = leftCtx.state
         val rightState = rightCtx.state
 
+        // [Fix 1] 核心计次逻辑下沉：独立检测每一侧的上升沿
         val now = System.currentTimeMillis()
 
+        // [Fix 3 Integration] 处理合法的计次与起势事件
         if (leftCtx.triggeredValidPeak) {
              leftCount++
              lastLeftPeakTime = now
@@ -2067,13 +1936,14 @@ class UserStateProcessor {
         lastLeftState = leftState
         lastRightState = rightState
 
+        // 状态融合逻辑
         state = when {
             leftState == SingleMotorProcessor.MotorState.PREPARE && rightState == SingleMotorProcessor.MotorState.PREPARE -> UserState.PREPARE
             leftState == SingleMotorProcessor.MotorState.RESET && rightState == SingleMotorProcessor.MotorState.RESET -> UserState.RESET
-            leftState == SingleMotorProcessor.MotorState.PEAK || rightState == SingleMotorProcessor.MotorState.PEAK -> UserState.PEAK 
+            leftState == SingleMotorProcessor.MotorState.PEAK || rightState == SingleMotorProcessor.MotorState.PEAK -> UserState.PEAK // 优先级提升
             leftState == SingleMotorProcessor.MotorState.CONCENTRIC || rightState == SingleMotorProcessor.MotorState.CONCENTRIC -> UserState.CONCENTRIC
             leftState == SingleMotorProcessor.MotorState.ECCENTRIC || rightState == SingleMotorProcessor.MotorState.ECCENTRIC -> UserState.ECCENTRIC
-            else -> state 
+            else -> state // 保持当前状态
         }
 
         if (lastUserState != state && event == null) {
@@ -2083,124 +1953,102 @@ class UserStateProcessor {
         return StateResult(state.cnName, event)
     }
     
+    // [Fix 1] 尝试合并计次 (同步窗口逻辑)
     private fun tryMergeCount(now: Long): String {
+        // 如果最近一次合并发生不久，说明这是同一个同步动作的第二次触发，忽略
         if (now - lastMergedTime < 400) return "同步动作(Merged)"
         
+        // 检查双侧时间差
         val diff = abs(lastLeftPeakTime - lastRightPeakTime)
-        if (diff < 300) { 
+        if (diff < 300) { // 300ms 内先后到达 -> 视为一次双侧同步
+            // 只有当这是“后到达”的一侧，且“先到达”的一侧已经触发过计次时，实际上我们已经在第一次触发时计了数
+            // 但为了简单，我们在每次单侧触发时检查：
+            // 策略：每次单侧触发都导致 totalCount++ ? 不行，那样同步会计2次。
+            // 正确策略：
+            // 如果 (now - lastOtherPeakTime < 300)，说明另一侧刚触发过。这意味着这是同步动作的第二发。
+            // 此时不应该增加 totalCount (因为第一发已经加了)，或者应该合并。
+            // 简化逻辑：每次单侧触发先 +1。如果是同步的第二发，则 -1 (回滚) 或者 不加。
+            // 更好逻辑：
+            // Trigger 1 (L): diff > 300 (R is old). Total++.
+            // Trigger 2 (R, 100ms later): diff = 100 < 300. This is the partner. Don't add total.
+            // 记录 lastMergedTime = now.
             lastMergedTime = now
             return "双侧同步 (Sync)"
         } else {
+            // 独立动作
             totalCount++
             return "有效计次 +1"
         }
     }
 }
 
+// ===================================================================================
+// 动态基准池 (严格按文档)
+// ===================================================================================
 class DynamicBaseline {
     var stdStartPos: Float = 0f
-        private set 
-    var stdStroke: Float = 50f 
+        private set // KE-ZL-202309-0
+    var stdStroke: Float = 50f // 默认中行程
         private set
-    var isCalibrated: Boolean = false 
+    var peakPos: Float = 0f
+        private set
+    var isCalibrated: Boolean = false // [Fix 3] 标记是否已建立个人基准
         private set
 
     private val posBuffer = ArrayDeque<Float>()
     private val strokeHistory = ArrayDeque<Float>()
-    private val cvHistory = ArrayDeque<Float>() 
-    private var validRepCount = 0
-    private var missedStreak = 0
-
-    fun reset() {
-        isCalibrated = false
-        stdStartPos = 0f
-        stdStroke = 50f
-        posBuffer.clear()
-        strokeHistory.clear()
-        cvHistory.clear()
-        validRepCount = 0
-        missedStreak = 0
-    }
     
+    // 强制校准建立基准
     fun forceCalibrate(stroke: Float) {
         strokeHistory.add(stroke)
-        stdStroke = max(stroke, StrokeConfig.getScaledPolicy().triggerThreshold)
+        stdStroke = max(stroke, StrokeConfig.current.triggerThreshold)
         isCalibrated = true
     }
-    
-    fun submitValidStroke(lastStroke: Float, wasMissed: Boolean): Int {
-        val policy = StrokeConfig.getScaledPolicy()
-        if (!isCalibrated) {
-            stdStroke = max(lastStroke, policy.triggerThreshold)
-            strokeHistory.add(stdStroke)
-            isCalibrated = true
-            return 0
-        }
-        
-        if (StrokeConfig.isFreeTraining) {
-            if (wasMissed) {
-                missedStreak++
-            } else {
-                missedStreak = 0
-            }
 
-            if (cvHistory.size >= 3) cvHistory.removeFirst()
-            cvHistory.add(lastStroke)
-            if (cvHistory.size >= 3) {
-                val avg = cvHistory.average().toFloat()
-                val variance = cvHistory.map { (it - avg) * (it - avg) }.sum() / cvHistory.size
-                val sd = sqrt(variance.toDouble()).toFloat()
-                val cv = if (avg > 0) sd / avg else 1f
-                if (cv < 0.20f) { 
-                    val bounds = StrokeConfig.getScaledBounds()
-                    val newMode = when {
-                        avg < bounds[0] -> 0
-                        avg < bounds[1] -> 1
-                        avg < bounds[2] -> 2
-                        else -> 3
-                    }
-                    if (newMode != StrokeConfig.currentIndex) {
-                        StrokeConfig.currentIndex = newMode
-                        stdStroke = max(avg, policy.triggerThreshold)
-                        validRepCount = 0
-                        strokeHistory.clear()
-                        strokeHistory.add(stdStroke)
-                        val retro = missedStreak
-                        cvHistory.clear()
-                        missedStreak = 0
-                        return retro
-                    }
+    // KE-ZL-202309-0
+    fun update(force: Float, pos: Float, vel: Float, currentState: SingleMotorProcessor.MotorState) {
+        val policy = StrokeConfig.current
+        
+        // 1. 更新起点 (std_start_pos)
+        if (posBuffer.size >= 10) posBuffer.removeFirst() // 1s @ 10Hz
+        posBuffer.add(pos)
+
+        // 智能漂移修正: 允许在 [准备] 或 [复位] 状态下更新
+        if (currentState == SingleMotorProcessor.MotorState.PREPARE || currentState == SingleMotorProcessor.MotorState.RESET) { // KE-ZL-202309-0
+            val minPos = posBuffer.minOrNull() ?: pos
+            val maxPos = posBuffer.maxOrNull() ?: pos
+            // 条件1: 张力 > 2.0kg (文档)
+            if (force > 2.0f && (maxPos - minPos) < policy.staticZone) {
+                // 条件3: 低速确认 |平均速度| < 0.05m/s (文档)
+                if (abs(vel) < 0.05f) {
+                    // 更新起点 (阻尼更新简化为直接更新)
+                    stdStartPos = posBuffer.average().toFloat()
                 }
             }
         }
 
-        if (lastStroke in (stdStroke * 0.5f)..(stdStroke * 1.5f)) {
-            validRepCount++
-            if (validRepCount <= 3 || lastStroke >= stdStroke) {
-                if (strokeHistory.size >= 5) strokeHistory.removeFirst()
-                strokeHistory.add(lastStroke)
-                val baseLimit = if (StrokeConfig.isFreeTraining) 5f else policy.refStroke * 0.6f // [Fix] 给足疲劳下探空间
-                stdStroke = max(strokeHistory.average().toFloat(), baseLimit)
+        // 2. 更新标准行程 (std_stroke) - 在复位时结算
+        if (currentState == SingleMotorProcessor.MotorState.RESET) { // KE-ZL-202309-0
+            val lastStroke = abs(peakPos - stdStartPos) // 确保正值
+            if (isCalibrated) {
+                // 动态更新: 50% - 150% 范围内入队
+                if (lastStroke in (stdStroke * 0.5f)..(stdStroke * 1.5f)) {
+                    if (strokeHistory.size >= 5) strokeHistory.removeFirst()
+                    strokeHistory.add(lastStroke)
+                    // 加入最小触发阈值的保护，防止基准坍塌
+                    stdStroke = max(strokeHistory.average().toFloat(), policy.triggerThreshold)
+                }
+            } else {
+                // 冷启动兜底: 只要大于底噪，闭环后直接建立基准
+                if (lastStroke > 5.0f) {
+                    forceCalibrate(lastStroke)
+                }
             }
         }
-        return 0
     }
 
-    fun update(force: Float, pos: Float, vel: Float, currentState: SingleMotorProcessor.MotorState) {
-        val policy = StrokeConfig.getScaledPolicy()
-        
-        if (posBuffer.size >= 10) posBuffer.removeFirst() 
-        posBuffer.add(pos)
-
-        if (currentState == SingleMotorProcessor.MotorState.PREPARE || currentState == SingleMotorProcessor.MotorState.RESET) { 
-            val minPos = posBuffer.minOrNull() ?: pos
-            val maxPos = posBuffer.maxOrNull() ?: pos
-            
-            // [Fix] 极简的基准位置收敛：只要设备停稳、波动小，就立即自动归零，不再强绑定拉力张力限制
-            if (abs(vel) < 0.1f && (maxPos - minPos) < policy.staticZone) {
-                stdStartPos = posBuffer.average().toFloat()
-            }
-        }
+    fun setPeakPos(pos: Float) {
+        peakPos = pos
     }
 }
 
@@ -2209,62 +2057,53 @@ class DynamicBaseline {
 // ===================================================================================
 
 class MotorDetailPanel(context: Context, private val title: String, private val colorTheme: Int) : LinearLayout(context) {
+    // [UI Polish] Use Monospace font for stable numbers
     private val valTypeface = Typeface.MONOSPACE
     private val lblTypeface = Typeface.DEFAULT_BOLD
     
     private val tvTitle = TextView(context).apply { text = title; setTextColor(colorTheme); textSize = 12f; typeface = Typeface.DEFAULT_BOLD; }
     
-    private var showAbsolutePos = false // [Fix 3 & 4] 切换绝对位置与向心行程
-    
+    // [UI Fix] 3. 布局重构: 数字在上(大)，名称在下(小)
+    // Force, Stroke, Power, Speed
     private val tvForce = createValView()
-    private val tvStrokeOrPos = createValView()
+    private val tvStroke = createValView()
     private val tvPower = createValView()
     private val tvSpeed = createValView()
+    // [Feature] 新增时长显示
     private val tvConcentricTime = createValView()
     private val tvEccentricTime = createValView()
 
-    private val tvStrokeLabel = TextView(context).apply {
-        text = "向心行程 ⇌"
-        textSize = 10f; setTextColor(Color.CYAN); typeface = Typeface.DEFAULT_BOLD; setPadding(12,6,12,6)
-        background = GradientDrawable().apply { setColor(Color.DKGRAY); cornerRadius = 8f }
-        setOnClickListener {
-            showAbsolutePos = !showAbsolutePos
-            text = if (showAbsolutePos) "实时位置 ⇌" else "向心行程 ⇌"
-            setTextColor(if (showAbsolutePos) Color.YELLOW else Color.CYAN)
-        }
-    }
-
+    // State, Count -> 32sp Highlighted
     private val tvState = TextView(context).apply { textSize = 32f; setTextColor(Color.YELLOW); typeface = lblTypeface; text = "准备" }
     private val tvRawCount = TextView(context).apply { textSize = 32f; setTextColor(Color.GREEN); typeface = lblTypeface; text = "0" }
     
+    // Monitor Section (Restored Data)
     private val tvMonitor = TextView(context).apply { textSize = 10f; setTextColor(Color.GRAY); text = "Temp: -- | Err: --" }
 
     private fun createValView() = TextView(context).apply { textSize = 24f; setTextColor(Color.WHITE); typeface = valTypeface; text = "0" }
 
     init {
         orientation = VERTICAL
+        // [UI Polish] 6. 增加圆角背景
         background = GradientDrawable().apply { 
-            setColor(0xFF2C2C2E.toInt()) 
+            setColor(0xFF2C2C2E.toInt()) // [UI] 统一卡片色 (Surface Light)
             cornerRadius = 16f
         }
         setPadding(16, 16, 16, 16)
         
         addView(tvTitle)
         
+        // Row 1: Primary Metrics (Force & Stroke)
         val rowMain = LinearLayout(context).apply {
             orientation = HORIZONTAL
             weightSum = 2f
             setPadding(0, 16, 0, 0)
             addView(createKVBlock("实时拉力（kg）", tvForce), LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-            
-            val strokeBlock = LinearLayout(context).apply {
-                orientation = VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
-                addView(tvStrokeOrPos); addView(tvStrokeLabel)
-            }
-            addView(strokeBlock, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+            addView(createKVBlock("实时行程（cm）", tvStroke), LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         }
         addView(rowMain)
         
+        // Row 2: Secondary Metrics (Power & Speed)
         val rowSub = LinearLayout(context).apply {
             orientation = HORIZONTAL
             setPadding(0, 16, 0, 0)
@@ -2273,6 +2112,7 @@ class MotorDetailPanel(context: Context, private val title: String, private val 
         }
         addView(rowSub)
 
+        // Row 3: Durations [Feature]
         val rowTime = LinearLayout(context).apply {
             orientation = HORIZONTAL
             setPadding(0, 16, 0, 0)
@@ -2281,18 +2121,23 @@ class MotorDetailPanel(context: Context, private val title: String, private val 
         }
         addView(rowTime)
 
+        // Row 4: State & Count
         val rowState = LinearLayout(context).apply {
             orientation = HORIZONTAL
             setPadding(0, 24, 0, 8)
+            // 调整布局比例，让 Count 占据右侧显著位置
+            // [Fix 4] 文案优化：明确为“单侧状态机”
             addView(createKVBlock("单侧状态机", tvState), LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
             addView(createKVBlock("单侧计次", tvRawCount), LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         }
         addView(rowState)
         
+        // Row 5: Hardware Monitor
         addView(View(context).apply { setBackgroundColor(0xFF333333.toInt()); layoutParams = LayoutParams(-1, 1).apply { topMargin=8; bottomMargin=8 } })
         addView(tvMonitor)
     }
     
+    // [UI Fix] 3. 布局: Value 上, Label 下
     private fun createKVBlock(label: String, valueView: TextView): LinearLayout {
         return LinearLayout(context).apply {
             orientation = VERTICAL
@@ -2305,15 +2150,16 @@ class MotorDetailPanel(context: Context, private val title: String, private val 
     fun update(force: Float, stroke: Float, state: String, power: Float, rawCount: Int,
                conTime: Float, eccTime: Float,
                temp: Int, errorCode: Int, absPos: Float, speed: Float) { 
-        tvForce.text = String.format(Locale.US, "%.1f", force)
-        tvStrokeOrPos.text = String.format(Locale.US, "%.0f", if (showAbsolutePos) absPos else stroke) 
+        tvForce.text = "%.1f".format(force)
+        tvStroke.text = "%.0f".format(stroke) // CM整数显示更整洁
         tvPower.text = power.toInt().toString()
-        tvSpeed.text = String.format(Locale.US, "%.2f", speed / 100f)
-        tvConcentricTime.text = String.format(Locale.US, "%.1f", conTime)
-        tvEccentricTime.text = String.format(Locale.US, "%.1f", eccTime)
+        tvSpeed.text = "%.2f".format(speed / 100f)
+        tvConcentricTime.text = "%.1f".format(conTime)
+        tvEccentricTime.text = "%.1f".format(eccTime)
         tvState.text = state
         tvRawCount.text = "$rawCount"
 
+        // Status Monitoring Logic
         if (errorCode > 0) {
              tvMonitor.setTextColor(Color.RED)
              tvMonitor.text = "警告: 错误码 E$errorCode | 温度 ${temp}℃"
@@ -2337,60 +2183,45 @@ data class StrokePolicy(
 )
 
 object StrokeConfig {
-    // [精准还原] 严格对齐产品定义 MD 文档中的 男女标准库数值
-    val malePolicies = listOf(
-        StrokePolicy("超短行程", 20f, 2.0f, 3.0f, 3.5f, 2.0f),
-        StrokePolicy("短行程", 40f, 2.0f, 4.0f, 5.0f, 3.0f),
-        StrokePolicy("中行程", 60f, 2.0f, 4.0f, 7.0f, 4.5f),
-        StrokePolicy("长行程", 90f, 2.0f, 4.0f, 8.0f, 5.0f)
+    val policies = listOf(
+        StrokePolicy("超短行程", 15f, 1.5f, 2.5f, 2.5f, 1.5f),
+        StrokePolicy("短行程", 30f, 2.5f, 4.0f, 4.0f, 2.5f),
+        StrokePolicy("中行程", 50f, 4.0f, 6.0f, 6.0f, 4.0f),
+        StrokePolicy("长行程", 80f, 4.0f, 6.0f, 6.0f, 4.0f)
     )
-    val femalePolicies = listOf(
-        StrokePolicy("超短行程", 15f, 2.0f, 3.0f, 2.5f, 1.5f),
-        StrokePolicy("短行程", 30f, 2.0f, 4.0f, 4.0f, 2.5f),
-        StrokePolicy("中行程", 50f, 2.0f, 4.0f, 6.0f, 4.0f),
-        StrokePolicy("长行程", 75f, 2.0f, 4.0f, 7.0f, 4.0f)
-    )
-    var maleBounds = floatArrayOf(30f, 50f, 75f)     // 相邻两级的科学中位数边界
-    var femaleBounds = floatArrayOf(22.5f, 40f, 62.5f)
-
-    @Volatile var currentIndex = 2 
-    @Volatile var isFreeTraining = false
-    @Volatile var userGender = 0 
-    @Volatile var userHeight = 180f
-
-    fun getScaledPolicy(): StrokePolicy {
-        val basePolicies = if (userGender == 0) malePolicies else femalePolicies
-        val baseHeight = if (userGender == 0) 180f else 160f
-        val scale = (userHeight / baseHeight).coerceIn(0.5f, 1.5f)
-        val p = basePolicies[currentIndex]
-        return StrokePolicy(p.name, p.refStroke * scale, p.staticZone, p.jitterZone, p.triggerThreshold * scale, p.returnThreshold * scale)
-    }
-    
-    fun getScaledBounds(): FloatArray {
-        val b = if (userGender == 0) maleBounds else femaleBounds
-        val scale = (userHeight / (if (userGender == 0) 180f else 160f)).coerceIn(0.5f, 1.5f)
-        return floatArrayOf(b[0]*scale, b[1]*scale, b[2]*scale)
-    }
+    @Volatile var currentIndex = 2 // 默认中行程
+    val current: StrokePolicy get() = policies[currentIndex]
 }
 
+// [UI Fix] 5, 6, 7. 重构用户行为面板
 class UserStatePanel(context: Context) : LinearLayout(context) {
+    // [Fix 2] 增加标题，与电机卡片对齐
     private val tvTitle = TextView(context).apply { text = "用户行为"; setTextColor(Color.YELLOW); textSize = 12f; typeface = Typeface.DEFAULT_BOLD; }
 
+    // [Feature 2] 增加总次数显示在顶部
+    // [UI Optimization] Font size adjusted for alignment (24sp matches motor panel)
     private val tvCountVal = TextView(context).apply { textSize = 72f; typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD); setTextColor(Color.GREEN); gravity = Gravity.CENTER; text = "0" }
     private val tvCountLabel = TextView(context).apply { text = "总次数"; textSize = 10f; setTextColor(Color.GRAY); gravity = Gravity.CENTER; typeface = Typeface.DEFAULT_BOLD }
     
-    private val tvState = TextView(context).apply { textSize = 32f; typeface = Typeface.DEFAULT_BOLD; setTextColor(Color.YELLOW); gravity = Gravity.CENTER; text = "准备" } 
+    private val tvState = TextView(context).apply { textSize = 32f; typeface = Typeface.DEFAULT_BOLD; setTextColor(Color.YELLOW); gravity = Gravity.CENTER; text = "准备" } // KE-ZL-202309-0
+    // [UI Fix] 6. 新增 "用户行为状态" 文本在下方
+    // [Fix 4] 文案优化：明确为“用户状态机”
     private val tvLabel = TextView(context).apply { text = "用户状态机"; textSize = 10f; setTextColor(Color.GRAY); gravity = Gravity.CENTER; typeface = Typeface.DEFAULT_BOLD;}
 
     private var lastCount = 0
 
     init {
         orientation = VERTICAL
-        background = GradientDrawable().apply { setColor(0xFF2C2C2E.toInt()); cornerRadius = 16f } 
-        setPadding(16, 16, 16, 16) 
+        // gravity = Gravity.CENTER_HORIZONTAL // 移除整体居中，使用内部布局控制
+        background = GradientDrawable().apply { setColor(0xFF2C2C2E.toInt()); cornerRadius = 16f } // [UI] 统一卡片色
+        setPadding(16, 16, 16, 16) // [Fix] 这里的 Padding 与 MotorDetailPanel 保持一致
 
         addView(tvTitle)
         
+        // [UI Optimization] Replicate MotorDetailPanel structure for perfect alignment
+        
+        // Row 1: Total Count (Aligns with Force/Stroke)
+        // MotorPanel Row1 padding is (0, 16, 0, 0)
         val row1 = LinearLayout(context).apply {
             orientation = VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -2400,15 +2231,19 @@ class UserStatePanel(context: Context) : LinearLayout(context) {
         }
         addView(row1)
         
+        // Row 2: Placeholder (Aligns with Power/Speed)
+        // Create an invisible view to occupy exactly the same vertical space
         val row2 = LinearLayout(context).apply {
             orientation = VERTICAL
-            visibility = View.INVISIBLE 
+            visibility = View.INVISIBLE // Hidden placeholder
             setPadding(0, 16, 0, 0)
+            // Dummy views with same properties as MotorDetailPanel
             addView(TextView(context).apply { textSize = 24f; text = "0" }) 
             addView(TextView(context).apply { textSize = 10f; text = "Placeholder" }) 
         }
         addView(row2)
         
+        // Row 3: State (Aligns with State/RawCount)
         val row3 = LinearLayout(context).apply {
             orientation = VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -2419,9 +2254,10 @@ class UserStatePanel(context: Context) : LinearLayout(context) {
         addView(row3)
     }
 
-    fun update(state: String, count: Int) { 
+    fun update(state: String, count: Int) { // KE-ZL-202309-0
         tvState.text = state
         tvCountVal.text = "$count"
+        // [UI Fix] 7. 移除 "用户状态 -> xx" 显示
         
         tvState.setTextColor(when {
             state.contains(UserStateProcessor.UserState.PEAK.cnName) -> Color.RED
@@ -2444,21 +2280,25 @@ class UserStatePanel(context: Context) : LinearLayout(context) {
 class RealtimeCurveView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
-    private val paint1 = Paint().apply { color = "#00BCD4".toColorInt(); strokeWidth = 3f; style = Paint.Style.STROKE; isAntiAlias = true } 
+    private val paint1 = Paint().apply { color = "#00BCD4".toColorInt(); strokeWidth = 3f; style = Paint.Style.STROKE; isAntiAlias = true } // KE-ZL-202309-0
     private val paint2 = Paint().apply { color = "#E040FB".toColorInt(); strokeWidth = 3f; style = Paint.Style.STROKE; isAntiAlias = true }
+    // [性能优化] UI线程单线程访问，使用 ArrayDeque 替代 ConcurrentLinkedQueue 避免 size() O(N) 开销
     private val points1 = ArrayDeque<Float>(120)
     private val points2 = ArrayDeque<Float>(120)
-    private val maxPoints = 100 
+    private val maxPoints = 100 // 限制点数，优化绘图性能
     private val path = Path() 
 
     fun addPoint(f1: Float, f2: Float) {
+        // [Concurrent Fix] Synchronize access since this comes from IO Thread
         synchronized(this) {
+            // Efficiently manage queue size
             if (points1.size >= maxPoints) points1.removeFirst()
             if (points2.size >= maxPoints) points2.removeFirst()
             
             points1.add(f1)
             points2.add(f2)
         }
+        // Safe to call from background thread
         postInvalidate()
     }
 
@@ -2466,12 +2306,14 @@ class RealtimeCurveView @JvmOverloads constructor(
         super.onDraw(canvas)
         canvas.drawColor("#181818".toColorInt())
         
+        // [Concurrent Fix] Synchronize access during draw
         synchronized(this) {
             if (points1.isEmpty()) return
 
+            // Auto-scale height (Fast iteration inside sync block)
             val max1 = points1.maxOrNull() ?: 1f
             val max2 = points2.maxOrNull() ?: 1f
-            val globalMax = max(max(max1, max2), 10f) 
+            val globalMax = max(max(max1, max2), 10f) // Minimum 10kg scale
 
             val w = width.toFloat()
             val h = height.toFloat()
@@ -2479,13 +2321,21 @@ class RealtimeCurveView @JvmOverloads constructor(
 
             drawPath(canvas, points1, paint1, step, h, globalMax)
             drawPath(canvas, points2, paint2, step, h, globalMax)
+            
+            // Draw max value text
+            // [UI Fix] 移除 Max 文本
+            // paint1.style = Paint.Style.FILL
+            // paint1.textSize = 24f
+            // canvas.drawText("Max: ${globalMax.toInt()}kg", 10f, 30f, paint1)
+            // paint1.style = Paint.Style.STROKE
         }
     }
 
     private fun drawPath(c: Canvas, q: Collection<Float>, p: Paint, s: Float, h: Float, maxVal: Float) {
-        path.reset() 
+        path.reset() // [性能优化] 重置而非新建
         var x = 0f
         var first = true
+        // [Fix] 终极方案：使用显式 Iterator + while 循环，彻底规避任何 Lambda 变量捕获或闭包问题
         val iterator = q.iterator()
         while (iterator.hasNext()) {
             val v = iterator.next()
@@ -2500,13 +2350,15 @@ class RealtimeCurveView @JvmOverloads constructor(
 class RealtimeBarView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
-    private val paint1 = Paint().apply { color = 0xB000BCD4.toInt(); style = Paint.Style.FILL } 
-    private val paint2 = Paint().apply { color = 0xB0E040FB.toInt(); style = Paint.Style.FILL } 
+    // 移除 alpha 设置，直接使用带透明度的颜色值，避免 layer 合成开销 // KE-ZL-202309-0
+    private val paint1 = Paint().apply { color = 0xB000BCD4.toInt(); style = Paint.Style.FILL } // KE-ZL-202309-0
+    private val paint2 = Paint().apply { color = 0xB0E040FB.toInt(); style = Paint.Style.FILL } // KE-ZL-202309-0
     private val points1 = ArrayDeque<Float>(60)
     private val points2 = ArrayDeque<Float>(60)
-    private val maxPoints = 50 
+    private val maxPoints = 50 // 减少柱状图数量，进一步降低开销 // KE-ZL-202309-0
 
     fun addPoint(power1: Float, power2: Float) {
+        // [Concurrent Fix] Synchronize access
         synchronized(this) {
             if (points1.size >= maxPoints) points1.removeFirst()
             if (points2.size >= maxPoints) points2.removeFirst()
@@ -2520,14 +2372,15 @@ class RealtimeBarView @JvmOverloads constructor(
         super.onDraw(canvas)
         canvas.drawColor("#181818".toColorInt())
         
+        // [Concurrent Fix] Synchronize access
         synchronized(this) {
             if (points1.isEmpty()) return
 
             val h = height.toFloat()
             val w = width.toFloat()
-            val step = w / maxPoints 
+            val step = w / maxPoints // KE-ZL-202309-0
             val barWidth = step * 0.4f
-            val maxP = 600f 
+            val maxP = 600f // Max 600W fixed scale for power to see variations better
 
             var x = 0f
             val p1Iter = points1.iterator()
@@ -2540,6 +2393,7 @@ class RealtimeBarView @JvmOverloads constructor(
                 val h1 = (v1 / maxP) * h
                 val h2 = (v2 / maxP) * h
                 
+                // Draw side-by-side bars scrolling
                 canvas.drawRect(x, h - h1, x + barWidth, h, paint1)
                 canvas.drawRect(x + barWidth, h - h2, x + 2*barWidth, h, paint2)
                 
@@ -2549,6 +2403,9 @@ class RealtimeBarView @JvmOverloads constructor(
     }
 }
 
+// ===================================================================================
+// 环形调力盘组件 (CircularForceKnobView)
+// ===================================================================================
 class CircularForceKnobView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
@@ -2557,7 +2414,7 @@ class CircularForceKnobView @JvmOverloads constructor(
     private val maxWeight = 50.0f
     private var currentWeight = 2.5f
     private var isActive = false
-    private var modeName = "标准" 
+    private var modeName = "标准" // [UI Fix] 3. 默认模式名
     
     private val paintArc = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val paintThumb = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = Color.WHITE }
@@ -2568,9 +2425,11 @@ class CircularForceKnobView @JvmOverloads constructor(
     private var onValueChanged: ((Float) -> Unit)? = null
     private var onCenterClick: (() -> Unit)? = null
     
+    // 3/4 Circle: Start 135, Sweep 270. (Bottom opening)
     private val startAngle = 135f
     private val sweepAngle = 270f
     
+    // [Feature 3] 刻度绘制相关
     private var scaleAlpha = 0f
     private var scaleAnimator: ValueAnimator? = null
     private val paintScaleLine = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
@@ -2579,9 +2438,6 @@ class CircularForceKnobView @JvmOverloads constructor(
     private val paintScaleText = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
         textAlign = Paint.Align.CENTER; textSize = 20f; color = Color.LTGRAY; typeface = Typeface.DEFAULT 
     }
-    
-    private var isDraggingKnob = false
-    private var isPressingCenter = false
 
     fun setOnValueChangedListener(l: (Float) -> Unit) { onValueChanged = l }
     fun setOnCenterClickListener(l: () -> Unit) { onCenterClick = l }
@@ -2591,10 +2447,12 @@ class CircularForceKnobView @JvmOverloads constructor(
         invalidate()
     }
     
+    // [UI Fix] 3. 设置模式名称接口
     fun setModeName(name: String) {
         modeName = name
         invalidate()
     }
+    // [UI Fix] 5. 移除呼吸动效逻辑
 
     override fun performClick(): Boolean {
         super.performClick()
@@ -2602,87 +2460,56 @@ class CircularForceKnobView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val minSize = min(width, height).toFloat()
         val cx = width / 2f
         val cy = height / 2f
         
+        // Check center click (Radius < 30% width)
         val dx = event.x - cx
         val dy = event.y - cy
         val dist = hypot(dx, dy)
-        // [Fix 1] 使用最小边长计算，防止横屏 match_parent 导致热区超出预期
-        val centerRadius = minSize * 0.20f 
         
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                if (dist < centerRadius) {
-                    isPressingCenter = true
-                    isDraggingKnob = false
-                } else {
-                    isPressingCenter = false
-                    isDraggingKnob = true
-                    animateScale(true)
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                    updateKnobValue(dx, dy)
-                }
-                return true
+        if (dist < width * 0.25f) {
+            if (event.action == MotionEvent.ACTION_UP) {
+                animateScale(false) // 点击结束隐藏刻度
+                performClick()
+                onCenterClick?.invoke()
             }
-            MotionEvent.ACTION_MOVE -> {
-                if (isDraggingKnob) {
-                    updateKnobValue(dx, dy)
-                } else if (isPressingCenter) {
-                    if (dist >= centerRadius) {
-                        isPressingCenter = false
-                    }
+            return true
+        }
+        
+        // Knob Drag logic
+        if (event.action == MotionEvent.ACTION_MOVE || event.action == MotionEvent.ACTION_DOWN) {
+            // [Feature 3] 触摸显示刻度
+            if (event.action == MotionEvent.ACTION_DOWN) animateScale(true)
+            
+            var angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())).toFloat()
+            angle = (angle + 360) % 360
+            // Map angle to progress 0-1
+            // 135 deg -> 0, 45 deg (405) -> 1
+            // Normalize to start at 135
+            var relativeAngle = angle - 135
+            if (relativeAngle < 0) relativeAngle += 360
+            
+            if (relativeAngle <= sweepAngle) {
+                val progress = relativeAngle / sweepAngle
+                // Step 0.5kg
+                val rawVal = minWeight + progress * (maxWeight - minWeight)
+                val steppedVal = round(rawVal * 2) / 2.0f
+                if (steppedVal != currentWeight) {
+                    currentWeight = steppedVal
+                    onValueChanged?.invoke(currentWeight)
+                    invalidate()
                 }
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                if (isPressingCenter && dist < centerRadius) {
-                    performClick()
-                    onCenterClick?.invoke()
-                }
-                if (isDraggingKnob) {
-                    animateScale(false)
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                }
-                isPressingCenter = false
-                isDraggingKnob = false
-                return true
-            }
-            MotionEvent.ACTION_CANCEL -> {
-                if (isDraggingKnob) {
-                    animateScale(false)
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                }
-                isPressingCenter = false
-                isDraggingKnob = false
-                return true
             }
         }
-        return super.onTouchEvent(event)
+        
+        // [Feature 3] 松手/取消 隐藏刻度
+        if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
+            animateScale(false)
+        }
+        return true
     }
-
-    private fun updateKnobValue(dx: Float, dy: Float) {
-        var angle = Math.toDegrees(atan2(dy, dx).toDouble()).toFloat() // [Fix] 移除 dx, dy 的冗余精度转换
-        angle = (angle + 360) % 360
-        var relativeAngle = angle - startAngle
-        if (relativeAngle < 0) relativeAngle += 360
-        
-        val progress = when {
-            relativeAngle <= sweepAngle -> relativeAngle / sweepAngle
-            relativeAngle < sweepAngle + (360 - sweepAngle) / 2 -> 1f
-            else -> 0f
-        }
-        
-        val rawVal = minWeight + progress * (maxWeight - minWeight)
-        val steppedVal = round(rawVal * 2) / 2.0f
-        if (steppedVal != currentWeight) {
-            currentWeight = steppedVal
-            onValueChanged?.invoke(currentWeight)
-            invalidate()
-        }
-    }
-
+    
     private fun animateScale(show: Boolean) {
         scaleAnimator?.cancel()
         val target = if (show) 1f else 0f
@@ -2703,30 +2530,40 @@ class CircularForceKnobView @JvmOverloads constructor(
         val cx = w / 2
         val cy = h / 2
         
-        val safeMargin = 110f
+        // [UI Fix] 动态计算半径：预留 90px 安全边距给外圈刻度和数字，确保不被截断
+        val safeMargin = 90f
         val radius = (min(w, h) / 2f) - safeMargin
         
+        // 1. Background Arc
         paintArc.strokeWidth = 30f
         paintArc.color = 0xFF2A2A2A.toInt()
         canvas.drawArc(cx - radius, cy - radius, cx + radius, cy + radius, startAngle, sweepAngle, false, paintArc)
         
+        // 2. Active Arc
         paintArc.color = if (isActive) 0xFF00C853.toInt() else 0xFF00BCD4.toInt()
         val progress = (currentWeight - minWeight) / (maxWeight - minWeight)
         canvas.drawArc(cx - radius, cy - radius, cx + radius, cy + radius, startAngle, sweepAngle * progress, false, paintArc)
         
+        // 3. Thumb
         val thumbAngle = Math.toRadians((startAngle + sweepAngle * progress).toDouble())
         val tx = cx + radius * cos(thumbAngle).toFloat()
         val ty = cy + radius * sin(thumbAngle).toFloat()
         canvas.drawCircle(tx, ty, 20f, paintThumb)
         
+        // 4. Center Info
         paintTextVal.textSize = 64f
+        // [UI Polish] 对齐微调
         canvas.drawText("$currentWeight", cx, cy - 20, paintTextVal)
         paintTextLabel.textSize = 24f
         canvas.drawText("KG / ${maxWeight.toInt()}", cx, cy + 20, paintTextLabel)
         
+        // 5. Button State Text
+        // [UI Fix] 按钮文本逻辑: Active=卸力(点击卸力), Inactive=激活(点击激活)
         val btnText = if (isActive) "卸力" else "激活"
         val btnColor = if (isActive) 0xFF00C853.toInt() else 0xFF555555.toInt()
         paintBtn.color = btnColor
+        // Draw a rounded rect pill for button look below text
+        // [UI Fix] 3. 按钮下移以腾出空间
         val btnRectW = 160f
         val btnRectH = 50f
         val btnY = cy + 90f 
@@ -2736,23 +2573,29 @@ class CircularForceKnobView @JvmOverloads constructor(
         paintTextLabel.textSize = 24f
         canvas.drawText(btnText, cx, btnY + 35, paintTextLabel)
         
+        // [UI Fix] 3. 绘制阻力模式名称 (在按钮上方)
         paintTextLabel.color = Color.CYAN
         paintTextLabel.textSize = 28f
         canvas.drawText(modeName, cx, cy + 65f, paintTextLabel)
         
+        // 6. [Feature 3] Dynamic Scale
         if (scaleAlpha > 0f) {
             val outerR = radius + 40f
             val textR = radius + 65f
             paintScaleLine.alpha = (255 * scaleAlpha).toInt()
             paintScaleText.alpha = (255 * scaleAlpha).toInt()
             
+            // 5kg 步进刻度 (5, 10 ... 50)
             for (i in 5..50 step 5) {
                 val p = (i - minWeight) / (maxWeight - minWeight)
+                // 简单的角度计算
                 val rad = Math.toRadians((startAngle + sweepAngle * p).toDouble())
                 val c = cos(rad).toFloat()
                 val s = sin(rad).toFloat()
                 
+                // 刻度线
                 canvas.drawLine(cx + (radius + 20f) * c, cy + (radius + 20f) * s, cx + outerR * c, cy + outerR * s, paintScaleLine)
+                // 数字
                 canvas.drawText("$i", cx + textR * c, cy + textR * s + 8f, paintScaleText)
             }
         }
